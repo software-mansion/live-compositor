@@ -5,14 +5,18 @@ use axum::{
 };
 use compositor_render::InputId;
 use error::WhipServerError;
-use handlers::{handle_whip, status, terminate_whip_session, whip_ice_candidates_handler};
+use reqwest::StatusCode;
+use serde_json::{json, Value};
 use std::{
     collections::HashMap,
     net::SocketAddr,
     sync::{Arc, Mutex, Weak},
     time::{Duration, Instant},
 };
-use tokio::sync::mpsc;
+use tokio::{
+    signal,
+    sync::{mpsc, oneshot},
+};
 use tower_http::cors::CorsLayer;
 use tracing::{error, warn};
 use webrtc::{
@@ -30,18 +34,29 @@ use webrtc::{
         RTCRtpTransceiverInit,
     },
 };
+use whip_handlers::{
+    create_whip_session::handle_create_whip_session,
+    new_whip_ice_candidates::handle_new_whip_ice_candidates,
+    terminate_whip_session::handle_terminate_whip_session,
+};
 
 mod error;
-mod handlers;
-mod helpers;
+mod validate_bearer_token;
+mod whip_handlers;
 
 use crate::{queue::PipelineEvent, Pipeline};
 
 use super::EncodedChunk;
 
 pub async fn run_whip_whep_server(pipeline: Weak<Mutex<Pipeline>>) {
-    let pipeline_ctx = match pipeline.upgrade() {
-        Some(pipeline) => pipeline.lock().unwrap().ctx.clone(),
+    let (pipeline_ctx, shutdown_signal_receiver) = match pipeline.upgrade() {
+        Some(pipeline) => {
+            let mut locked_pipeline = pipeline.lock().unwrap();
+            (
+                locked_pipeline.ctx.clone(),
+                locked_pipeline.shutdown_whip_whep_receiver.take(),
+            )
+        }
         None => {
             warn!("Pipeline stopped.");
             return;
@@ -51,15 +66,16 @@ pub async fn run_whip_whep_server(pipeline: Weak<Mutex<Pipeline>>) {
     if !pipeline_ctx.start_whip_whep {
         return;
     }
+    let shutdown_signal_receiver = shutdown_signal_receiver.unwrap(); //it is safe because receiver is None only if start_whip_whep is false
 
     let state = pipeline_ctx.whip_whep_state;
     let port = pipeline_ctx.whip_whep_server_port;
 
     let app = Router::new()
         .route("/status", get(status))
-        .route("/whip/:id", post(handle_whip))
-        .route("/session/:id", patch(whip_ice_candidates_handler))
-        .route("/session/:id", delete(terminate_whip_session))
+        .route("/whip/:id", post(handle_create_whip_session))
+        .route("/session/:id", patch(handle_new_whip_ice_candidates))
+        .route("/session/:id", delete(handle_terminate_whip_session))
         .layer(CorsLayer::permissive())
         .with_state(state);
 
@@ -69,12 +85,41 @@ pub async fn run_whip_whep_server(pipeline: Weak<Mutex<Pipeline>>) {
         return;
     };
 
-    if let Err(err) = axum::serve(listener, app).await {
+    if let Err(err) = axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal(shutdown_signal_receiver))
+        .await
+    {
         error!("Cannot serve WHIP/WHEP server task: {err:?}");
     };
 }
 
-#[derive(Debug)]
+async fn shutdown_signal(receiver: oneshot::Receiver<()>) {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    let terminate = async {
+        if let Err(err) = receiver.await {
+            warn!(
+                "Error while receiving whip_whep server shutdown signal {:?}",
+                err
+            );
+        }
+    };
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
+}
+
+pub async fn status() -> Result<(StatusCode, axum::Json<Value>), WhipServerError> {
+    Ok((StatusCode::OK, axum::Json(json!({}))))
+}
+
+#[derive(Debug, Clone)]
 pub struct WhipInputConnectionOptions {
     pub video_sender: Option<mpsc::Sender<PipelineEvent<EncodedChunk>>>,
     pub audio_sender: Option<mpsc::Sender<PipelineEvent<EncodedChunk>>>,

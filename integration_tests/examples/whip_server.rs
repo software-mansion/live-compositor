@@ -94,7 +94,7 @@ fn client_code() -> Result<()> {
                 "initial": {
                     "root": {
                         "type": "view",
-                        "background_color_rgba": "#4d4d4dff",
+                        "background_color": "#4d4d4dff",
                         "children": [
                             {
                                 "type": "rescaler",

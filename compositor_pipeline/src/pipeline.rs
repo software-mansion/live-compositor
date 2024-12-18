@@ -27,6 +27,7 @@ use output::OutputOptions;
 use output::RawDataOutputOptions;
 use pipeline_output::register_pipeline_output;
 use tokio::runtime::Runtime;
+use tokio::sync::oneshot;
 use tracing::{error, info, trace, warn};
 use types::RawDataSender;
 use whip_whep::run_whip_whep_server;
@@ -116,6 +117,8 @@ pub struct Pipeline {
     renderer: Renderer,
     audio_mixer: AudioMixer,
     is_started: bool,
+    shutdown_whip_whep_sender: Option<oneshot::Sender<()>>,
+    shutdown_whip_whep_receiver: Option<oneshot::Receiver<()>>,
 }
 
 #[derive(Debug)]
@@ -199,6 +202,16 @@ impl Pipeline {
             Some(tokio_rt) => tokio_rt,
             None => Arc::new(Runtime::new().map_err(InitPipelineError::CreateTokioRuntime)?),
         };
+        let shutdown_whip_whep_sender;
+        let shutdown_whip_whep_receiver;
+        if opts.start_whip_whep {
+            let (tx, rx) = oneshot::channel();
+            shutdown_whip_whep_sender = Some(tx);
+            shutdown_whip_whep_receiver = Some(rx);
+        } else {
+            shutdown_whip_whep_sender = None;
+            shutdown_whip_whep_receiver = None;
+        }
         let event_emitter = Arc::new(EventEmitter::new());
         let pipeline = Pipeline {
             outputs: HashMap::new(),
@@ -207,6 +220,8 @@ impl Pipeline {
             renderer,
             audio_mixer: AudioMixer::new(opts.output_sample_rate),
             is_started: false,
+            shutdown_whip_whep_sender,
+            shutdown_whip_whep_receiver,
             ctx: PipelineCtx {
                 output_sample_rate: opts.output_sample_rate,
                 output_framerate: opts.queue_options.output_framerate,
@@ -481,6 +496,11 @@ impl Pipeline {
 
 impl Drop for Pipeline {
     fn drop(&mut self) {
+        if let Some(sender) = self.shutdown_whip_whep_sender.take() {
+            if let Err(err) = sender.send(()) {
+                warn!("Cannot sent shutdown signal to whip_whep server: {err:?}")
+            }
+        }
         self.queue.shutdown()
     }
 }

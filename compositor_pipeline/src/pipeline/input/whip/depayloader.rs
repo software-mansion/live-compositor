@@ -10,7 +10,7 @@ use webrtc::rtp_transceiver::rtp_codec::RTPCodecType;
 
 use crate::pipeline::{
     decoder,
-    types::{AudioCodec, EncodedChunk, EncodedChunkKind, VideoCodec},
+    types::{AudioCodec, EncodedChunk, EncodedChunkKind, IsKeyframe, VideoCodec},
     VideoDecoder,
 };
 
@@ -122,6 +122,7 @@ impl VideoDepayloader {
                     data: mem::take(buffer).concat().into(),
                     pts: Duration::from_secs_f64(timestamp as f64 / 90000.0),
                     dts: None,
+                    is_keyframe: IsKeyframe::Unknown,
                     kind,
                 };
 
@@ -137,6 +138,12 @@ pub enum AudioDepayloader {
         depayloader: OpusPacket,
         rollover_state: RolloverState,
     },
+}
+
+impl Default for AudioDepayloader {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl AudioDepayloader {
@@ -167,6 +174,7 @@ impl AudioDepayloader {
                     data: opus_packet,
                     pts: Duration::from_secs_f64(timestamp as f64 / 48000.0),
                     dts: None,
+                    is_keyframe: IsKeyframe::NoKeyframes,
                     kind,
                 }])
             }
