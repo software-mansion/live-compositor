@@ -58,7 +58,7 @@ async function run() {
   void ffplayStartPlayerAsync('127.0.0.1', 8001);
   await sleep(2000);
 
-  await compositor.registerOutput('output_1', {
+  await compositor.registerOutput('output_1', <ExampleApp />, {
     type: 'rtp_stream',
     port: 8001,
     ip: '127.0.0.1',
@@ -72,7 +72,6 @@ async function run() {
         width: 1920,
         height: 1080,
       },
-      root: <ExampleApp />,
     },
   });
 

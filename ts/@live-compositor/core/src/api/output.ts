@@ -4,7 +4,9 @@ import type {
   RegisterRtpOutput,
   RegisterMp4Output,
   RegisterCanvasOutput,
+  _liveCompositorInternals,
 } from 'live-compositor';
+import { inputRefIntoRawId } from './input.js';
 
 export type RegisterOutputRequest = Api.RegisterOutput | RegisterCanvasOutputRequest;
 
@@ -145,10 +147,12 @@ function intoMp4AudioEncoderOptions(
   };
 }
 
-export function intoAudioInputsConfiguration(audio: Outputs.AudioInputsConfiguration): Api.Audio {
+export function intoAudioInputsConfiguration(
+  inputs: _liveCompositorInternals.AudioConfig
+): Api.Audio {
   return {
-    inputs: audio.inputs.map(input => ({
-      input_id: input.inputId,
+    inputs: inputs.map(input => ({
+      input_id: inputRefIntoRawId(input.inputRef),
       volume: input.volume,
     })),
   };

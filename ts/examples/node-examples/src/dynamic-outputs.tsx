@@ -46,14 +46,13 @@ async function run() {
     preset: 'ultrafast',
   } as const;
 
-  await compositor.registerOutput('output_stream', {
+  await compositor.registerOutput('output_stream', <ExampleApp />, {
     type: 'rtp_stream',
     port: 8001,
     transportProtocol: 'tcp_server',
     video: {
       encoder: VIDEO_ENCODER_OPTS,
       resolution: RESOLUTION,
-      root: <ExampleApp />,
     },
     audio: {
       encoder: {
@@ -63,13 +62,12 @@ async function run() {
     },
   });
   void gstReceiveTcpStream('127.0.0.1', 8001);
-  await compositor.registerOutput('output_recording', {
+  await compositor.registerOutput('output_recording', <ExampleApp />, {
     type: 'mp4',
     serverPath: path.join(__dirname, '../.workingdir/dynamic_outputs_recording.mp4'),
     video: {
       encoder: VIDEO_ENCODER_OPTS,
       resolution: RESOLUTION,
-      root: <ExampleApp />,
     },
     audio: {
       encoder: {
@@ -94,13 +92,12 @@ async function run() {
     type: 'mp4',
     serverPath: path.join(__dirname, '../.assets/ElephantsDream.mp4'),
   });
-  await compositor.registerOutput('output_recording_part2', {
+  await compositor.registerOutput('output_recording_part2', <ExampleApp />, {
     type: 'mp4',
     serverPath: path.join(__dirname, '../.workingdir/dynamic_outputs_recording_10s.mp4'),
     video: {
       encoder: VIDEO_ENCODER_OPTS,
       resolution: RESOLUTION,
-      root: <ExampleApp />,
     },
     audio: {
       encoder: {

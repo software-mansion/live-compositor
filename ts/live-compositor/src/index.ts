@@ -14,9 +14,9 @@ import {
   useBlockingTask,
   useCurrentTimestamp,
 } from './hooks.js';
-import { CompositorEvent, CompositorEventType } from './types/events.js';
 import Show, { ShowProps } from './components/Show.js';
 import { SlideShow, Slide, SlideProps, SlideShowProps } from './components/SlideShow.js';
+import Mp4, { Mp4Props } from './components/Mp4.js';
 
 export { RegisterRtpInput, RegisterMp4Input } from './types/registerInput.js';
 export {
@@ -54,9 +54,9 @@ export {
   SlideProps,
   SlideShow,
   SlideShowProps,
+  Mp4,
+  Mp4Props,
 };
-
-export { CompositorEvent, CompositorEventType };
 
 export { useInputStreams, useAudioInput, useBlockingTask, useAfterTimestamp, useCurrentTimestamp };
 

@@ -68,6 +68,7 @@ async function run() {
   });
 
   await compositor.render(
+    <ExampleApp />,
     {
       type: 'mp4',
       serverPath: path.join(__dirname, '../.assets/combing_mp4_output.mp4'),
@@ -80,7 +81,6 @@ async function run() {
           width: 1920,
           height: 1080,
         },
-        root: <ExampleApp />,
       },
     },
     10000

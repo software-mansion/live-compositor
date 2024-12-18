@@ -22,10 +22,13 @@ export class OfflineTimeContext {
   private currentTimestamp: number = 0;
   private onChangeCallbacks: Set<() => void> = new Set();
 
-  constructor(onChange: () => void) {
+  constructor(onChange: () => void, onTimeChange: (timestam: number) => void) {
     this.onChange = onChange;
     this.tasks = [];
     this.timestamps = [];
+    this.onChangeCallbacks.add(() => {
+      onTimeChange(this.currentTimestamp);
+    });
   }
 
   public timestampMs(): number {

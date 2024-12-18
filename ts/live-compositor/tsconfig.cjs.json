@@ -4,6 +4,6 @@
     "outDir": "cjs",
     "module": "commonjs",
     "moduleResolution": "node",
-    "target": "es2015"
+    "target": "es2019"
   }
 }
