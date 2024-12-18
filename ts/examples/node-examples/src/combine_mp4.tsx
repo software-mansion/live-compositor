@@ -50,41 +50,43 @@ function InputTile({ inputId }: { inputId: string }) {
 
 async function run() {
   await downloadAllAssets();
-  const compositor = new OfflineCompositor();
-  await compositor.init();
+  for (let i = 0; i < 100; i++) {
+    const compositor = new OfflineCompositor();
+    await compositor.init();
 
-  await compositor.registerInput('input_1', {
-    type: 'mp4',
-    serverPath: path.join(__dirname, '../.assets/BigBuckBunny.mp4'),
-    offsetMs: 0,
-    required: true,
-  });
-
-  await compositor.registerInput('input_2', {
-    type: 'mp4',
-    serverPath: path.join(__dirname, '../.assets/ElephantsDream.mp4'),
-    offsetMs: 0,
-    required: true,
-  });
-
-  await compositor.render(
-    <ExampleApp />,
-    {
+    await compositor.registerInput('input_1', {
       type: 'mp4',
-      serverPath: path.join(__dirname, '../.assets/combing_mp4_output.mp4'),
-      video: {
-        encoder: {
-          type: 'ffmpeg_h264',
-          preset: 'ultrafast',
-        },
-        resolution: {
-          width: 1920,
-          height: 1080,
+      serverPath: path.join(__dirname, '../.assets/BigBuckBunny.mp4'),
+      offsetMs: 0,
+      required: true,
+    });
+
+    await compositor.registerInput('input_2', {
+      type: 'mp4',
+      serverPath: path.join(__dirname, '../.assets/ElephantsDream.mp4'),
+      offsetMs: 0,
+      required: true,
+    });
+
+    await compositor.render(
+      <ExampleApp />,
+      {
+        type: 'mp4',
+        serverPath: path.join(__dirname, '../.assets/combing_mp4_output.mp4'),
+        video: {
+          encoder: {
+            type: 'ffmpeg_h264',
+            preset: 'ultrafast',
+          },
+          resolution: {
+            width: 1920,
+            height: 1080,
+          },
         },
       },
-    },
-    10000
-  );
+      10000
+    );
+  }
   process.exit(0);
 }
 void run();

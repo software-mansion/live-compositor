@@ -94,6 +94,10 @@ class LocallySpawnedInstance implements CompositorManager {
   public registerEventListener(cb: (event: object) => void): void {
     this.wsConnection?.registerEventListener(cb);
   }
+
+  public async shutdown(): Promise<void> {
+    await this.wsConnection.close();
+  }
 }
 
 async function prepareExecutable(enableWebRenderer?: boolean): Promise<string> {

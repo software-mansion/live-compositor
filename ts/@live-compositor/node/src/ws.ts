@@ -6,6 +6,7 @@ export class WebSocketConnection {
   private listeners: Set<(event: object) => void>;
   // @ts-expect-error: unused if we don't send messages via WebSocket
   private ws: WebSocket | null = null;
+  private donePromise?: Promise<void>;
 
   constructor(url: string) {
     this.url = url;
@@ -39,8 +40,11 @@ export class WebSocketConnection {
         }
       });
 
-      ws.on('close', () => {
-        this.ws = null;
+      this.donePromise = new Promise(res => {
+        ws.on('close', () => {
+          this.ws = null;
+          res();
+        });
       });
     });
     this.ws = ws;
@@ -48,6 +52,11 @@ export class WebSocketConnection {
 
   public registerEventListener(cb: (event: object) => void): void {
     this.listeners.add(cb);
+  }
+
+  public async close(): Promise<void> {
+    this.ws?.close();
+    await this.donePromise;
   }
 }
 
