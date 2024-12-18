@@ -7,7 +7,7 @@ import { createCompositorComponent, sceneComponentIntoApi } from '../component.j
 
 export type RescalerStyleProps = {
   /**
-   * (**default=`"fit"`**) Resize mode:
+   * (**default=`"fit"`**) Rescale mode:
    */
   rescaleMode?: Api.RescaleMode;
   /**
