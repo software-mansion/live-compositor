@@ -4,7 +4,6 @@ import WebSocket from 'ws';
 export class WebSocketConnection {
   private url: string;
   private listeners: Set<(event: object) => void>;
-  // @ts-expect-error: unused if we don't send messages via WebSocket
   private ws: WebSocket | null = null;
   private donePromise?: Promise<void>;
 

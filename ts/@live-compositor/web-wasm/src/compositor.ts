@@ -9,6 +9,7 @@ import type { RegisterImage } from './renderers';
 import type { ReactElement } from 'react';
 import type { Logger } from 'pino';
 import { pino } from 'pino';
+import { assert } from './utils';
 
 export type LiveCompositorOptions = {
   framerate?: Framerate;
@@ -43,7 +44,8 @@ export default class LiveCompositor {
       renderer: this.renderer!,
       framerate: this.options.framerate ?? { num: 30, den: 1 },
     });
-    this.coreCompositor = new CoreLiveCompositor(this.instance!, this.logger);
+    assert(this.instance);
+    this.coreCompositor = new CoreLiveCompositor(this.instance, this.logger);
 
     await this.coreCompositor!.init();
   }
@@ -90,7 +92,8 @@ export default class LiveCompositor {
   /**
    * Stops processing pipeline.
    */
-  public stop(): void {
-    this.instance!.stop();
+  public async terminate(): Promise<void> {
+    await this.coreCompositor?.terminate();
+    await this.instance?.terminate();
   }
 }

@@ -140,6 +140,10 @@ export class LiveCompositor {
     this.startTime = startTime;
   }
 
+  public async terminate(): Promise<void> {
+    await this.manager.terminate();
+  }
+
   private handleEvent(rawEvent: unknown) {
     const event = parseEvent(rawEvent, this.logger);
     if (!event) {

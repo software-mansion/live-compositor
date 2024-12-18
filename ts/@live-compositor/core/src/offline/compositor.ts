@@ -78,6 +78,7 @@ export class OfflineCompositor {
     await this.api.start();
 
     await renderPromise;
+    await this.manager.terminate();
   }
 
   public async registerInput(inputId: string, request: RegisterInput): Promise<object> {

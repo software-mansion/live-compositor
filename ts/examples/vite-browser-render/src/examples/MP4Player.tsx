@@ -14,7 +14,9 @@ function MP4Player() {
     }
 
     void compositor.start();
-    return () => compositor.stop();
+    return () => {
+      void compositor.terminate();
+    };
   }, [compositor]);
 
   return (
