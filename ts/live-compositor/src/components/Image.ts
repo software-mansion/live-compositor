@@ -1,14 +1,12 @@
-import type { SceneComponent } from '../component.js';
+import type { ComponentBaseProps, SceneComponent } from '../component.js';
 import { createCompositorComponent } from '../component.js';
 import type { Api } from '../index.js';
 
-export type ImageProps = {
-  children?: undefined;
-
+export type ImageProps = Omit<ComponentBaseProps, 'children'> & {
   /**
    * Id of a component.
    */
-  id?: Api.ComponentId | null;
+  id?: Api.ComponentId;
   /**
    * Id of an image. It identifies an image registered using `LiveCompositor.registerImage`.
    */
