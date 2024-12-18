@@ -1,4 +1,11 @@
-export function throttle(fn: () => Promise<void>, timeoutMs: number): () => void {
+import type { Logger } from 'pino';
+
+type ThrottleOptions = {
+  logger: Logger;
+  timeoutMs: number;
+};
+
+export function throttle(fn: () => Promise<void>, opts: ThrottleOptions): () => void {
   let shouldCall: boolean = false;
   let running: boolean = false;
 
@@ -10,10 +17,10 @@ export function throttle(fn: () => Promise<void>, timeoutMs: number): () => void
       try {
         await fn();
       } catch (error) {
-        console.log(error);
+        opts.logger.error(error);
       }
 
-      const timeoutLeft = start + timeoutMs - Date.now();
+      const timeoutLeft = start + opts.timeoutMs - Date.now();
       if (timeoutLeft > 0) {
         await sleep(timeoutLeft);
       }

@@ -1,12 +1,13 @@
 import { _liveCompositorInternals } from 'live-compositor';
 import { parseInputRef } from './api/input.js';
+import type { Logger } from 'pino';
 
 export type CompositorEvent = _liveCompositorInternals.CompositorEvent;
 export const CompositorEventType = _liveCompositorInternals.CompositorEventType;
 
-export function parseEvent(event: any): CompositorEvent | null {
+export function parseEvent(event: any, logger: Logger): CompositorEvent | null {
   if (!event.type) {
-    console.error(`Malformed event: ${event}`);
+    logger.error(`Malformed event: ${event}`);
     return null;
   } else if (
     [
@@ -22,7 +23,7 @@ export function parseEvent(event: any): CompositorEvent | null {
   } else if (CompositorEventType.OUTPUT_DONE === event.type) {
     return { type: event.type, outputId: event.output_id };
   } else {
-    console.error(`Unknown event type: ${event.type}`);
+    logger.error(`Unknown event type: ${event.type}`);
     return null;
   }
 }

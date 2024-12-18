@@ -23,12 +23,11 @@ class ExistingInstance implements CompositorManager {
     this.port = opts.port;
     this.ip = opts.ip;
     this.protocol = opts.protocol ?? 'http';
-
     const wsProtocol = this.protocol === 'https' ? 'wss' : 'ws';
     this.wsConnection = new WebSocketConnection(`${wsProtocol}://${this.ip}:${this.port}/ws`);
   }
 
-  public async setupInstance(_opts: SetupInstanceOptions): Promise<void> {
+  public async setupInstance(opts: SetupInstanceOptions): Promise<void> {
     // TODO: verify if options match
     // https://github.com/software-mansion/live-compositor/issues/877
     await retry(async () => {
@@ -38,7 +37,7 @@ class ExistingInstance implements CompositorManager {
         route: '/status',
       });
     }, 10);
-    await this.wsConnection.connect();
+    await this.wsConnection.connect(opts.logger);
   }
 
   public async sendRequest(request: ApiRequest): Promise<object> {
@@ -46,7 +45,7 @@ class ExistingInstance implements CompositorManager {
   }
 
   public registerEventListener(cb: (event: object) => void): void {
-    this.wsConnection.registerEventListener(cb);
+    this.wsConnection?.registerEventListener(cb);
   }
 }
 

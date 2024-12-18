@@ -7,6 +7,8 @@ import type { RegisterInput } from './input/registerInput';
 import { intoRegisterInput } from './input/registerInput';
 import type { RegisterImage } from './renderers';
 import type { ReactElement } from 'react';
+import type { Logger } from 'pino';
+import { pino } from 'pino';
 
 export type LiveCompositorOptions = {
   framerate?: Framerate;
@@ -23,6 +25,7 @@ export default class LiveCompositor {
   private instance?: WasmInstance;
   private renderer?: Renderer;
   private options: LiveCompositorOptions;
+  private logger: Logger = pino({ level: 'warn' });
 
   public constructor(options: LiveCompositorOptions) {
     this.options = options;
@@ -40,7 +43,7 @@ export default class LiveCompositor {
       renderer: this.renderer!,
       framerate: this.options.framerate ?? { num: 30, den: 1 },
     });
-    this.coreCompositor = new CoreLiveCompositor(this.instance!);
+    this.coreCompositor = new CoreLiveCompositor(this.instance!, this.logger);
 
     await this.coreCompositor!.init();
   }

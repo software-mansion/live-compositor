@@ -16,3 +16,4 @@ export {
   ChildrenLifetimeContext,
   ChildrenLifetimeContextType,
 } from './context/childrenLifetimeContext.js';
+export { Logger } from './types/logger.js';
