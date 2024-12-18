@@ -8,7 +8,8 @@ import type { ApiRequest, CompositorManager, SetupInstanceOptions } from '@live-
 
 import { download, sendRequest } from '../fetch';
 import { retry, sleep } from '../utils';
-import { spawn } from '../spawn';
+import type { SpawnPromise } from '../spawn';
+import { killProcess, spawn } from '../spawn';
 import { WebSocketConnection } from '../ws';
 import { compositorInstanceLoggerOptions } from '../logger';
 
@@ -30,6 +31,7 @@ class LocallySpawnedInstance implements CompositorManager {
   private executablePath?: string;
   private wsConnection: WebSocketConnection;
   private enableWebRenderer?: boolean;
+  private childSpawnPromise?: SpawnPromise;
 
   constructor(opts: ManagedInstanceOptions) {
     this.port = opts.port;
@@ -65,8 +67,9 @@ class LocallySpawnedInstance implements CompositorManager {
       LIVE_COMPOSITOR_LOGGER_FORMAT: format,
       LIVE_COMPOSITOR_LOGGER_LEVEL: level,
     };
-    spawn(executablePath, [], { env, stdio: 'inherit' }).catch(err => {
-      opts.logger.error({ err }, 'LiveCompositor instance failed');
+    this.childSpawnPromise = spawn(executablePath, [], { env, stdio: 'inherit' });
+    this.childSpawnPromise.catch(err => {
+      opts.logger.error(err, 'LiveCompositor instance failed');
       // TODO: parse structured logging from compositor and send them to this logger
       if (err.stderr) {
         console.error(err.stderr);
@@ -92,7 +95,14 @@ class LocallySpawnedInstance implements CompositorManager {
   }
 
   public registerEventListener(cb: (event: object) => void): void {
-    this.wsConnection?.registerEventListener(cb);
+    this.wsConnection.registerEventListener(cb);
+  }
+
+  public async terminate(): Promise<void> {
+    await this.wsConnection.close();
+    if (this.childSpawnPromise) {
+      await killProcess(this.childSpawnPromise);
+    }
   }
 }
 

@@ -45,7 +45,11 @@ class ExistingInstance implements CompositorManager {
   }
 
   public registerEventListener(cb: (event: object) => void): void {
-    this.wsConnection?.registerEventListener(cb);
+    this.wsConnection.registerEventListener(cb);
+  }
+
+  public async terminate(): Promise<void> {
+    await this.wsConnection.close();
   }
 }
 

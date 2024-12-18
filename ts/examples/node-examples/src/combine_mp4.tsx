@@ -85,6 +85,5 @@ async function run() {
     },
     10000
   );
-  process.exit(0);
 }
 void run();

@@ -5,37 +5,53 @@ type ThrottleOptions = {
   timeoutMs: number;
 };
 
-export function throttle(fn: () => Promise<void>, opts: ThrottleOptions): () => void {
-  let shouldCall: boolean = false;
-  let running: boolean = false;
+export class ThrottledFunction {
+  private fn: () => Promise<void>;
+  private shouldCall: boolean = false;
+  private runningPromise?: Promise<void> = undefined;
+  private opts: ThrottleOptions;
 
-  const start = async () => {
-    while (shouldCall) {
+  constructor(fn: () => Promise<void>, opts: ThrottleOptions) {
+    this.opts = opts;
+    this.fn = fn;
+  }
+
+  public scheduleCall() {
+    this.shouldCall = true;
+    if (this.runningPromise) {
+      return;
+    }
+    this.runningPromise = this.doCall();
+  }
+
+  public async waitForPendingCalls(): Promise<void> {
+    while (this.runningPromise) {
+      await this.runningPromise;
+    }
+  }
+
+  public setFn(fn: () => Promise<void>) {
+    this.fn = fn;
+  }
+
+  private async doCall() {
+    while (this.shouldCall) {
       const start = Date.now();
-      shouldCall = false;
+      this.shouldCall = false;
 
       try {
-        await fn();
+        await this.fn();
       } catch (error) {
-        opts.logger.error(error);
+        this.opts.logger.error(error);
       }
 
-      const timeoutLeft = start + opts.timeoutMs - Date.now();
+      const timeoutLeft = start + this.opts.timeoutMs - Date.now();
       if (timeoutLeft > 0) {
         await sleep(timeoutLeft);
       }
-      running = false;
+      this.runningPromise = undefined;
     }
-  };
-
-  return () => {
-    shouldCall = true;
-    if (running) {
-      return;
-    }
-    running = true;
-    void start();
-  };
+  }
 }
 
 export async function sleep(timeoutMs: number): Promise<void> {
