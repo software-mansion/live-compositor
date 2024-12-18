@@ -17,7 +17,19 @@ pub struct EncodedChunk {
     pub data: Bytes,
     pub pts: Duration,
     pub dts: Option<Duration>,
+    pub is_keyframe: IsKeyframe,
     pub kind: EncodedChunkKind,
+}
+
+pub enum IsKeyframe {
+    /// this is a keyframe
+    Yes,
+    /// this is not a keyframe
+    No,
+    /// it's unknown whether this frame is a keyframe or not
+    Unknown,
+    /// the codec this chunk is encoded in does not have keyframes at all
+    NoKeyframes,
 }
 
 #[derive(Debug)]

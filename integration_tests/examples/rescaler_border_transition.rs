@@ -48,7 +48,7 @@ fn client_code() -> Result<()> {
 
     let scene1 = json!({
         "type": "view",
-        "background_color_rgba": "#42daf5ff",
+        "background_color": "#42daf5ff",
         "children": [
             {
                 "type": "rescaler",
@@ -58,13 +58,13 @@ fn client_code() -> Result<()> {
                 "top": 0.0,
                 "right": 0.0,
                 "mode": "fill",
-                "border_color_rgba": "#FFFFFFFF",
+                "border_color": "#FFFFFFFF",
                 "box_shadow": [
                     {
                         "offset_y": 40,
                         "offset_x": 0,
                         "blur_radius": 40,
-                        "color_rgba": "#00000088",
+                        "color": "#00000088",
                     }
                 ],
                 "child": {
@@ -77,7 +77,7 @@ fn client_code() -> Result<()> {
 
     let scene2 = json!({
         "type": "view",
-        "background_color_rgba": "#42daf5ff",
+        "background_color": "#42daf5ff",
         "children": [
             {
                 "type": "rescaler",
@@ -89,13 +89,13 @@ fn client_code() -> Result<()> {
                 "mode": "fill",
                 "border_radius": 50,
                 "border_width": 15,
-                "border_color_rgba": "#FFFFFFFF",
+                "border_color": "#FFFFFFFF",
                 "box_shadow": [
                     {
                         "offset_y": 40,
                         "offset_x": 0,
                         "blur_radius": 40,
-                        "color_rgba": "#00000088",
+                        "color": "#00000088",
                     }
                 ],
                 "transition": {

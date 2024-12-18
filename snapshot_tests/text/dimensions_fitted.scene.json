@@ -9,7 +9,7 @@
                     "text": "Example text",
                     "font_size": 100,
                     "font_family": "Inter",
-                    "background_color_rgba": "#FF0000FF"
+                    "background_color": "#FF0000FF"
                 }
             ]
         }

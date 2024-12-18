@@ -6,6 +6,7 @@ import { intoRegisterOutput } from './output/registerOutput';
 import type { RegisterInput } from './input/registerInput';
 import { intoRegisterInput } from './input/registerInput';
 import type { RegisterImage } from './renderers';
+import type { ReactElement } from 'react';
 
 export type LiveCompositorOptions = {
   framerate?: Framerate;
@@ -44,8 +45,12 @@ export default class LiveCompositor {
     await this.coreCompositor!.init();
   }
 
-  public async registerOutput(outputId: string, request: RegisterOutput): Promise<void> {
-    await this.coreCompositor!.registerOutput(outputId, intoRegisterOutput(request));
+  public async registerOutput(
+    outputId: string,
+    root: ReactElement,
+    request: RegisterOutput
+  ): Promise<void> {
+    await this.coreCompositor!.registerOutput(outputId, root, intoRegisterOutput(request));
   }
 
   public async unregisterOutput(outputId: string): Promise<void> {

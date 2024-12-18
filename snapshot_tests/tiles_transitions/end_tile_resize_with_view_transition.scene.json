@@ -6,7 +6,7 @@
                 {
                     "type": "view",
                     "id": "view",
-                    "background_color_rgba": "#333333FF",
+                    "background_color": "#333333FF",
                     "width": 320,
                     "height": 340,
                     "bottom": 10,

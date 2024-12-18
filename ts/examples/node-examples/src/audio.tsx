@@ -56,7 +56,7 @@ async function run() {
 
   await sleep(2000);
 
-  await compositor.registerOutput('output_1', {
+  await compositor.registerOutput('output_1', <ExampleApp />, {
     type: 'rtp_stream',
     port: 8001,
     transportProtocol: 'tcp_server',
@@ -69,7 +69,6 @@ async function run() {
         width: 1920,
         height: 1080,
       },
-      root: <ExampleApp />,
     },
     audio: {
       encoder: {

@@ -55,7 +55,7 @@ fn client_code() -> Result<()> {
     let new_image = |image_id, label| {
         json!({
             "type": "view",
-            "background_color_rgba": "#0000FFFF",
+            "background_color": "#0000FFFF",
             "children": [
                 {
                     "type": "rescaler",

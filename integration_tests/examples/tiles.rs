@@ -47,7 +47,7 @@ fn client_code() -> Result<()> {
             "type": "tiles",
             "id": "tile",
             "padding": 5,
-            "background_color_rgba": "#444444FF",
+            "background_color": "#444444FF",
             "children": children,
             "transition": {
                 "duration_ms": 700,

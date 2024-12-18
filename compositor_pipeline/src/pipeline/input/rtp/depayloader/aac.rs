@@ -4,7 +4,7 @@ use bytes::{Buf, BytesMut};
 
 use crate::pipeline::{
     decoder::AacDepayloaderMode,
-    types::{EncodedChunk, EncodedChunkKind},
+    types::{EncodedChunk, EncodedChunkKind, IsKeyframe},
     AudioCodec,
 };
 
@@ -269,6 +269,7 @@ impl AacDepayloader {
                 pts,
                 data: payload,
                 dts: None,
+                is_keyframe: IsKeyframe::NoKeyframes,
                 kind: EncodedChunkKind::Audio(AudioCodec::Aac),
             });
         }

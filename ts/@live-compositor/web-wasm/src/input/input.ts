@@ -1,6 +1,5 @@
 import type { InputId } from '@live-compositor/browser-render';
-import { CompositorEventType } from 'live-compositor';
-import type { EventSender } from '../eventSender';
+import { CompositorEventType, type EventSender } from '../eventSender';
 import type InputSource from './source';
 import { Queue } from '@datastructures-js/queue';
 import { H264Decoder } from './decoder/h264Decoder';

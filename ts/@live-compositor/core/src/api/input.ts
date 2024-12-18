@@ -1,7 +1,12 @@
 import type { Api } from '../api.js';
 import type { RegisterMp4Input, RegisterRtpInput, Inputs } from 'live-compositor';
+import { _liveCompositorInternals } from 'live-compositor';
 
 export type RegisterInputRequest = Api.RegisterInput;
+
+export type InputRef = _liveCompositorInternals.InputRef;
+export const inputRefIntoRawId = _liveCompositorInternals.inputRefIntoRawId;
+export const parseInputRef = _liveCompositorInternals.parseInputRef;
 
 export type RegisterInput =
   | ({ type: 'rtp_stream' } & RegisterRtpInput)

@@ -10,7 +10,7 @@ export async function initializeCompositor() {
   // Display output with `ffplay`.
   await ffplayStartPlayerAsync('127.0.0.0', 8001);
 
-  await Compositor.registerOutput('output_1', {
+  await Compositor.registerOutput('output_1', <App />, {
     type: 'rtp_stream',
     port: 8001,
     ip: '127.0.0.1',
@@ -24,7 +24,6 @@ export async function initializeCompositor() {
         width: 1920,
         height: 1080,
       },
-      root: <App />,
     },
   });
 

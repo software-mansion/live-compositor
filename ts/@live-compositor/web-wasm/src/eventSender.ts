@@ -1,5 +1,7 @@
-import type { CompositorEvent } from 'live-compositor';
-import { CompositorEventType } from 'live-compositor';
+import { _liveCompositorInternals } from 'live-compositor';
+
+export const CompositorEventType = _liveCompositorInternals.CompositorEventType;
+export const inputRefIntoRawId = _liveCompositorInternals.inputRefIntoRawId;
 
 export class EventSender {
   private eventCallback?: (event: object) => void;
@@ -8,7 +10,7 @@ export class EventSender {
     this.eventCallback = eventCallback;
   }
 
-  public sendEvent(event: CompositorEvent) {
+  public sendEvent(event: WasmCompositorEvent) {
     if (!this.eventCallback) {
       console.warn(`Failed to send event: ${event}`);
       return;
@@ -18,7 +20,7 @@ export class EventSender {
   }
 }
 
-function toWebSocketMessage(event: CompositorEvent): WebSocketMessage {
+function toWebSocketMessage(event: WasmCompositorEvent): WebSocketMessage {
   if (event.type == CompositorEventType.OUTPUT_DONE) {
     return {
       type: event.type,
@@ -32,32 +34,33 @@ function toWebSocketMessage(event: CompositorEvent): WebSocketMessage {
   };
 }
 
+export type WasmCompositorEvent =
+  | {
+      type:
+        | _liveCompositorInternals.CompositorEventType.AUDIO_INPUT_DELIVERED
+        | _liveCompositorInternals.CompositorEventType.VIDEO_INPUT_DELIVERED
+        | _liveCompositorInternals.CompositorEventType.AUDIO_INPUT_PLAYING
+        | _liveCompositorInternals.CompositorEventType.VIDEO_INPUT_PLAYING
+        | _liveCompositorInternals.CompositorEventType.AUDIO_INPUT_EOS
+        | _liveCompositorInternals.CompositorEventType.VIDEO_INPUT_EOS;
+      inputId: string;
+    }
+  | {
+      type: _liveCompositorInternals.CompositorEventType.OUTPUT_DONE;
+      outputId: string;
+    };
 export type WebSocketMessage =
   | {
-      type: CompositorEventType.AUDIO_INPUT_DELIVERED;
+      type:
+        | _liveCompositorInternals.CompositorEventType.AUDIO_INPUT_DELIVERED
+        | _liveCompositorInternals.CompositorEventType.VIDEO_INPUT_DELIVERED
+        | _liveCompositorInternals.CompositorEventType.AUDIO_INPUT_PLAYING
+        | _liveCompositorInternals.CompositorEventType.VIDEO_INPUT_PLAYING
+        | _liveCompositorInternals.CompositorEventType.AUDIO_INPUT_EOS
+        | _liveCompositorInternals.CompositorEventType.VIDEO_INPUT_EOS;
       input_id: string;
     }
   | {
-      type: CompositorEventType.VIDEO_INPUT_DELIVERED;
-      input_id: string;
-    }
-  | {
-      type: CompositorEventType.AUDIO_INPUT_PLAYING;
-      input_id: string;
-    }
-  | {
-      type: CompositorEventType.VIDEO_INPUT_PLAYING;
-      input_id: string;
-    }
-  | {
-      type: CompositorEventType.AUDIO_INPUT_EOS;
-      input_id: string;
-    }
-  | {
-      type: CompositorEventType.VIDEO_INPUT_EOS;
-      input_id: string;
-    }
-  | {
-      type: CompositorEventType.OUTPUT_DONE;
+      type: _liveCompositorInternals.CompositorEventType.OUTPUT_DONE;
       output_id: string;
     };
