@@ -7,7 +7,7 @@ use ash::{vk, Entry};
 use tracing::{debug, error, warn};
 use wgpu::hal::Adapter;
 
-use crate::{parser::Parser, BytesDecoder, DecoderError, WgpuTexturesDeocder};
+use crate::{parser::Parser, BytesDecoder, DecoderError, WgpuTexturesDecoder};
 
 use super::{
     Allocator, CommandBuffer, CommandPool, DebugMessenger, Device, FrameSorter, Instance,
@@ -339,12 +339,12 @@ pub struct VulkanDevice {
 impl VulkanDevice {
     pub fn create_wgpu_textures_decoder(
         self: &Arc<Self>,
-    ) -> Result<WgpuTexturesDeocder, DecoderError> {
+    ) -> Result<WgpuTexturesDecoder, DecoderError> {
         let parser = Parser::default();
         let vulkan_decoder = VulkanDecoder::new(self.clone())?;
         let frame_sorter = FrameSorter::<wgpu::Texture>::new();
 
-        Ok(WgpuTexturesDeocder {
+        Ok(WgpuTexturesDecoder {
             parser,
             vulkan_decoder,
             frame_sorter,
