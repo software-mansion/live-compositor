@@ -18,6 +18,8 @@ const REQUIRED_EXTENSIONS: &[&CStr] = &[
     vk::KHR_VIDEO_QUEUE_NAME,
     vk::KHR_VIDEO_DECODE_QUEUE_NAME,
     vk::KHR_VIDEO_DECODE_H264_NAME,
+    vk::KHR_VIDEO_ENCODE_QUEUE_NAME,
+    vk::KHR_VIDEO_ENCODE_H264_NAME,
 ];
 
 #[derive(thiserror::Error, Debug)]
@@ -48,10 +50,10 @@ pub enum VulkanCtxError {
 }
 
 pub struct VulkanInstance {
+    pub wgpu_instance: Arc<wgpu::Instance>,
     _entry: Arc<Entry>,
     instance: Arc<Instance>,
     _debug_messenger: Option<DebugMessenger>,
-    pub wgpu_instance: Arc<wgpu::Instance>,
 }
 
 impl VulkanInstance {
@@ -323,6 +325,9 @@ impl std::fmt::Debug for VulkanInstance {
 }
 
 pub struct VulkanDevice {
+    pub wgpu_device: Arc<wgpu::Device>,
+    pub wgpu_queue: Arc<wgpu::Queue>,
+    pub wgpu_adapter: Arc<wgpu::Adapter>,
     _physical_device: vk::PhysicalDevice,
     pub(crate) device: Arc<Device>,
     pub(crate) allocator: Arc<Allocator>,
@@ -331,9 +336,6 @@ pub struct VulkanDevice {
     pub(crate) h264_dpb_format_properties: vk::VideoFormatPropertiesKHR<'static>,
     pub(crate) h264_dst_format_properties: Option<vk::VideoFormatPropertiesKHR<'static>>,
     pub(crate) h264_caps: vk::VideoDecodeH264CapabilitiesKHR<'static>,
-    pub wgpu_device: Arc<wgpu::Device>,
-    pub wgpu_queue: Arc<wgpu::Queue>,
-    pub wgpu_adapter: Arc<wgpu::Adapter>,
 }
 
 impl VulkanDevice {
@@ -460,20 +462,20 @@ fn find_device<'a>(
 
         unsafe { instance.get_physical_device_queue_family_properties2(device, &mut queues) };
 
-        let mut h264_profile_info = vk::VideoDecodeH264ProfileInfoKHR::default()
+        let mut h264_decode_profile_info = vk::VideoDecodeH264ProfileInfoKHR::default()
             .picture_layout(vk::VideoDecodeH264PictureLayoutFlagsKHR::PROGRESSIVE)
             .std_profile_idc(vk::native::StdVideoH264ProfileIdc_STD_VIDEO_H264_PROFILE_IDC_HIGH);
 
-        let profile_info = vk::VideoProfileInfoKHR::default()
+        let decode_profile_info = vk::VideoProfileInfoKHR::default()
             .video_codec_operation(vk::VideoCodecOperationFlagsKHR::DECODE_H264)
             .chroma_subsampling(vk::VideoChromaSubsamplingFlagsKHR::TYPE_420)
             .luma_bit_depth(vk::VideoComponentBitDepthFlagsKHR::TYPE_8)
             .chroma_bit_depth(vk::VideoComponentBitDepthFlagsKHR::TYPE_8)
-            .push_next(&mut h264_profile_info);
+            .push_next(&mut h264_decode_profile_info);
 
-        let mut h264_caps = vk::VideoDecodeH264CapabilitiesKHR::default();
+        let mut h264_decode_caps = vk::VideoDecodeH264CapabilitiesKHR::default();
         let mut decode_caps = vk::VideoDecodeCapabilitiesKHR {
-            p_next: (&mut h264_caps as *mut _) as *mut c_void, // why does this not have `.push_next()`? wtf
+            p_next: (&mut h264_decode_caps as *mut _) as *mut c_void, // why does this not have `.push_next()`? wtf
             ..Default::default()
         };
 
@@ -484,12 +486,14 @@ fn find_device<'a>(
                 .video_queue_instance_ext
                 .fp()
                 .get_physical_device_video_capabilities_khr)(
-                device, &profile_info, &mut caps
+                device,
+                &decode_profile_info,
+                &mut caps,
             )
             .result()?
         };
 
-        let video_capabilities = vk::VideoCapabilitiesKHR::default()
+        let video_decode_capabilities = vk::VideoCapabilitiesKHR::default()
             .flags(caps.flags)
             .min_bitstream_buffer_size_alignment(caps.min_bitstream_buffer_size_alignment)
             .min_bitstream_buffer_offset_alignment(caps.min_bitstream_buffer_offset_alignment)
@@ -500,19 +504,48 @@ fn find_device<'a>(
             .max_active_reference_pictures(caps.max_active_reference_pictures)
             .std_header_version(caps.std_header_version);
 
-        let h264_caps = vk::VideoDecodeH264CapabilitiesKHR::default()
-            .max_level_idc(h264_caps.max_level_idc)
-            .field_offset_granularity(h264_caps.field_offset_granularity);
+        let h264_decode_caps = vk::VideoDecodeH264CapabilitiesKHR::default()
+            .max_level_idc(h264_decode_caps.max_level_idc)
+            .field_offset_granularity(h264_decode_caps.field_offset_granularity);
         debug!("video_caps: {caps:#?}");
 
         let flags = decode_caps.flags;
+
+        let mut h264_encode_profile_info = vk::VideoEncodeH264ProfileInfoKHR::default()
+            .std_profile_idc(vk::native::StdVideoH264ProfileIdc_STD_VIDEO_H264_PROFILE_IDC_HIGH);
+
+        let encode_profile_info = vk::VideoProfileInfoKHR::default()
+            .video_codec_operation(vk::VideoCodecOperationFlagsKHR::ENCODE_H264)
+            .chroma_subsampling(vk::VideoChromaSubsamplingFlagsKHR::TYPE_420)
+            .luma_bit_depth(vk::VideoComponentBitDepthFlagsKHR::TYPE_8)
+            .chroma_bit_depth(vk::VideoComponentBitDepthFlagsKHR::TYPE_8)
+            .push_next(&mut h264_encode_profile_info);
+
+        let mut h264_encode_caps = vk::VideoEncodeH264CapabilitiesKHR::default();
+        let mut encode_caps = vk::VideoEncodeCapabilitiesKHR {
+            p_next: (&mut h264_encode_caps as *mut _) as *mut c_void,
+            ..Default::default()
+        };
+        let mut caps = vk::VideoCapabilitiesKHR::default().push_next(&mut encode_caps);
+
+        unsafe {
+            (instance
+                .video_queue_instance_ext
+                .fp()
+                .get_physical_device_video_capabilities_khr)(
+                device,
+                &encode_profile_info,
+                &mut caps,
+            )
+            .result()?;
+        }
 
         let h264_dpb_format_properties =
             if flags.contains(vk::VideoDecodeCapabilityFlagsKHR::DPB_AND_OUTPUT_COINCIDE) {
                 query_video_format_properties(
                     device,
                     &instance.video_queue_instance_ext,
-                    &profile_info,
+                    &decode_profile_info,
                     vk::ImageUsageFlags::VIDEO_DECODE_DST_KHR
                         | vk::ImageUsageFlags::VIDEO_DECODE_DPB_KHR
                         | vk::ImageUsageFlags::TRANSFER_SRC,
@@ -521,7 +554,7 @@ fn find_device<'a>(
                 query_video_format_properties(
                     device,
                     &instance.video_queue_instance_ext,
-                    &profile_info,
+                    &decode_profile_info,
                     vk::ImageUsageFlags::VIDEO_DECODE_DPB_KHR,
                 )?
             };
@@ -533,7 +566,7 @@ fn find_device<'a>(
                 Some(query_video_format_properties(
                     device,
                     &instance.video_queue_instance_ext,
-                    &profile_info,
+                    &decode_profile_info,
                     vk::ImageUsageFlags::VIDEO_DECODE_DST_KHR | vk::ImageUsageFlags::TRANSFER_SRC,
                 )?)
             };
@@ -612,7 +645,8 @@ fn find_device<'a>(
         };
 
         debug!("deocde_caps: {decode_caps:#?}");
-        debug!("h264_caps: {h264_caps:#?}");
+        debug!("h264_decode_caps: {h264_decode_caps:#?}");
+        debug!("h264_encode_caps: {h264_encode_caps:#?}");
         debug!("dpb_format_properties: {h264_dpb_format_properties:#?}");
         debug!("dst_format_properties: {h264_dst_format_properties:#?}");
 
@@ -641,8 +675,8 @@ fn find_device<'a>(
             },
             h264_dpb_format_properties,
             h264_dst_format_properties,
-            video_capabilities,
-            h264_caps,
+            video_capabilities: video_decode_capabilities,
+            h264_caps: h264_decode_caps,
         });
     }
 

@@ -6,16 +6,19 @@ pub(crate) struct NALUSplitter {
     pts: Option<u64>,
 }
 
-fn find_nalu_start_code(buf: &[u8]) -> Option<usize> {
-    if buf.is_empty() {
+fn find_start_of_next_nalu(buf: &[u8]) -> Option<usize> {
+    if buf.len() < 4 {
         return None;
     };
 
-    buf.windows(3)
-        .enumerate()
-        .filter(|(_, window)| **window == [0, 0, 1])
-        .filter(|(i, window)| !(*i == 0 || (*i == 1 && window[0] == 0)))
-        .map(|(i, _)| i + 3)
+    // If the start code is at the beginning of nalu, we need to skip it, because this means we
+    // would give the parser only the start code, without a nal unit before it.
+    if buf[0] != 0 && buf[1..4] == [0, 0, 1] {
+        return Some(5);
+    }
+
+    memchr::memmem::find_iter(&buf[2..], &[0, 0, 1])
+        .map(|i| i + 5)
         .next()
 }
 
@@ -34,7 +37,7 @@ impl NALUSplitter {
         self.buffer.put(bytestream);
         let mut result = Vec::new();
 
-        while let Some(i) = find_nalu_start_code(&self.buffer) {
+        while let Some(i) = find_start_of_next_nalu(&self.buffer) {
             let nalu = self.buffer.split_to(i);
             result.push((nalu.to_vec(), output_pts));
             output_pts = pts;
