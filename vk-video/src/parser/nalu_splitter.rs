@@ -7,15 +7,16 @@ pub(crate) struct NALUSplitter {
 }
 
 fn find_nalu_start_code(buf: &[u8]) -> Option<usize> {
-    if buf.is_empty() {
+    if buf.len() < 4 {
         return None;
     };
 
-    buf.windows(3)
-        .enumerate()
-        .filter(|(_, window)| **window == [0, 0, 1])
-        .filter(|(i, window)| !(*i == 0 || (*i == 1 && window[0] == 0)))
-        .map(|(i, _)| i + 3)
+    if buf[0] != 0 && &buf[1..4] == &[0, 0, 1] {
+        return Some(5)
+    }
+
+    memchr::memmem::find_iter(&buf[2..], &[0, 0, 1])
+        .map(|i| i + 5)
         .next()
 }
 

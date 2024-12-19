@@ -5430,6 +5430,7 @@ dependencies = [
  "clap",
  "derivative",
  "h264-reader",
+ "memchr",
  "thiserror",
  "tracing",
  "tracing-subscriber 0.3.18",

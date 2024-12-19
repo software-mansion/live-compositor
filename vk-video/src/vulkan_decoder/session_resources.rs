@@ -71,9 +71,7 @@ impl VideoSessionResources<'_> {
             ));
         }
 
-        let width = sps.width()?;
-        let height = sps.height()?;
-        let max_coded_extent = vk::Extent2D { width, height };
+        let max_coded_extent = sps.size()?;
         // +1 for current frame
         let max_dpb_slots = sps.max_num_ref_frames + 1;
         let max_active_references = sps.max_num_ref_frames;
@@ -146,16 +144,13 @@ impl VideoSessionResources<'_> {
             return Err(VulkanDecoderError::LevelChangeUnsupported);
         }
 
-        let width = sps.width()?;
-        let height = sps.height()?;
-
-        let max_coded_extent = vk::Extent2D { width, height };
+        let max_coded_extent = sps.size()?;
         // +1 for current frame
         let max_dpb_slots = sps.max_num_ref_frames + 1;
         let max_active_references = sps.max_num_ref_frames;
 
-        if self.video_session.max_coded_extent.width >= width
-            && self.video_session.max_coded_extent.height >= height
+        if self.video_session.max_coded_extent.width >= max_coded_extent.width
+            && self.video_session.max_coded_extent.height >= max_coded_extent.height
             && self.video_session.max_dpb_slots >= max_dpb_slots
         {
             // no need to change the session
