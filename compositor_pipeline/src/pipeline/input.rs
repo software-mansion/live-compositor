@@ -8,6 +8,7 @@ use crate::{
 use compositor_render::{Frame, InputId};
 use crossbeam_channel::{bounded, Receiver};
 use rtp::{RtpReceiver, RtpReceiverOptions};
+use whip::{WhipReceiver, WhipReceiverOptions};
 
 use self::mp4::{Mp4, Mp4Options};
 
@@ -24,10 +25,12 @@ use super::{
 pub mod decklink;
 pub mod mp4;
 pub mod rtp;
+pub mod whip;
 
 pub enum Input {
     Rtp(RtpReceiver),
     Mp4(Mp4),
+    Whip(WhipReceiver),
     #[cfg(feature = "decklink")]
     DeckLink(decklink::DeckLink),
     RawDataInput,
@@ -37,6 +40,7 @@ pub enum Input {
 pub enum InputOptions {
     Rtp(RtpReceiverOptions),
     Mp4(Mp4Options),
+    Whip(WhipReceiverOptions),
     #[cfg(feature = "decklink")]
     DeckLink(decklink::DeckLinkOptions),
 }
@@ -55,6 +59,9 @@ pub enum InputInitInfo {
         video_duration: Option<Duration>,
         audio_duration: Option<Duration>,
     },
+    Whip {
+        bearer_token: String,
+    },
     Other,
 }
 
@@ -65,6 +72,7 @@ struct InputInitResult {
     init_info: InputInitInfo,
 }
 
+#[derive(Debug)]
 pub(super) enum VideoInputReceiver {
     #[allow(dead_code)]
     Raw {
@@ -157,6 +165,7 @@ fn start_input_threads(
         InputOptions::Mp4(opts) => {
             Mp4::start_new_input(input_id, opts, &pipeline_ctx.download_dir)?
         }
+        InputOptions::Whip(opts) => WhipReceiver::start_new_input(input_id, opts, pipeline_ctx)?,
         #[cfg(feature = "decklink")]
         InputOptions::DeckLink(opts) => decklink::DeckLink::start_new_input(input_id, opts)?,
     };
