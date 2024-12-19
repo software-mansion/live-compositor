@@ -2,7 +2,9 @@ import type { Api } from '../api.js';
 import type { RegisterMp4Input, RegisterRtpInput, Inputs } from 'live-compositor';
 import { _liveCompositorInternals } from 'live-compositor';
 
-export type RegisterInputRequest = { type: 'camera' } | Api.RegisterInput;
+export type RegisterInputRequest =
+  | Api.RegisterInput
+  | { type: 'camera' };
 
 export type InputRef = _liveCompositorInternals.InputRef;
 export const inputRefIntoRawId = _liveCompositorInternals.inputRefIntoRawId;
@@ -12,7 +14,7 @@ export type RegisterInput =
   | ({ type: 'rtp_stream' } & RegisterRtpInput)
   | ({ type: 'mp4' } & RegisterMp4Input)
   // TODO(noituri): Restrict on node (like canvas output)
-  | { type: 'camera' };
+  | { type: 'camera', offsetMs?: number };
 
 export function intoRegisterInput(input: RegisterInput): RegisterInputRequest {
   if (input.type === 'mp4') {
