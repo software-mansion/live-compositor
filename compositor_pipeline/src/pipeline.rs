@@ -118,7 +118,6 @@ pub struct Pipeline {
     audio_mixer: AudioMixer,
     is_started: bool,
     shutdown_whip_whep_sender: Option<oneshot::Sender<()>>,
-    shutdown_whip_whep_receiver: Option<oneshot::Receiver<()>>,
 }
 
 #[derive(Debug)]
@@ -146,8 +145,6 @@ pub struct PipelineCtx {
     pub download_dir: Arc<PathBuf>,
     pub event_emitter: Arc<EventEmitter>,
     pub whip_whep_state: Arc<WhipWhepState>,
-    pub whip_whep_server_port: u16,
-    pub start_whip_whep: bool,
     pub tokio_rt: Arc<Runtime>,
     #[cfg(feature = "vk-video")]
     pub vulkan_ctx: Option<graphics_context::VulkanCtx>,
@@ -203,14 +200,16 @@ impl Pipeline {
             None => Arc::new(Runtime::new().map_err(InitPipelineError::CreateTokioRuntime)?),
         };
         let shutdown_whip_whep_sender;
-        let shutdown_whip_whep_receiver;
+        let whip_whep_state = WhipWhepState::new();
         if opts.start_whip_whep {
+            let port = opts.whip_whep_server_port;
+            let whip_whep_state_clone = whip_whep_state.clone();
             let (tx, rx) = oneshot::channel();
+            tokio_rt
+                .spawn(async move { run_whip_whep_server(port, whip_whep_state_clone, rx).await });
             shutdown_whip_whep_sender = Some(tx);
-            shutdown_whip_whep_receiver = Some(rx);
         } else {
             shutdown_whip_whep_sender = None;
-            shutdown_whip_whep_receiver = None;
         }
         let event_emitter = Arc::new(EventEmitter::new());
         let pipeline = Pipeline {
@@ -221,7 +220,6 @@ impl Pipeline {
             audio_mixer: AudioMixer::new(opts.output_sample_rate),
             is_started: false,
             shutdown_whip_whep_sender,
-            shutdown_whip_whep_receiver,
             ctx: PipelineCtx {
                 output_sample_rate: opts.output_sample_rate,
                 output_framerate: opts.queue_options.output_framerate,
@@ -229,9 +227,7 @@ impl Pipeline {
                 download_dir: download_dir.into(),
                 event_emitter,
                 tokio_rt,
-                whip_whep_state: WhipWhepState::new(),
-                whip_whep_server_port: opts.whip_whep_server_port,
-                start_whip_whep: opts.start_whip_whep,
+                whip_whep_state,
                 #[cfg(feature = "vk-video")]
                 vulkan_ctx: preinitialized_ctx.and_then(|ctx| ctx.vulkan_ctx),
             },
@@ -480,9 +476,6 @@ impl Pipeline {
 
         let weak_pipeline = Arc::downgrade(pipeline);
         thread::spawn(move || run_audio_mixer_thread(weak_pipeline, audio_receiver));
-        let weak_pipeline = Arc::downgrade(pipeline);
-        let runtime = guard.ctx.tokio_rt.clone();
-        runtime.spawn(async { run_whip_whep_server(weak_pipeline).await });
     }
 
     pub fn inputs(&self) -> impl Iterator<Item = (&InputId, &PipelineInput)> {

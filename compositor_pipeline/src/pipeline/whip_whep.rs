@@ -10,7 +10,7 @@ use serde_json::{json, Value};
 use std::{
     collections::HashMap,
     net::SocketAddr,
-    sync::{Arc, Mutex, Weak},
+    sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
 use tokio::{
@@ -44,33 +44,15 @@ mod error;
 mod validate_bearer_token;
 mod whip_handlers;
 
-use crate::{queue::PipelineEvent, Pipeline};
+use crate::queue::PipelineEvent;
 
 use super::EncodedChunk;
 
-pub async fn run_whip_whep_server(pipeline: Weak<Mutex<Pipeline>>) {
-    let (pipeline_ctx, shutdown_signal_receiver) = match pipeline.upgrade() {
-        Some(pipeline) => {
-            let mut locked_pipeline = pipeline.lock().unwrap();
-            (
-                locked_pipeline.ctx.clone(),
-                locked_pipeline.shutdown_whip_whep_receiver.take(),
-            )
-        }
-        None => {
-            warn!("Pipeline stopped.");
-            return;
-        }
-    };
-
-    if !pipeline_ctx.start_whip_whep {
-        return;
-    }
-    let shutdown_signal_receiver = shutdown_signal_receiver.unwrap(); //it is safe because receiver is None only if start_whip_whep is false
-
-    let state = pipeline_ctx.whip_whep_state;
-    let port = pipeline_ctx.whip_whep_server_port;
-
+pub async fn run_whip_whep_server(
+    port: u16,
+    state: Arc<WhipWhepState>,
+    shutdown_signal_receiver: oneshot::Receiver<()>,
+) {
     let app = Router::new()
         .route("/status", get(status))
         .route("/whip/:id", post(handle_create_whip_session))
