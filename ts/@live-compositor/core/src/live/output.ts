@@ -8,6 +8,7 @@ import type { RegisterOutput } from '../api/output.js';
 import { intoAudioInputsConfiguration } from '../api/output.js';
 import { throttle } from '../utils.js';
 import { OutputRootComponent, OutputShutdownStateStore } from '../rootComponent.js';
+import type { Logger } from 'pino';
 
 type AudioContext = _liveCompositorInternals.AudioContext;
 type LiveTimeContext = _liveCompositorInternals.LiveTimeContext;
@@ -21,6 +22,7 @@ class Output {
   timeContext: LiveTimeContext;
   internalInputStreamStore: LiveInputStreamStore<number>;
   outputShutdownStateStore: OutputShutdownStateStore;
+  logger: Logger;
 
   shouldUpdateWhenReady: boolean = false;
   throttledUpdate: () => void;
@@ -36,9 +38,11 @@ class Output {
     registerRequest: RegisterOutput,
     api: ApiClient,
     store: LiveInputStreamStore<string>,
-    startTimestamp: number | undefined
+    startTimestamp: number | undefined,
+    logger: Logger
   ) {
     this.api = api;
+    this.logger = logger;
     this.outputId = outputId;
     this.outputShutdownStateStore = new OutputShutdownStateStore();
     this.shouldUpdateWhenReady = false;
@@ -52,7 +56,7 @@ class Output {
     const onUpdate = () => this.throttledUpdate();
     this.audioContext = new _liveCompositorInternals.AudioContext(onUpdate);
     this.timeContext = new _liveCompositorInternals.LiveTimeContext();
-    this.internalInputStreamStore = new _liveCompositorInternals.LiveInputStreamStore();
+    this.internalInputStreamStore = new _liveCompositorInternals.LiveInputStreamStore(this.logger);
     if (startTimestamp !== undefined) {
       this.timeContext.initClock(startTimestamp);
     }
@@ -68,6 +72,7 @@ class Output {
       rootElement,
       onUpdate,
       idPrefix: `${outputId}-`,
+      logger: logger.child({ element: 'react-renderer' }),
     });
   }
 
@@ -90,9 +95,15 @@ class Output {
   }
 
   public async ready() {
-    this.throttledUpdate = throttle(async () => {
-      await this.api.updateScene(this.outputId, this.scene());
-    }, 30);
+    this.throttledUpdate = throttle(
+      async () => {
+        await this.api.updateScene(this.outputId, this.scene());
+      },
+      {
+        timeoutMs: 30,
+        logger: this.logger,
+      }
+    );
     if (this.shouldUpdateWhenReady) {
       this.throttledUpdate();
     }
@@ -113,6 +124,7 @@ class OutputContext implements CompositorOutputContext {
   public readonly audioContext: _liveCompositorInternals.AudioContext;
   public readonly timeContext: _liveCompositorInternals.TimeContext;
   public readonly outputId: string;
+  public readonly logger: Logger;
   private output: Output;
 
   constructor(
@@ -126,6 +138,7 @@ class OutputContext implements CompositorOutputContext {
     this.audioContext = output.audioContext;
     this.timeContext = output.timeContext;
     this.outputId = outputId;
+    this.logger = output.logger;
   }
 
   public async registerMp4Input(
@@ -158,6 +171,7 @@ class OutputContext implements CompositorOutputContext {
       };
     });
   }
+
   public async unregisterMp4Input(inputId: number): Promise<void> {
     await this.output.api.unregisterInput(
       {
@@ -168,6 +182,8 @@ class OutputContext implements CompositorOutputContext {
       {}
     );
   }
+  public async registerImage() {}
+  public async unregisterImage() {}
 }
 
 export default Output;

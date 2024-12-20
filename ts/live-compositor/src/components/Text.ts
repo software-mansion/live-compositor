@@ -1,9 +1,9 @@
 import type * as Api from '../api.js';
-import type { SceneComponent } from '../component.js';
+import type { ComponentBaseProps, SceneComponent } from '../component.js';
 import { createCompositorComponent, DEFAULT_FONT_SIZE } from '../component.js';
 import { intoApiRgbaColor } from './common.js';
 
-export type TextStyle = {
+export type TextStyleProps = {
   /**
    * Width of a texture that text will be rendered on. If not provided, the resulting texture
    * will be sized based on the defined text but limited to `max_width` value.
@@ -64,18 +64,15 @@ export type TextStyle = {
   fontWeight?: Api.TextWeight;
 };
 
-export type TextProps = {
-  children?: (string | number)[] | string | number;
-
+export type TextProps = ComponentBaseProps & {
   /**
-   * Id of a component.
+   * Text content.
    */
-  id?: Api.ComponentId;
-
+  children?: (string | number)[] | string | number;
   /**
    * Text styling properties
    */
-  style?: TextStyle;
+  style?: TextStyleProps;
 };
 
 const Text = createCompositorComponent<TextProps>(sceneBuilder);

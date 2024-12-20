@@ -1,5 +1,5 @@
 import { createElement, useContext, useEffect, useState } from 'react';
-import type { SceneComponent } from '../component.js';
+import type { ComponentBaseProps, SceneComponent } from '../component.js';
 import { createCompositorComponent } from '../component.js';
 import type { Api } from '../index.js';
 import { imageRefIntoRawId } from '../types/refs/imageRef.js';
@@ -8,13 +8,7 @@ import { newBlockingTask } from '../hooks.js';
 import { LiveCompositorContext } from '../context/index.js';
 import { isValidImageType } from '../types/utils.js';
 
-export type ImageProps = {
-  children?: undefined;
-
-  /**
-   * Id of a component.
-   */
-  id?: Api.ComponentId;
+export type ImageProps = Omit<ComponentBaseProps, 'children'> & {
   /**
    * Id of an image. It identifies an image registered using `LiveCompositor.registerImage`.
    */

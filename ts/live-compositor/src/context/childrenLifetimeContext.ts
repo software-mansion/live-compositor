@@ -35,7 +35,7 @@ export const ChildrenLifetimeContextType = createContext(new ChildrenLifetimeCon
  * Internal helper hook that can be used inside other components to propagate
  * their duration/lifetime to the parents.
  */
-export function useTimeLimitedeComponent(timestamp: number) {
+export function useTimeLimitedComponent(timestamp: number) {
   const childrenLifetimeContext = useContext(ChildrenLifetimeContextType);
   const afterTimestamp = useAfterTimestamp(timestamp);
   const [ref, setComponentRef] = useState<Symbol>();

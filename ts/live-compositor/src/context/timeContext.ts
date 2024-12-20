@@ -1,3 +1,5 @@
+import type { Logger } from '../internal.js';
+
 export interface BlockingTask {
   done(): void;
 }
@@ -21,14 +23,16 @@ export class OfflineTimeContext {
   private onChange: () => void;
   private currentTimestamp: number = 0;
   private onChangeCallbacks: Set<() => void> = new Set();
+  private logger: Logger;
 
-  constructor(onChange: () => void, onTimeChange: (timestam: number) => void) {
+  constructor(onChange: () => void, onTimeChange: (timestamp: number) => void, logger: Logger) {
     this.onChange = onChange;
     this.tasks = [];
     this.timestamps = [];
     this.onChangeCallbacks.add(() => {
       onTimeChange(this.currentTimestamp);
     });
+    this.logger = logger;
   }
 
   public timestampMs(): number {
@@ -40,9 +44,14 @@ export class OfflineTimeContext {
   }
 
   public newBlockingTask(): BlockingTask {
+    this.logger.trace('Start new blocking task');
     const task: BlockingTask = {} as any;
     task.done = () => {
+      const originalLength = this.tasks.length;
       this.tasks = this.tasks.filter(t => t !== task);
+      if (this.tasks.length < originalLength) {
+        this.logger.trace('Blocking task finished');
+      }
       if (this.tasks.length === 0) {
         this.onChange();
       }
@@ -52,10 +61,12 @@ export class OfflineTimeContext {
   }
 
   public addTimestamp(timestamp: TimestampObject) {
+    this.logger.trace({ timestampMs: timestamp.timestamp }, 'Add new timestamp to render.');
     this.timestamps.push(timestamp);
   }
 
   public removeTimestamp(timestamp: TimestampObject) {
+    this.logger.trace({ timestampMs: timestamp.timestamp }, 'Remove timestamp to render.');
     this.timestamps = this.timestamps.filter(t => timestamp !== t);
   }
 
@@ -65,10 +76,12 @@ export class OfflineTimeContext {
         value.timestamp < acc.timestamp && value.timestamp > this.currentTimestamp ? value : acc,
       { timestamp: Infinity }
     );
+    this.logger.debug({ timestampMs: next.timestamp }, 'Rendering new timestamp');
     this.currentTimestamp = next.timestamp;
     for (const cb of this.onChangeCallbacks) {
       cb();
     }
+    this.logger.trace({ timestampMs: next.timestamp }, 'Callbacks for timestamp finished');
   }
 
   // callback for useSyncExternalStore

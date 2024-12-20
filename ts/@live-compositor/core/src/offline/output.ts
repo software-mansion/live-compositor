@@ -9,12 +9,15 @@ import { intoAudioInputsConfiguration } from '../api/output.js';
 import { sleep } from '../utils.js';
 import { OFFLINE_OUTPUT_ID } from './compositor.js';
 import { OutputRootComponent, OutputShutdownStateStore } from '../rootComponent.js';
+import type { Logger } from 'pino';
 
 type AudioContext = _liveCompositorInternals.AudioContext;
 type OfflineTimeContext = _liveCompositorInternals.OfflineTimeContext;
 type OfflineInputStreamStore<Id> = _liveCompositorInternals.OfflineInputStreamStore<Id>;
 type CompositorOutputContext = _liveCompositorInternals.CompositorOutputContext;
 type ChildrenLifetimeContext = _liveCompositorInternals.ChildrenLifetimeContext;
+
+type Timeout = ReturnType<typeof setTimeout>;
 
 class OfflineOutput {
   api: ApiClient;
@@ -24,6 +27,8 @@ class OfflineOutput {
   childrenLifetimeContext: ChildrenLifetimeContext;
   internalInputStreamStore: OfflineInputStreamStore<number>;
   outputShutdownStateStore: OutputShutdownStateStore;
+  logger: Logger;
+
   durationMs?: number;
   updateTracker?: UpdateTracker;
 
@@ -37,9 +42,11 @@ class OfflineOutput {
     registerRequest: RegisterOutput,
     api: ApiClient,
     store: OfflineInputStreamStore<string>,
+    logger: Logger,
     durationMs?: number
   ) {
     this.api = api;
+    this.logger = logger;
     this.outputId = OFFLINE_OUTPUT_ID;
     this.outputShutdownStateStore = new OutputShutdownStateStore();
     this.durationMs = durationMs;
@@ -55,7 +62,8 @@ class OfflineOutput {
       (timestamp: number) => {
         store.setCurrentTimestamp(timestamp);
         this.internalInputStreamStore.setCurrentTimestamp(timestamp);
-      }
+      },
+      this.logger
     );
     this.childrenLifetimeContext = new _liveCompositorInternals.ChildrenLifetimeContext(() => {});
 
@@ -70,6 +78,7 @@ class OfflineOutput {
       rootElement,
       onUpdate,
       idPrefix: `${this.outputId}-`,
+      logger: logger.child({ element: 'react-renderer' }),
     });
   }
 
@@ -86,7 +95,7 @@ class OfflineOutput {
   }
 
   public async scheduleAllUpdates(): Promise<void> {
-    this.updateTracker = new UpdateTracker();
+    this.updateTracker = new UpdateTracker(this.logger);
 
     while (this.timeContext.timestampMs() <= (this.durationMs ?? Infinity)) {
       while (true) {
@@ -118,6 +127,7 @@ class OutputContext implements CompositorOutputContext {
   public readonly audioContext: _liveCompositorInternals.AudioContext;
   public readonly timeContext: _liveCompositorInternals.TimeContext;
   public readonly outputId: string;
+  public readonly logger: Logger;
   private output: OfflineOutput;
 
   constructor(
@@ -131,6 +141,7 @@ class OutputContext implements CompositorOutputContext {
     this.audioContext = output.audioContext;
     this.timeContext = output.timeContext;
     this.outputId = outputId;
+    this.logger = output.logger;
   }
 
   public async registerMp4Input(
@@ -183,8 +194,9 @@ class OutputContext implements CompositorOutputContext {
       { schedule_time_ms: this.timeContext.timestampMs() }
     );
   }
+  public async registerImage() {}
+  public async unregisterImage() {}
 }
-
 async function waitForBlockingTasks(offlineContext: OfflineTimeContext): Promise<void> {
   while (offlineContext.isBlocked()) {
     await sleep(100);
@@ -205,14 +217,16 @@ const MAX_RENDER_TIMEOUT_MS = 2000;
 class UpdateTracker {
   private promise: Promise<void> = new Promise(() => {});
   private promiseRes: () => void = () => {};
-  private updateTimeout: number = -1;
-  private renderTimeout: number = -1;
+  private updateTimeout?: Timeout;
+  private renderTimeout?: Timeout;
+  private logger: Logger;
 
-  constructor() {
+  constructor(logger: Logger) {
     this.promise = new Promise((res, _rej) => {
       this.promiseRes = res;
     });
     this.onUpdate();
+    this.logger = logger;
   }
 
   public onUpdate() {
@@ -228,7 +242,7 @@ class UpdateTracker {
     });
     clearTimeout(this.renderTimeout);
     this.renderTimeout = setTimeout(() => {
-      console.warn(
+      this.logger.warn(
         "Render for a specific timestamp took too long, make sure you don't have infinite update loop."
       );
       this.promiseRes();

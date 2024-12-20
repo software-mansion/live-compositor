@@ -4,15 +4,24 @@ import type * as Api from './api.js';
 
 export const DEFAULT_FONT_SIZE = 50;
 
-type ComponentProps<P> = { children?: React.ReactNode; id?: Api.ComponentId } & P;
+export type ComponentBaseProps = {
+  /**
+   * Component children.
+   */
+  children?: React.ReactNode;
+  /**
+   * Id of a component.
+   */
+  id?: Api.ComponentId;
+};
 
 export type SceneComponent = Api.Component | string;
-export type SceneBuilder<P> = (props: P, children?: SceneComponent[]) => Api.Component;
+export type SceneBuilder<P> = (props: P, children: SceneComponent[]) => Api.Component;
 
-export function createCompositorComponent<P>(
+export function createCompositorComponent<P extends ComponentBaseProps>(
   sceneBuilder: SceneBuilder<P>
-): (props: ComponentProps<P>) => React.ReactNode {
-  return (props: ComponentProps<P>): React.ReactNode => {
+): (props: P) => React.ReactNode {
+  return (props: P): React.ReactNode => {
     const { children, ...otherProps } = props;
     const autoId = useId();
 

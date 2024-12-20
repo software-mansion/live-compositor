@@ -32,6 +32,7 @@ export class ApiClient {
   }
 
   public async registerOutput(outptuId: string, request: RegisterOutputRequest): Promise<object> {
+    console.log('REQUEST TEST', request);
     return this.serverManager.sendRequest({
       method: 'POST',
       route: `/api/output/${encodeURIComponent(outptuId)}/register`,

@@ -1,19 +1,13 @@
 import { createElement, useContext, useEffect, useState, useSyncExternalStore } from 'react';
-import type * as Api from '../api.js';
 import { newBlockingTask } from '../hooks.js';
-import { useTimeLimitedComponent } from '../context/childrenLifetimeContext.js';
 import { LiveCompositorContext } from '../context/index.js';
 import { inputRefIntoRawId, OfflineTimeContext } from '../internal.js';
 import { InnerInputStream } from './InputStream.js';
 import { newInternalStreamId } from '../context/internalStreamIdManager.js';
+import type { ComponentBaseProps } from '../component.js';
+import { useTimeLimitedComponent } from '../context/childrenLifetimeContext.js';
 
-export type Mp4Props = {
-  children?: undefined;
-
-  /**
-   * Id of a component.
-   */
-  id?: Api.ComponentId;
+export type Mp4Props = Omit<ComponentBaseProps, 'children'> & {
   /**
    * Audio volume represented by a number between 0 and 1.
    */

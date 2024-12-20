@@ -1,10 +1,10 @@
 import type * as Api from '../api.js';
-import type { SceneComponent } from '../component.js';
+import type { ComponentBaseProps, SceneComponent } from '../component.js';
 import { createCompositorComponent, sceneComponentIntoApi } from '../component.js';
 import type { Transition } from './common.js';
 import { intoApiRgbaColor, intoApiTransition } from './common.js';
 
-export type ViewStyle = {
+export type ViewStyleProps = {
   /**
    * Width of a component in pixels. Exact behavior might be different based on the parent
    * component:
@@ -31,11 +31,11 @@ export type ViewStyle = {
    */
   top?: number;
   /**
-   * Distance in pixels between this component's left edge and its parent's left edge.
+   * Distance in pixels between this component's right edge and its parent's right edge.
    * If this field is defined, this element will be absolutely positioned, instead of being
    * laid out by its parent.
    */
-  left?: number;
+  right?: number;
   /**
    * Distance in pixels between the bottom edge of this component and the bottom edge of its parent.
    * If this field is defined, this element will be absolutely positioned, instead of being
@@ -43,11 +43,11 @@ export type ViewStyle = {
    */
   bottom?: number;
   /**
-   * Distance in pixels between this component's right edge and its parent's right edge.
+   * Distance in pixels between this component's left edge and its parent's left edge.
    * If this field is defined, this element will be absolutely positioned, instead of being
    * laid out by its parent.
    */
-  right?: number;
+  left?: number;
   /**
    * Rotation of a component in degrees. If this field is defined, this element will be
    * absolutely positioned, instead of being laid out by its parent.
@@ -63,17 +63,11 @@ export type ViewStyle = {
   backgroundColor?: string;
 };
 
-export type ViewProps = {
-  /**
-   * Id of a component.
-   */
-  id?: Api.ComponentId;
-
+export type ViewProps = ComponentBaseProps & {
   /**
    * Component styling properties.
    */
-  style?: ViewStyle;
-
+  style?: ViewStyleProps;
   /**
    * Defines how this component will behave during a scene update. This will only have an
    * effect if the previous scene already contained a `View` component with the same id.

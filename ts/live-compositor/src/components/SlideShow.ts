@@ -10,14 +10,14 @@ import {
   useCompletableComponent,
   useTimeLimitedComponent,
 } from '../context/childrenLifetimeContext.js';
+import type { ComponentBaseProps } from '../component.js';
 
-export type SlideProps = {
+export type SlideProps = Omit<ComponentBaseProps, 'id'> & {
   /**
    * Duration in milliseconds how long this component should be shown.
    * If not specified defaults to value of an Input stream
    */
   durationMs?: number;
-  children?: React.ReactNode;
 };
 
 export type SlideShowProps = {

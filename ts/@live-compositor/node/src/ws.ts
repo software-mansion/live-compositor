@@ -1,3 +1,4 @@
+import { type Logger } from 'pino';
 import WebSocket from 'ws';
 
 export class WebSocketConnection {
@@ -11,14 +12,14 @@ export class WebSocketConnection {
     this.listeners = new Set();
   }
 
-  public async connect(): Promise<void> {
+  public async connect(logger: Logger): Promise<void> {
     const ws = new WebSocket(this.url);
 
     let connected = false;
     await new Promise<void>((res, rej) => {
       ws.on('error', (err: any) => {
         if (connected) {
-          console.log('error', err);
+          logger.error(err, 'WebSocket error');
         } else {
           rej(err);
         }
@@ -30,7 +31,7 @@ export class WebSocketConnection {
       });
 
       ws.on('message', data => {
-        const event = parseEvent(data);
+        const event = parseEvent(data, logger);
         if (event) {
           for (const listener of this.listeners) {
             listener(event);
@@ -50,11 +51,11 @@ export class WebSocketConnection {
   }
 }
 
-function parseEvent(data: WebSocket.RawData): unknown {
+function parseEvent(data: WebSocket.RawData, logger: Logger): unknown {
   try {
     return JSON.parse(data.toString());
-  } catch {
-    console.error(`Invalid event received ${data}`);
+  } catch (err: any) {
+    logger.warn(err, `Invalid event received ${data}`);
     return null;
   }
 }

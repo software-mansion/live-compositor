@@ -1,13 +1,17 @@
-import type React from 'react';
-
 import { useAfterTimestamp } from '../hooks.js';
 import { LiveCompositorContext } from '../context/index.js';
 import { useContext, useEffect, useState } from 'react';
+import type { ComponentBaseProps } from '../component.js';
 
-export type ShowProps = {
+export type ShowProps = Omit<ComponentBaseProps, 'id'> & {
+  /**
+   * Optional range in milliseconds defining when the child should be visible.
+   */
   timeRangeMs?: { start?: number; end?: number };
+  /**
+   * Delay of the child being shown in milliseconds.
+   */
   delayMs?: number;
-  children?: React.ReactNode;
 };
 
 function Show(props: ShowProps) {
