@@ -27,8 +27,11 @@ use output::OutputOptions;
 use output::RawDataOutputOptions;
 use pipeline_output::register_pipeline_output;
 use tokio::runtime::Runtime;
+use tokio::sync::oneshot;
 use tracing::{error, info, trace, warn};
 use types::RawDataSender;
+use whip_whep::run_whip_whep_server;
+use whip_whep::WhipWhepState;
 
 use crate::audio_mixer::AudioMixer;
 use crate::audio_mixer::MixingStrategy;
@@ -57,6 +60,7 @@ mod pipeline_input;
 mod pipeline_output;
 pub mod rtp;
 mod types;
+pub mod whip_whep;
 
 use self::pipeline_input::register_pipeline_input;
 use self::pipeline_input::PipelineInput;
@@ -113,6 +117,7 @@ pub struct Pipeline {
     renderer: Renderer,
     audio_mixer: AudioMixer,
     is_started: bool,
+    shutdown_whip_whep_sender: Option<oneshot::Sender<()>>,
 }
 
 #[derive(Debug)]
@@ -127,6 +132,8 @@ pub struct Options {
     pub wgpu_features: WgpuFeatures,
     pub load_system_fonts: Option<bool>,
     pub wgpu_ctx: Option<GraphicsContext>,
+    pub whip_whep_server_port: u16,
+    pub start_whip_whep: bool,
     pub tokio_rt: Option<Arc<Runtime>>,
 }
 
@@ -137,6 +144,7 @@ pub struct PipelineCtx {
     pub stun_servers: Arc<Vec<String>>,
     pub download_dir: Arc<PathBuf>,
     pub event_emitter: Arc<EventEmitter>,
+    pub whip_whep_state: Arc<WhipWhepState>,
     pub tokio_rt: Arc<Runtime>,
     #[cfg(feature = "vk-video")]
     pub vulkan_ctx: Option<graphics_context::VulkanCtx>,
@@ -191,6 +199,18 @@ impl Pipeline {
             Some(tokio_rt) => tokio_rt,
             None => Arc::new(Runtime::new().map_err(InitPipelineError::CreateTokioRuntime)?),
         };
+        let shutdown_whip_whep_sender;
+        let whip_whep_state = WhipWhepState::new();
+        if opts.start_whip_whep {
+            let port = opts.whip_whep_server_port;
+            let whip_whep_state_clone = whip_whep_state.clone();
+            let (tx, rx) = oneshot::channel();
+            tokio_rt
+                .spawn(async move { run_whip_whep_server(port, whip_whep_state_clone, rx).await });
+            shutdown_whip_whep_sender = Some(tx);
+        } else {
+            shutdown_whip_whep_sender = None;
+        }
         let event_emitter = Arc::new(EventEmitter::new());
         let pipeline = Pipeline {
             outputs: HashMap::new(),
@@ -199,6 +219,7 @@ impl Pipeline {
             renderer,
             audio_mixer: AudioMixer::new(opts.output_sample_rate),
             is_started: false,
+            shutdown_whip_whep_sender,
             ctx: PipelineCtx {
                 output_sample_rate: opts.output_sample_rate,
                 output_framerate: opts.queue_options.output_framerate,
@@ -206,6 +227,7 @@ impl Pipeline {
                 download_dir: download_dir.into(),
                 event_emitter,
                 tokio_rt,
+                whip_whep_state,
                 #[cfg(feature = "vk-video")]
                 vulkan_ctx: preinitialized_ctx.and_then(|ctx| ctx.vulkan_ctx),
             },
@@ -467,6 +489,11 @@ impl Pipeline {
 
 impl Drop for Pipeline {
     fn drop(&mut self) {
+        if let Some(sender) = self.shutdown_whip_whep_sender.take() {
+            if let Err(err) = sender.send(()) {
+                warn!("Cannot sent shutdown signal to whip_whep server: {err:?}")
+            }
+        }
         self.queue.shutdown()
     }
 }

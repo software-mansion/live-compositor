@@ -22,6 +22,9 @@ pub enum Response {
         video_duration_ms: Option<u64>,
         audio_duration_ms: Option<u64>,
     },
+    BearerToken {
+        bearer_token: String,
+    },
 }
 
 impl IntoResponse for Response {
@@ -50,6 +53,8 @@ impl ApiState {
             output_sample_rate,
             stun_servers,
             required_wgpu_features,
+            start_whip_whep,
+            whip_whep_server_port,
             ..
         } = config.clone();
         let (pipeline, event_loop) = Pipeline::new(pipeline::Options {
@@ -63,6 +68,8 @@ impl ApiState {
             wgpu_features: required_wgpu_features,
             wgpu_ctx: None,
             load_system_fonts: Some(true),
+            start_whip_whep,
+            whip_whep_server_port,
             tokio_rt: Some(runtime),
         })?;
         Ok((
