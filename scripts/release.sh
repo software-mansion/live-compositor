@@ -37,14 +37,33 @@ gh run download "$WORKFLOW_RUN_ID" -n smelter_with_web_renderer_darwin_x86_64.ta
 gh run download "$WORKFLOW_RUN_ID" -n smelter_with_web_renderer_darwin_aarch64.tar.gz
 
 IMAGE_NAME="ghcr.io/software-mansion/smelter"
-docker pull "${IMAGE_NAME}:${COMMIT_HASH}"
-docker pull "${IMAGE_NAME}:${COMMIT_HASH}-web-renderer"
+docker pull "${IMAGE_NAME}:${COMMIT_HASH}-amd64"
+docker pull "${IMAGE_NAME}:${COMMIT_HASH}-arm64"
+docker pull "${IMAGE_NAME}:${COMMIT_HASH}-web-renderer-amd64"
+docker pull "${IMAGE_NAME}:${COMMIT_HASH}-web-renderer-arm64"
 
-docker tag "${IMAGE_NAME}:${COMMIT_HASH}" "${IMAGE_NAME}:${RELEASE_TAG}"
-docker tag "${IMAGE_NAME}:${COMMIT_HASH}-web-renderer" "${IMAGE_NAME}:${RELEASE_TAG}-web-renderer"
+docker tag "${IMAGE_NAME}:${COMMIT_HASH}-amd64" "${IMAGE_NAME}:${RELEASE_TAG}-amd64"
+docker tag "${IMAGE_NAME}:${COMMIT_HASH}-arm64" "${IMAGE_NAME}:${RELEASE_TAG}-arm64"
+docker tag "${IMAGE_NAME}:${COMMIT_HASH}-web-renderer-amd64" "${IMAGE_NAME}:${RELEASE_TAG}-web-renderer-amd64"
+docker tag "${IMAGE_NAME}:${COMMIT_HASH}-web-renderer-arm64" "${IMAGE_NAME}:${RELEASE_TAG}-web-renderer-arm64"
 
-docker push "${IMAGE_NAME}:${RELEASE_TAG}"
-docker push "${IMAGE_NAME}:${RELEASE_TAG}-web-renderer"
+docker push "${IMAGE_NAME}:${RELEASE_TAG}-amd64"
+docker push "${IMAGE_NAME}:${RELEASE_TAG}-arm64"
+docker push "${IMAGE_NAME}:${RELEASE_TAG}-web-renderer-amd64"
+docker push "${IMAGE_NAME}:${RELEASE_TAG}-web-renderer-arm64"
+
+docker manifest create "${IMAGE_NAME}:${RELEASE_TAG}" "${IMAGE_NAME}:${RELEASE_TAG}-amd64" "${IMAGE_NAME}:${RELEASE_TAG}-arm64"
+docker manifest annotate "${IMAGE_NAME}:${RELEASE_TAG}" "${IMAGE_NAME}:${RELEASE_TAG}-amd64" --arch amd64
+docker manifest annotate "${IMAGE_NAME}:${RELEASE_TAG}" "${IMAGE_NAME}:${RELEASE_TAG}-arm64" --arch arm64
+
+docker manifest create "${IMAGE_NAME}:${RELEASE_TAG}-web-renderer" \
+  "${IMAGE_NAME}:${RELEASE_TAG}-web-renderer-amd64" \
+  "${IMAGE_NAME}:${RELEASE_TAG}-web-renderer-arm64"
+docker manifest annotate "${IMAGE_NAME}:${RELEASE_TAG}-web-renderer" "${IMAGE_NAME}:${RELEASE_TAG}-web-renderer-amd64" --arch amd64
+docker manifest annotate "${IMAGE_NAME}:${RELEASE_TAG}-web-renderer" "${IMAGE_NAME}:${RELEASE_TAG}-web-renderer-arm64" --arch arm64
+
+docker manifest push "${IMAGE_NAME}:${RELEASE_TAG}"
+docker manifest push "${IMAGE_NAME}:${RELEASE_TAG}-web-renderer"
 
 gh release create "$RELEASE_TAG"
 gh release upload "$RELEASE_TAG" smelter_linux_x86_64.tar.gz
