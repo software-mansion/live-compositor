@@ -13,7 +13,7 @@ import { Input } from '../input/input';
 import { EventSender } from '../eventSender';
 import type { Framerate } from '../compositor';
 import { Output } from '../output/output';
-import { sourceFromRequest } from '../input/source';
+import { producerFromRequest } from '../input/inputFrameProducer';
 
 export type OnRegisterCallback = (event: object) => void;
 
@@ -70,7 +70,7 @@ class WasmInstance implements CompositorManager {
   }
 
   public stop() {
-    // TODO(noituri): Clean all remaining `InputFrame`s
+    // TODO(noituri): Clean all remaining `InputFrame`s & stop input processing
     if (this.stopQueue) {
       this.stopQueue();
       this.stopQueue = undefined;
@@ -114,10 +114,10 @@ class WasmInstance implements CompositorManager {
   }
 
   private async registerInput(inputId: string, request: RegisterInputRequest): Promise<void> {
-    const inputSource = sourceFromRequest(request);
-    await inputSource.init();
+    const frameProducer = producerFromRequest(request);
+    await frameProducer.init();
 
-    const input = new Input(inputId, inputSource, this.eventSender);
+    const input = new Input(inputId, frameProducer, this.eventSender);
     // `addInput` will throw an exception if input already exists
     this.queue.addInput(inputId, input);
     this.renderer.registerInput(inputId);
