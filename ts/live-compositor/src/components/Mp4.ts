@@ -5,7 +5,7 @@ import { useTimeLimitedComponent } from '../context/childrenLifetimeContext.js';
 import { LiveCompositorContext } from '../context/index.js';
 import { inputRefIntoRawId, OfflineTimeContext } from '../internal.js';
 import { InnerInputStream } from './InputStream.js';
-import { newInternalStreamId } from '../context/internalStreamStore.js';
+import { newInternalStreamId } from '../context/internalStreamIdManager.js';
 
 export type Mp4Props = {
   children?: undefined;
@@ -43,6 +43,7 @@ function Mp4(props: Mp4Props) {
         ? { url: props.source }
         : { path: props.source };
     let registerPromise: Promise<any>;
+
     void (async () => {
       try {
         registerPromise = ctx.registerMp4Input(newInputId, {

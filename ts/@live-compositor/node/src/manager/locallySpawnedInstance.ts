@@ -34,7 +34,7 @@ class LocallySpawnedInstance implements CompositorManager {
     this.port = opts.port;
     this.workingdir = opts.workingdir ?? path.join(os.tmpdir(), `live-compositor-${uuidv4()}`);
     this.executablePath = opts.executablePath;
-    this.enableWebRenderer = opts.enableWebRenderer;
+    this.enableWebRenderer = true;
     this.wsConnection = new WebSocketConnection(`ws://127.0.0.1:${this.port}/ws`);
   }
 

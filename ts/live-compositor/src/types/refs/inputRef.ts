@@ -16,16 +16,6 @@ export type InputRef =
       id: number;
     };
 
-export function areInputRefsEqual(ref1: InputRef, ref2: InputRef): boolean {
-  const sameType = ref1.type === ref2.type;
-  const sameId = ref1.id === ref2.id;
-  if (ref1.type === 'output-local' && ref2.type === 'output-local') {
-    return sameId && sameType && ref1.outputId === ref2.outputId;
-  } else {
-    return sameId && sameType;
-  }
-}
-
 export function inputRefIntoRawId(inputRef: InputRef): string {
   if (inputRef.type == 'global') {
     return `global:${inputRef.id}`;

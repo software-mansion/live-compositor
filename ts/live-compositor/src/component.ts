@@ -7,7 +7,7 @@ export const DEFAULT_FONT_SIZE = 50;
 type ComponentProps<P> = { children?: React.ReactNode; id?: Api.ComponentId } & P;
 
 export type SceneComponent = Api.Component | string;
-export type SceneBuilder<P> = (props: P, children: SceneComponent[]) => Api.Component;
+export type SceneBuilder<P> = (props: P, children?: SceneComponent[]) => Api.Component;
 
 export function createCompositorComponent<P>(
   sceneBuilder: SceneBuilder<P>

@@ -1,5 +1,5 @@
 import LiveCompositor from '@live-compositor/node';
-import { View, Text } from 'live-compositor';
+import { View, Text, Image } from 'live-compositor';
 import { useEffect, useState } from 'react';
 import { ffplayStartPlayerAsync, sleep } from './utils';
 
@@ -47,6 +47,7 @@ function ExampleApp() {
       <PartialText text="Example partial text that transition in 1 second" transitionMs={1_000} />
       <PartialText text="Example partial text that transition in 2 second" transitionMs={2_000} />
       <PartialText text="Example partial text that transition in 5 second" transitionMs={5_000} />
+      <Image imageId="test_image" source="https://compositor.live/img/logo.svg" />
     </View>
   );
 }
