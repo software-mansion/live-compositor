@@ -1,6 +1,7 @@
 import type { RegisterInputRequest } from '@live-compositor/core';
 import type { FrameRef } from './frame';
 import DecodingFrameProducer from './producer/decodingFrameProducer';
+import MediaStreamFrameProducer from './producer/mediaStreamFrameProducer';
 import MP4Source from './mp4/source';
 
 export type InputFrameProducerCallbacks = {
@@ -27,9 +28,12 @@ export default interface InputFrameProducer {
   close(): void;
 }
 
-export function producerFromRequest(request: RegisterInputRequest): InputFrameProducer {
+export async function producerFromRequest(request: RegisterInputRequest): Promise<InputFrameProducer> {
   if (request.type === 'mp4') {
     return new DecodingFrameProducer(new MP4Source(request.url!));
+  } else if (request.type === 'camera') {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    return new MediaStreamFrameProducer(stream);
   } else {
     throw new Error(`Unknown input type ${(request as any).type}`);
   }

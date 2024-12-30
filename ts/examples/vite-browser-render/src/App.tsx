@@ -2,10 +2,12 @@ import { useState } from 'react';
 import './App.css';
 import Counter from './examples/Counter';
 import MP4Player from './examples/MP4Player';
+import Camera from './examples/Camera';
 
 const EXAMPLES = {
   counter: <Counter />,
   mp4: <MP4Player />,
+  camera: <Camera />,
 };
 
 function App() {
@@ -17,6 +19,7 @@ function App() {
       <div className="examples-tabs">
         <button onClick={() => setCurrentExample('counter')}>Counter</button>
         <button onClick={() => setCurrentExample('mp4')}>MP4</button>
+        <button onClick={() => setCurrentExample('camera')}>Camera</button>
       </div>
       <div className="card">{EXAMPLES[currentExample]}</div>
     </>

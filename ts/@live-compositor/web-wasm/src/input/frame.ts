@@ -58,6 +58,16 @@ export class FrameRef {
   }
 }
 
+export class NonCopyableFrameRef extends FrameRef {
+  public constructor(frame: FrameWithPts) {
+    super(frame);
+  }
+
+  public incrementRefCount(): void {
+    throw new Error('Reference count of `NonCopyableFrameRef` cannot be incremented');
+  }
+}
+
 async function downloadFrame(frameWithPts: FrameWithPts): Promise<Frame> {
   // Safari does not support conversion to RGBA
   // Chrome does not support conversion to YUV

@@ -114,7 +114,7 @@ class WasmInstance implements CompositorManager {
   }
 
   private async registerInput(inputId: string, request: RegisterInputRequest): Promise<void> {
-    const frameProducer = producerFromRequest(request);
+    const frameProducer = await producerFromRequest(request);
     await frameProducer.init();
 
     const input = new Input(inputId, frameProducer, this.eventSender);
