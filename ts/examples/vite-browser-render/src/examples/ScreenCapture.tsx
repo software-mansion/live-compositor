@@ -29,7 +29,7 @@ function Scene() {
       <View style={{ top: 0, left: 200 }}>
         <InputStream inputId="screenCapture" />
       </View>
-      <View style={{ width: 200, height: 40, backgroundColor: '#000000', bottom: 20, left: 520 }}>
+      <View style={{ width: 220, height: 40, backgroundColor: '#000000', bottom: 20, left: 520 }}>
         <Text style={{ fontSize: 30, fontFamily: 'Noto Sans' }}>Screen capture input</Text>
       </View>
     </View>
