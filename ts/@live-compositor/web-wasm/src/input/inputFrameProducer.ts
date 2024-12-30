@@ -34,6 +34,9 @@ export async function producerFromRequest(request: RegisterInputRequest): Promis
   } else if (request.type === 'camera') {
     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
     return new MediaStreamFrameProducer(stream);
+  } else if (request.type === 'screen_capture') {
+    const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+    return new MediaStreamFrameProducer(stream);
   } else {
     throw new Error(`Unknown input type ${(request as any).type}`);
   }
