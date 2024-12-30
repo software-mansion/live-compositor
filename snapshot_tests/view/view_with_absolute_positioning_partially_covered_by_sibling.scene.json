@@ -5,7 +5,7 @@
             "children": [
                 {
                     "type": "view",
-                    "background_color": "#FF0000FF"
+                    "background_color_rgba": "#FF0000FF"
                 },
                 {
                     "type": "view",
@@ -13,11 +13,11 @@
                     "right": 50,
                     "width": 400,
                     "height": 200,
-                    "background_color": "#00FF00FF"
+                    "background_color_rgba": "#00FF00FF"
                 },
                 {
                     "type": "view",
-                    "background_color": "#0000FFFF"
+                    "background_color_rgba": "#0000FFFF"
                 }
             ]
         }

@@ -5,7 +5,7 @@
       "children": [
         {
           "type": "view",
-          "background_color": "#FFFF00FF",
+          "background_color_rgba": "#FFFF00FF",
           "overflow": "visible",
           "top": 100,
           "left": 100,
@@ -14,33 +14,33 @@
           "children": [
             {
               "type": "view",
-              "background_color": "#FF0000FF",
+              "background_color_rgba": "#FF0000FF",
               "box_shadow": [
                 {
                   "offset_x": 0,
                   "offset_y": 60,
                   "blur_radius": 30,
-                  "color": "#FF0000FF"
+                  "color_rgba": "#FF0000FF"
                 },
                 {
                   "offset_x": -60,
                   "offset_y": -30,
                   "blur_radius": 30,
-                  "color": "#0000FFFF"
+                  "color_rgba": "#0000FFFF"
                 }
               ]
             },
             {
               "type": "view",
-              "background_color": "#FF0000FF",
+              "background_color_rgba": "#FF0000FF",
               "border_width": 20,
-              "border_color": "#FFFFFFFF",
+              "border_color_rgba": "#FFFFFFFF",
               "box_shadow": [
                 {
                   "offset_x": 60,
                   "offset_y": 30,
                   "blur_radius": 30,
-                  "color": "#0000FFFF"
+                  "color_rgba": "#0000FFFF"
                 }
               ]
             }

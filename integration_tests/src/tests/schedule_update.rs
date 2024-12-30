@@ -39,7 +39,7 @@ pub fn schedule_update() -> Result<()> {
                         "type": "tiles",
                         "id": "tiles_1",
                         "padding": 3,
-                        "background_color": "#DDDDDDFF",
+                        "background_color_rgba": "#DDDDDDFF",
                         "transition": {
                             "duration_ms": 500,
                             "easing_function": {
@@ -66,7 +66,7 @@ pub fn schedule_update() -> Result<()> {
                     "type": "tiles",
                     "id": "tiles_1",
                     "padding": 3,
-                    "background_color": "#DDDDDDFF",
+                    "background_color_rgba": "#DDDDDDFF",
                     "transition": {
                         "duration_ms": 500,
                         "easing_function": {

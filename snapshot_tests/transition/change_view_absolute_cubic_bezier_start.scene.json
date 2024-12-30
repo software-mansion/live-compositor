@@ -10,7 +10,7 @@
                     "height": 200,
                     "top": 0,
                     "right": 0,
-                    "background_color": "#00FF00FF"
+                    "background_color_rgba": "#00FF00FF"
                 }
             ]
         }

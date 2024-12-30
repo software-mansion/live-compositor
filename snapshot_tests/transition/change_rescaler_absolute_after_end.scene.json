@@ -12,7 +12,7 @@
                     "right": 0,
                     "child": {
                         "type": "view",
-                        "background_color": "#00FF00FF"
+                        "background_color_rgba": "#00FF00FF"
                     }
                 }
             ]

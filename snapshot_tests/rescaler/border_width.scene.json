@@ -2,7 +2,7 @@
   "video": {
     "root": {
       "type": "view",
-      "background_color": "#FFFF00FF",
+      "background_color_rgba": "#FFFF00FF",
       "children": [
         {
           "type": "rescaler",
@@ -11,10 +11,10 @@
           "width": 400,
           "height": 200,
           "border_width": 20,
-          "border_color": "#FFFFFFFF",
+          "border_color_rgba": "#FFFFFFFF",
           "child": {
             "type": "view",
-            "background_color": "#FF0000FF"
+            "background_color_rgba": "#FF0000FF"
           }
         }
       ]

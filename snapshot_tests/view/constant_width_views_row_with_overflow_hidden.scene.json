@@ -6,18 +6,18 @@
                 {
                     "type": "view",
                     "width": 300,
-                    "background_color": "#FF0000FF"
+                    "background_color_rgba": "#FF0000FF"
                 },
                 {
                     "type": "view",
                     "width": 300,
-                    "background_color": "#00FF00FF",
+                    "background_color_rgba": "#00FF00FF",
                     "children": [
                         {
                             "type": "view",
                             "width": 500,
                             "height": 100,
-                            "background_color": "#FFFF00FF",
+                            "background_color_rgba": "#FFFF00FF",
                             "top": 100,
                             "left": -100
                         }
@@ -26,7 +26,7 @@
                 {
                     "type": "view",
                     "width": 300,
-                    "background_color": "#0000FFFF"
+                    "background_color_rgba": "#0000FFFF"
                 }
             ]
         }

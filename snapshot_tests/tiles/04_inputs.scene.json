@@ -20,7 +20,7 @@
                     "input_id": "input_4"
                 }
             ],
-            "background_color": "#333333FF"
+            "background_color_rgba": "#333333FF"
         }
     }
 }

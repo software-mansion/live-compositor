@@ -5,7 +5,7 @@
             "children": [
                 {
                     "type": "view",
-                    "background_color": "#FF0000FF",
+                    "background_color_rgba": "#FF0000FF",
                     "width": 160,
                     "height": 90
                 },
