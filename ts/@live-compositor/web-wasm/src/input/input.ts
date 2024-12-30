@@ -33,13 +33,13 @@ export class Input {
     });
   }
 
-  public start() {
+  public async start(): Promise<void> {
     if (this.state !== 'waiting_for_start') {
       console.warn(`Tried to start an already started input "${this.id}"`);
       return;
     }
 
-    this.frameProducer.start();
+    await this.frameProducer.start();
     this.state = 'buffering';
     this.eventSender.sendEvent({
       type: CompositorEventType.VIDEO_INPUT_DELIVERED,

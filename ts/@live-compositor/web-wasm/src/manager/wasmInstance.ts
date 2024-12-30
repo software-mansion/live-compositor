@@ -121,7 +121,7 @@ class WasmInstance implements CompositorManager {
     // `addInput` will throw an exception if input already exists
     this.queue.addInput(inputId, input);
     this.renderer.registerInput(inputId);
-    input.start();
+    await input.start();
   }
 
   private registerOutput(outputId: string, request: RegisterOutputRequest) {

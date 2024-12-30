@@ -32,7 +32,7 @@ export default class DecodingFrameProducer implements InputFrameProducer {
     await this.source.init();
   }
 
-  public start(): void {
+  public async start(): Promise<void> {
     this.source.start();
   }
 

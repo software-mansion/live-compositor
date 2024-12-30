@@ -3,6 +3,7 @@ import './App.css';
 import Counter from './examples/Counter';
 import SimpleMp4Example from './examples/SimpleMp4Example';
 import MultipleCompositors from './examples/MultipleCompositors';
+import CameraExample from './examples/CameraExample';
 import { setWasmBundleUrl } from '@live-compositor/web-wasm';
 
 setWasmBundleUrl('assets/live-compositor.wasm');
@@ -12,6 +13,7 @@ function App() {
     counter: <Counter />,
     simpleMp4: <SimpleMp4Example />,
     multipleCompositors: <MultipleCompositors />,
+    camera: <CameraExample />,
     home: <Home />,
   };
   const [currentExample, setCurrentExample] = useState<keyof typeof EXAMPLES>('home');
@@ -25,6 +27,7 @@ function App() {
         <button onClick={() => setCurrentExample('multipleCompositors')}>
           Multiple LiveCompositor instances
         </button>
+        <button onClick={() => setCurrentExample('camera')}>Camera</button>
         <button onClick={() => setCurrentExample('counter')}>Counter</button>
       </div>
       <div className="card">{EXAMPLES[currentExample]}</div>
@@ -40,11 +43,14 @@ function Home() {
         <code>@live-compositor/web-wasm</code> - LiveCompositor in the browser
       </h3>
       <li>
-        <code>Simple Mp4</code> - Take MP4 file as an input and render output on canvas
+        <code>Simple Mp4</code> - Take MP4 file as an input and render output on canvas.
       </li>
       <li>
         <code>Multiple LiveCompositor instances</code> - Runs multiple LiveCompositor instances at
         the same time.
+      </li>
+      <li>
+        <code>Camera</code> - Use webcam as an input and render output on canvas.
       </li>
       <h3>
         <code>@live-compositor/browser-render</code> - Rendering engine from LiveCompositor
