@@ -199,18 +199,17 @@ impl Pipeline {
             Some(tokio_rt) => tokio_rt,
             None => Arc::new(Runtime::new().map_err(InitPipelineError::CreateTokioRuntime)?),
         };
-        let shutdown_whip_whep_sender;
         let whip_whep_state = WhipWhepState::new();
-        if opts.start_whip_whep {
+        let shutdown_whip_whep_sender = if opts.start_whip_whep {
             let port = opts.whip_whep_server_port;
-            let whip_whep_state_clone = whip_whep_state.clone();
-            let (tx, rx) = oneshot::channel();
+            let whip_whep_state = whip_whep_state.clone();
+            let (sender, receiver) = oneshot::channel();
             tokio_rt
-                .spawn(async move { run_whip_whep_server(port, whip_whep_state_clone, rx).await });
-            shutdown_whip_whep_sender = Some(tx);
+                .spawn(async move { run_whip_whep_server(port, whip_whep_state, receiver).await });
+            Some(sender)
         } else {
-            shutdown_whip_whep_sender = None;
-        }
+            None
+        };
         let event_emitter = Arc::new(EventEmitter::new());
         let pipeline = Pipeline {
             outputs: HashMap::new(),

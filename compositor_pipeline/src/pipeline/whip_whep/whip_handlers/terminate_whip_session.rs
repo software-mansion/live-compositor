@@ -14,41 +14,28 @@ pub async fn handle_terminate_whip_session(
     State(state): State<Arc<WhipWhepState>>,
     headers: HeaderMap,
 ) -> Result<StatusCode, WhipServerError> {
-    let bearer_token: Option<String>;
     let input_id = InputId(Arc::from(id));
 
-    if let Ok(connections) = state.input_connections.lock() {
-        if let Some(connection) = connections.get(&input_id) {
-            bearer_token = connection.bearer_token.clone();
-        } else {
-            return Err(WhipServerError::NotFound(format!(
-                "InputID {input_id:?} not found"
-            )));
-        }
-    } else {
-        return Err(WhipServerError::InternalError(
-            "Input connections lock error".to_string(),
-        ));
-    }
-    validate_token(bearer_token, headers.get("Authorization")).await?;
-    let peer_connection;
+    let bearer_token = {
+        let connections = state.input_connections.lock().unwrap();
+        connections
+            .get(&input_id)
+            .map(|connection| connection.bearer_token.clone())
+            .ok_or_else(|| WhipServerError::NotFound(format!("InputID {input_id:?} not found")))?
+    };
 
-    if let Ok(mut connections) = state.input_connections.lock() {
+    validate_token(bearer_token, headers.get("Authorization")).await?;
+
+    let peer_connection = {
+        let mut connections = state.input_connections.lock().unwrap();
         if let Some(connection) = connections.get_mut(&input_id) {
-            peer_connection = connection.peer_connection.clone();
-            connection.peer_connection = None;
-            drop(connection.audio_sender.clone());
-            drop(connection.video_sender.clone());
+            connection.peer_connection.take()
         } else {
             return Err(WhipServerError::NotFound(format!(
                 "InputID {input_id:?} not found"
             )));
         }
-    } else {
-        return Err(WhipServerError::InternalError(
-            "Input connections lock error".to_string(),
-        ));
-    }
+    };
 
     if let Some(peer_connection) = peer_connection {
         peer_connection.close().await?;

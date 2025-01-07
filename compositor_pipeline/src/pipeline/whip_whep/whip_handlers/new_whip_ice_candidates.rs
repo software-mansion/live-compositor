@@ -8,9 +8,7 @@ use axum::{
 use compositor_render::InputId;
 
 use std::sync::Arc;
-use webrtc::{
-    ice_transport::ice_candidate::RTCIceCandidateInit, peer_connection::RTCPeerConnection,
-};
+use webrtc::ice_transport::ice_candidate::RTCIceCandidateInit;
 
 pub async fn handle_new_whip_ice_candidates(
     Path(id): Path<String>,
@@ -28,39 +26,17 @@ pub async fn handle_new_whip_ice_candidates(
             "Invalid content type".to_owned(),
         ));
     }
-    let bearer_token: Option<String>;
+
     let input_id = InputId(Arc::from(id));
+    let (bearer_token, peer_connection) = {
+        let connections = state.input_connections.lock().unwrap();
+        connections
+            .get(&input_id)
+            .map(|conn| (conn.bearer_token.clone(), conn.peer_connection.clone()))
+            .ok_or_else(|| WhipServerError::NotFound(format!("InputID {input_id:?} not found")))?
+    };
 
-    if let Ok(connections) = state.input_connections.lock() {
-        if let Some(connection) = connections.get(&input_id) {
-            bearer_token = connection.bearer_token.clone();
-        } else {
-            return Err(WhipServerError::NotFound(format!(
-                "InputID {input_id:?} not found"
-            )));
-        }
-    } else {
-        return Err(WhipServerError::InternalError(
-            "Input connections lock error".to_string(),
-        ));
-    }
     validate_token(bearer_token, headers.get("Authorization")).await?;
-
-    let peer_connection: Option<Arc<RTCPeerConnection>>;
-
-    if let Ok(connections) = state.input_connections.lock() {
-        if let Some(connection_opts) = connections.get(&input_id) {
-            peer_connection = connection_opts.peer_connection.clone()
-        } else {
-            return Err(WhipServerError::NotFound(format!(
-                "InputID {input_id:?} not found"
-            )));
-        }
-    } else {
-        return Err(WhipServerError::InternalError(
-            "Input connections lock error".to_string(),
-        ));
-    }
 
     if let Some(peer_connection) = peer_connection {
         for candidate in ice_fragment_unmarshal(&sdp_fragment_content) {

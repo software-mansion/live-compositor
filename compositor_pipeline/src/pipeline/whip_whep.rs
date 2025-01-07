@@ -20,19 +20,8 @@ use tokio::{
 use tower_http::cors::CorsLayer;
 use tracing::{error, warn};
 use webrtc::{
-    api::{
-        interceptor_registry::register_default_interceptors,
-        media_engine::{MediaEngine, MIME_TYPE_H264, MIME_TYPE_OPUS},
-        APIBuilder,
-    },
-    ice_transport::ice_server::RTCIceServer,
-    interceptor::registry::Registry,
-    peer_connection::{configuration::RTCConfiguration, RTCPeerConnection},
-    rtp_transceiver::{
-        rtp_codec::{RTCRtpCodecCapability, RTCRtpCodecParameters, RTPCodecType},
-        rtp_transceiver_direction::RTCRtpTransceiverDirection,
-        RTCRtpTransceiverInit,
-    },
+    peer_connection::{peer_connection_state::RTCPeerConnectionState, RTCPeerConnection},
+    rtp_transceiver::rtp_codec::RTPCodecType,
 };
 use whip_handlers::{
     create_whip_session::handle_create_whip_session,
@@ -41,6 +30,7 @@ use whip_handlers::{
 };
 
 mod error;
+mod init_peer_connection;
 mod validate_bearer_token;
 mod whip_handlers;
 
@@ -59,7 +49,7 @@ pub async fn run_whip_whep_server(
         .route("/session/:id", patch(handle_new_whip_ice_candidates))
         .route("/session/:id", delete(handle_terminate_whip_session))
         .layer(CorsLayer::permissive())
-        .with_state(state);
+        .with_state(state.clone());
 
     let Ok(listener) = tokio::net::TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], port))).await
     else {
@@ -73,6 +63,7 @@ pub async fn run_whip_whep_server(
     {
         error!("Cannot serve WHIP/WHEP server task: {err:?}");
     };
+    state.clear_state();
 }
 
 async fn shutdown_signal(receiver: oneshot::Receiver<()>) {
@@ -113,23 +104,19 @@ pub struct WhipInputConnectionOptions {
 }
 
 impl WhipInputConnectionOptions {
-    pub fn set_start_time(&mut self, track_kind: RTPCodecType) -> Result<(), String> {
+    pub fn get_or_initialize_elapsed_start_time(
+        &mut self,
+        track_kind: RTPCodecType,
+    ) -> Option<Duration> {
         match track_kind {
-            RTPCodecType::Video if self.start_time_vid.is_none() => {
-                self.start_time_vid = Some(Instant::now())
+            RTPCodecType::Video => {
+                let start_time = self.start_time_vid.get_or_insert_with(Instant::now);
+                Some(start_time.elapsed())
             }
-            RTPCodecType::Audio if self.start_time_aud.is_none() => {
-                self.start_time_aud = Some(Instant::now())
+            RTPCodecType::Audio => {
+                let start_time = self.start_time_aud.get_or_insert_with(Instant::now);
+                Some(start_time.elapsed())
             }
-            _ => {}
-        }
-        Ok(())
-    }
-
-    pub fn get_start_time(&self, track_kind: RTPCodecType) -> Option<Duration> {
-        match track_kind {
-            RTPCodecType::Video => self.start_time_vid.map(|t| t.elapsed()),
-            RTPCodecType::Audio => self.start_time_aud.map(|t| t.elapsed()),
             _ => None,
         }
     }
@@ -146,84 +133,62 @@ impl WhipWhepState {
             input_connections: Arc::from(Mutex::new(HashMap::new())),
         })
     }
-}
 
-pub async fn init_peer_connection(
-    add_video_track: bool,
-    add_audio_track: bool,
-) -> Result<Arc<RTCPeerConnection>, WhipServerError> {
-    let mut media_engine = MediaEngine::default();
-
-    media_engine.register_codec(
-        RTCRtpCodecParameters {
-            capability: RTCRtpCodecCapability {
-                mime_type: MIME_TYPE_H264.to_owned(),
-                clock_rate: 90000,
-                channels: 0,
-                sdp_fmtp_line: "".to_owned(),
-                rtcp_feedback: vec![],
-            },
-            payload_type: 96,
-            ..Default::default()
-        },
-        RTPCodecType::Video,
-    )?;
-
-    media_engine.register_codec(
-        RTCRtpCodecParameters {
-            capability: RTCRtpCodecCapability {
-                mime_type: MIME_TYPE_OPUS.to_owned(),
-                clock_rate: 48000,
-                channels: 2,
-                sdp_fmtp_line: "".to_owned(),
-                rtcp_feedback: vec![],
-            },
-            payload_type: 97,
-            ..Default::default()
-        },
-        RTPCodecType::Audio,
-    )?;
-
-    let mut registry = Registry::new();
-
-    registry = register_default_interceptors(registry, &mut media_engine)?;
-
-    let api = APIBuilder::new()
-        .with_media_engine(media_engine)
-        .with_interceptor_registry(registry)
-        .build();
-
-    let config = RTCConfiguration {
-        ice_servers: vec![RTCIceServer {
-            urls: vec!["stun:stun.l.google.com:19302".to_owned()],
-            ..Default::default()
-        }],
-        ..Default::default()
-    };
-
-    let peer_connection = Arc::new(api.new_peer_connection(config).await?);
-    if add_video_track {
-        peer_connection
-            .add_transceiver_from_kind(
-                RTPCodecType::Audio,
-                Some(RTCRtpTransceiverInit {
-                    direction: RTCRtpTransceiverDirection::Recvonly,
-                    send_encodings: vec![],
-                }),
-            )
-            .await?;
-    }
-    if add_audio_track {
-        peer_connection
-            .add_transceiver_from_kind(
-                RTPCodecType::Video,
-                Some(RTCRtpTransceiverInit {
-                    direction: RTCRtpTransceiverDirection::Recvonly,
-                    send_encodings: vec![],
-                }),
-            )
-            .await?;
+    pub fn get_input_connection_options(
+        &self,
+        input_id: InputId,
+    ) -> Result<WhipInputConnectionOptions, WhipServerError> {
+        let connections = self.input_connections.lock().unwrap();
+        if let Some(connection) = connections.get(&input_id) {
+            if let Some(peer_connection) = connection.peer_connection.clone() {
+                warn!("There is another stream streaming for given input {input_id:?}");
+                if peer_connection.connection_state() == RTCPeerConnectionState::Connected {
+                    return Err(WhipServerError::InternalError(format!(
+                        "There is another stream streaming for given input {input_id:?}"
+                    )));
+                }
+            }
+            Ok(connection.clone())
+        } else {
+            Err(WhipServerError::NotFound(format!(
+                "InputID {input_id:?} not found"
+            )))
+        }
     }
 
-    Ok(peer_connection)
+    pub async fn update_peer_connection(
+        &self,
+        input_id: InputId,
+        peer_connection: Arc<RTCPeerConnection>,
+    ) -> Result<(), WhipServerError> {
+        let mut connections = self.input_connections.lock().unwrap();
+        if let Some(connection) = connections.get_mut(&input_id) {
+            connection.peer_connection = Some(peer_connection);
+            Ok(())
+        } else {
+            Err(WhipServerError::InternalError(
+                "Peer connection initialization error".to_string(),
+            ))
+        }
+    }
+
+    pub fn get_time_elapsed_from_input_start(
+        &self,
+        input_id: InputId,
+        track_kind: RTPCodecType,
+    ) -> Option<Duration> {
+        let mut connections = self.input_connections.lock().unwrap();
+        match connections.get_mut(&input_id) {
+            Some(connection) => connection.get_or_initialize_elapsed_start_time(track_kind),
+            None => {
+                error!("InputID {input_id:?} not found");
+                None
+            }
+        }
+    }
+
+    pub fn clear_state(&self) {
+        let mut connections = self.input_connections.lock().unwrap();
+        connections.clear();
+    }
 }
