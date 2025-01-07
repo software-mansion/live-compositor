@@ -1,6 +1,7 @@
 #![cfg(not(target_os = "macos"))]
 mod parser;
 mod vulkan_decoder;
+mod vulkan_encoder;
 
 use parser::Parser;
 use vulkan_decoder::{FrameSorter, VulkanDecoder};
