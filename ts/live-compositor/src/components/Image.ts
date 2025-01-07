@@ -25,9 +25,11 @@ export const InnerImage = createCompositorComponent<ImageSceneBuliderProps>(scen
 function Image(props: ImageProps) {
   const ctx = useContext(LiveCompositorContext);
   const [imageId, setImageId] = useState(0);
-  const [isImageRegistered, setIsImageRegistered] = useState(false);
+  const [isImageRegistered, setIsImageRegistered] = useState(!!props.imageId);
 
   useEffect(() => {
+    if (props.imageId) return;
+
     const newImageId = newInternalImageId();
     setImageId(newImageId);
     const task = newBlockingTask(ctx);
