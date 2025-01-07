@@ -19,6 +19,7 @@ export class MP4Demuxer {
   private fileOffset: number;
   private callbacks: MP4DemuxerCallbacks;
   private samplesCount?: number;
+  private ptsOffset?: number;
 
   public constructor(callbacks: MP4DemuxerCallbacks) {
     this.file = MP4Box.createFile();
@@ -77,10 +78,15 @@ export class MP4Demuxer {
     assert(this.samplesCount !== undefined);
 
     for (const sample of samples) {
+      const pts = (sample.cts * 1_000) / sample.timescale;
+      if (this.ptsOffset === undefined) {
+        this.ptsOffset = -pts;
+      }
+
       const chunk = new EncodedVideoChunk({
         type: sample.is_sync ? 'key' : 'delta',
-        timestamp: (sample.cts * 1_000_000) / sample.timescale,
-        duration: (sample.duration * 1_000_000) / sample.timescale,
+        timestamp: pts + this.ptsOffset,
+        duration: (sample.duration * 1_000) / sample.timescale,
         data: sample.data,
       });
 
