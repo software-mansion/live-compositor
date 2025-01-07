@@ -2,6 +2,7 @@ import { Api } from 'live-compositor';
 import type { CompositorManager } from './compositorManager.js';
 import type { RegisterOutputRequest } from './api/output.js';
 import { inputRefIntoRawId, type InputRef, type RegisterInputRequest } from './api/input.js';
+import { imageRefIntoRawId, type ImageRef } from './api/image.js';
 
 export { Api };
 
@@ -88,19 +89,18 @@ export class ApiClient {
     });
   }
 
-  public async registerImage(imageId: string, request: Api.ImageSpec): Promise<object> {
-    console.log('REGISTER IMAGE TEST ', request);
+  public async registerImage(imageRef: ImageRef, request: Api.ImageSpec): Promise<object> {
     return this.serverManager.sendRequest({
       method: 'POST',
-      route: `/api/image/${encodeURIComponent(imageId)}/register`,
+      route: `/api/image/${encodeURIComponent(imageRefIntoRawId(imageRef))}/register`,
       body: request,
     });
   }
 
-  public async unregisterImage(imageId: string): Promise<object> {
+  public async unregisterImage(imageRef: ImageRef): Promise<object> {
     return this.serverManager.sendRequest({
       method: 'POST',
-      route: `/api/image/${encodeURIComponent(imageId)}/unregister`,
+      route: `/api/image/${encodeURIComponent(imageRefIntoRawId(imageRef))}/unregister`,
       body: {},
     });
   }

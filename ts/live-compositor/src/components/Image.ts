@@ -44,13 +44,10 @@ function Image(props: ImageProps) {
       try {
         if (!assetType) throw new Error('Unsupported image type');
 
-        registerPromise = ctx.registerImage(
-          imageRefIntoRawId({ type: 'image-local', id: newImageId, outputId: ctx.outputId }),
-          {
-            ...pathOrUrl,
-            assetType,
-          }
-        );
+        registerPromise = ctx.registerImage(newImageId, {
+          ...pathOrUrl,
+          assetType,
+        });
         await registerPromise;
         setIsImageRegistered(true);
       } finally {
@@ -62,7 +59,7 @@ function Image(props: ImageProps) {
       task.done();
       void (async () => {
         await registerPromise.catch(() => {});
-        await ctx.unregisterImage(newImageId.toString());
+        await ctx.unregisterImage(newImageId);
       })();
     };
   }, [props.source]);

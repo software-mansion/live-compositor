@@ -9,6 +9,7 @@ import { intoAudioInputsConfiguration } from '../api/output.js';
 import { throttle } from '../utils.js';
 import { OutputRootComponent, OutputShutdownStateStore } from '../rootComponent.js';
 import type { Logger } from 'pino';
+import type { ImageRef } from '../api/image.js';
 
 type AudioContext = _liveCompositorInternals.AudioContext;
 type LiveTimeContext = _liveCompositorInternals.LiveTimeContext;
@@ -182,13 +183,25 @@ class OutputContext implements CompositorOutputContext {
       {}
     );
   }
-  public async registerImage(imageId: string, imageSpec: any) {
-    await this.output.api.registerImage(imageId, {
+  public async registerImage(imageId: number, imageSpec: any) {
+    const imageRef = {
+      type: 'image-local',
+      outputId: this.outputId,
+      id: imageId,
+    } as const satisfies ImageRef;
+
+    await this.output.api.registerImage(imageRef, {
       url: imageSpec.url,
       asset_type: imageSpec.assetType,
     });
   }
-  public async unregisterImage() {}
+  public async unregisterImage(imageId: number) {
+    await this.output.api.unregisterImage({
+      type: 'image-local',
+      outputId: this.outputId,
+      id: imageId,
+    });
+  }
 }
 
 export default Output;

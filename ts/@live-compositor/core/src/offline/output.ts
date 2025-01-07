@@ -10,6 +10,7 @@ import { sleep } from '../utils.js';
 import { OFFLINE_OUTPUT_ID } from './compositor.js';
 import { OutputRootComponent, OutputShutdownStateStore } from '../rootComponent.js';
 import type { Logger } from 'pino';
+import type { ImageRef } from '../api/image.js';
 
 type AudioContext = _liveCompositorInternals.AudioContext;
 type OfflineTimeContext = _liveCompositorInternals.OfflineTimeContext;
@@ -194,14 +195,25 @@ class OutputContext implements CompositorOutputContext {
       { schedule_time_ms: this.timeContext.timestampMs() }
     );
   }
-  public async registerImage(imageId: string, imageSpec: any) {
-    console.log('REGISTER IMAGE OFFLINE ', imageSpec);
-    await this.output.api.registerImage(imageId, {
+  public async registerImage(imageId: number, imageSpec: any) {
+    const imageRef = {
+      type: 'image-local',
+      outputId: this.outputId,
+      id: imageId,
+    } as const satisfies ImageRef;
+
+    await this.output.api.registerImage(imageRef, {
       url: imageSpec.url,
       asset_type: imageSpec.assetType,
     });
   }
-  public async unregisterImage() {}
+  public async unregisterImage(imageId: number) {
+    await this.output.api.unregisterImage({
+      type: 'image-local',
+      outputId: this.outputId,
+      id: imageId,
+    });
+  }
 }
 async function waitForBlockingTasks(offlineContext: OfflineTimeContext): Promise<void> {
   while (offlineContext.isBlocked()) {

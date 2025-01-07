@@ -29,9 +29,9 @@ export type CompositorOutputContext = {
 
   unregisterMp4Input: (inputId: number) => Promise<void>;
 
-  registerImage: (imageId: string, registerRequest: RegisterImage) => Promise<void>;
+  registerImage: (imageId: number, registerRequest: RegisterImage) => Promise<void>;
 
-  unregisterImage: (imageId: string) => Promise<void>;
+  unregisterImage: (imageId: number) => Promise<void>;
 };
 
 const noopLogger = {

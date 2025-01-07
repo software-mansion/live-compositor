@@ -12,6 +12,7 @@ import { intoRegisterImage, intoRegisterWebRenderer } from '../api/renderer.js';
 import { handleEvent } from './event.js';
 import type { ReactElement } from 'react';
 import type { Logger } from 'pino';
+import type { ImageRef } from '../api/image.js';
 
 export class LiveCompositor {
   private manager: CompositorManager;
@@ -109,12 +110,16 @@ export class LiveCompositor {
 
   public async registerImage(imageId: string, request: Renderers.RegisterImage): Promise<object> {
     this.logger.info({ imageId }, 'Register image');
-    return this.api.registerImage(imageId, intoRegisterImage(request));
+    const imageRef = { type: 'global', id: imageId } as const satisfies ImageRef;
+
+    return this.api.registerImage(imageRef, intoRegisterImage(request));
   }
 
   public async unregisterImage(imageId: string): Promise<object> {
     this.logger.info({ imageId }, 'Unregister image');
-    return this.api.unregisterImage(imageId);
+    const imageRef = { type: 'global', id: imageId } as const satisfies ImageRef;
+
+    return this.api.unregisterImage(imageRef);
   }
 
   public async registerWebRenderer(

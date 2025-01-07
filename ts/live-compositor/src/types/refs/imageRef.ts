@@ -10,7 +10,7 @@ export type ImageRef =
       id: string;
     }
   | {
-      // Maps to "output-local:{id}:{outputId}" in HTTP API
+      // Maps to "image-local:{id}:{outputId}" in HTTP API
       type: 'image-local';
       outputId: string;
       id: number;
