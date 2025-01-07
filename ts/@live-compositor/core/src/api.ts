@@ -31,22 +31,21 @@ export class ApiClient {
     });
   }
 
-  public async registerOutput(outptuId: string, request: RegisterOutputRequest): Promise<object> {
-    console.log('REQUEST TEST', request);
+  public async registerOutput(outputId: string, request: RegisterOutputRequest): Promise<object> {
     return this.serverManager.sendRequest({
       method: 'POST',
-      route: `/api/output/${encodeURIComponent(outptuId)}/register`,
+      route: `/api/output/${encodeURIComponent(outputId)}/register`,
       body: request,
     });
   }
 
   public async unregisterOutput(
-    outptuId: string,
+    outputId: string,
     body: { schedule_time_ms?: number }
   ): Promise<object> {
     return this.serverManager.sendRequest({
       method: 'POST',
-      route: `/api/output/${encodeURIComponent(outptuId)}/unregister`,
+      route: `/api/output/${encodeURIComponent(outputId)}/unregister`,
       body,
     });
   }
@@ -90,6 +89,7 @@ export class ApiClient {
   }
 
   public async registerImage(imageId: string, request: Api.ImageSpec): Promise<object> {
+    console.log('REGISTER IMAGE TEST ', request);
     return this.serverManager.sendRequest({
       method: 'POST',
       route: `/api/image/${encodeURIComponent(imageId)}/register`,

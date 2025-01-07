@@ -182,7 +182,12 @@ class OutputContext implements CompositorOutputContext {
       {}
     );
   }
-  public async registerImage() {}
+  public async registerImage(imageId: string, imageSpec: any) {
+    await this.output.api.registerImage(imageId, {
+      url: imageSpec.url,
+      asset_type: imageSpec.assetType,
+    });
+  }
   public async unregisterImage() {}
 }
 

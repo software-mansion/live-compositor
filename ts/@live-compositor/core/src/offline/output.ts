@@ -194,7 +194,13 @@ class OutputContext implements CompositorOutputContext {
       { schedule_time_ms: this.timeContext.timestampMs() }
     );
   }
-  public async registerImage() {}
+  public async registerImage(imageId: string, imageSpec: any) {
+    console.log('REGISTER IMAGE OFFLINE ', imageSpec);
+    await this.output.api.registerImage(imageId, {
+      url: imageSpec.url,
+      asset_type: imageSpec.assetType,
+    });
+  }
   public async unregisterImage() {}
 }
 async function waitForBlockingTasks(offlineContext: OfflineTimeContext): Promise<void> {

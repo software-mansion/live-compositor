@@ -11,7 +11,7 @@ export type ImageRef =
     }
   | {
       // Maps to "output-local:{id}:{outputId}" in HTTP API
-      type: 'output-local';
+      type: 'image-local';
       outputId: string;
       id: number;
     };
@@ -20,7 +20,7 @@ export function imageRefIntoRawId(imageRef: ImageRef): string {
   if (imageRef.type == 'global') {
     return `global:${imageRef.id}`;
   } else {
-    return `output-local:${imageRef.id}:${imageRef.outputId}`;
+    return `image-local:${imageRef.id}:${imageRef.outputId}`;
   }
 }
 
@@ -33,9 +33,9 @@ export function parseImageRef(rawId: string): ImageRef {
       type: 'global',
       id: split.slice(1).join(),
     };
-  } else if (split[0] === 'output-local') {
+  } else if (split[0] === 'image-local') {
     return {
-      type: 'output-local',
+      type: 'image-local',
       id: Number(split[1]),
       outputId: split.slice(2).join(),
     };
