@@ -4,32 +4,51 @@ import InputFrameProducer, { InputFrameProducerCallbacks } from "../inputFramePr
 
 export default class MediaStreamFrameProducer implements InputFrameProducer {
   private stream: MediaStream;
-  private reader?: ReadableStreamDefaultReader<VideoFrame>;
+  private track: MediaStreamTrack;
+  private video: HTMLVideoElement;
+  private canvas: HTMLCanvasElement;
+  private canvasContext: CanvasRenderingContext2D;
   private ptsOffset?: number;
   private onReadySent: boolean;
-  private eosReceived: boolean;
+  private isVideoLoaded: boolean;
+  private isProducingFrame: boolean;
   private callbacks?: InputFrameProducerCallbacks;
   private lastFrame?: FrameRef;
 
   public constructor(stream: MediaStream) {
     this.stream = stream;
     this.onReadySent = false;
-    this.eosReceived = false;
-  }
+    this.isProducingFrame = false;
+    this.isVideoLoaded = false;
+    this.video = document.createElement('video');
+    this.canvas = document.createElement('canvas');
 
-  public async init(): Promise<void> { }
+    const canvasContext = this.canvas.getContext('2d');
+    assert(canvasContext);
+    this.canvasContext = canvasContext;
 
-  public start(): void {
-    const tracks = this.stream.getVideoTracks();
+    const tracks = stream.getVideoTracks();
     if (tracks.length === 0) {
-      throw new Error("No video track available");
+      throw new Error('No video track in stream');
     }
 
-    // TODO(noituri): Implement backward compability with firefox
-    const trackProcessor = new window.MediaStreamTrackProcessor<VideoFrame>({
-      track: tracks[0],
+    this.track = tracks[0];
+  }
+
+  public async init(): Promise<void> {
+    this.video.srcObject = this.stream;
+    await new Promise((resolve) => {
+      this.video.onloadedmetadata = resolve;
     });
-    this.reader = trackProcessor.readable.getReader();
+
+    this.canvas.width = this.video.videoWidth;
+    this.canvas.height = this.video.videoHeight;
+    this.isVideoLoaded = true;
+  }
+
+  public start(): void {
+    assert(this.isVideoLoaded);
+    this.video.play();
   }
 
   public registerCallbacks(callbacks: InputFrameProducerCallbacks): void {
@@ -37,27 +56,34 @@ export default class MediaStreamFrameProducer implements InputFrameProducer {
   }
 
   public async produce(_framePts?: number): Promise<void> {
-    if (this.eosReceived) {
+    if (this.isProducingFrame) {
+      console.error('is producing');
+      return;
+    }
+    if (this.isFinished()) {
       return;
     }
 
-    await this.produceFrame();
-    if (!this.onReadySent) {
-      this.callbacks?.onReady();
-      this.onReadySent = true;
-    }
+    void (async () => {
+      this.isProducingFrame = true;
+      try {
+        await this.produceFrame();
+      } finally {
+        this.isProducingFrame = false;
+      }
+
+      if (!this.onReadySent) {
+        this.callbacks?.onReady();
+        this.onReadySent = true;
+      }
+    })()
   }
 
   private async produceFrame(): Promise<void> {
-    assert(this.reader);
+    this.canvasContext.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
 
-    const { done, value: videoFrame } = await this.reader.read();
-    if (done) {
-      this.eosReceived = true;
-      return;
-    }
-
-    if (this.ptsOffset === undefined) {
+    const videoFrame = new VideoFrame(this.canvas, { timestamp: performance.now() * 1000 });
+    if (!this.ptsOffset) {
       this.ptsOffset = -videoFrame.timestamp;
     }
 
@@ -78,7 +104,7 @@ export default class MediaStreamFrameProducer implements InputFrameProducer {
   }
 
   public isFinished(): boolean {
-    return this.eosReceived;
+    return this.track.readyState === 'ended';
   }
 
   public close(): void {
