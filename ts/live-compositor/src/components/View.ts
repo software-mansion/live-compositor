@@ -61,6 +61,10 @@ export type ViewStyleProps = {
    * (**default=`"#00000000"`**) Background color in a `"#RRGGBBAA"` or `"#RRGGBB"`format.
    */
   backgroundColor?: string;
+  /**
+   * Properties of the BoxShadow applied to the container.
+   */
+  boxShadow?: Api.BoxShadow[] | null;
 };
 
 export type ViewProps = ComponentBaseProps & {
@@ -98,6 +102,8 @@ function sceneBuilder(
     overflow: style.overflow,
     background_color: style?.backgroundColor && intoApiRgbaColor(style.backgroundColor),
     transition: transition && intoApiTransition(transition),
+
+    box_shadow: style.boxShadow,
   };
 }
 
