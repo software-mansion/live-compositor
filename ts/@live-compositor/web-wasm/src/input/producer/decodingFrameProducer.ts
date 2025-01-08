@@ -137,10 +137,10 @@ export default class DecodingFrameProducer implements InputFrameProducer {
     assert(framerate);
 
     const frameDuration = framerateToDurationMs(framerate);
-    const targetPts = framePts + frameDuration * MAX_BUFFERING_SIZE;
+    const targetPtsUs = (framePts + frameDuration * MAX_BUFFERING_SIZE) * 1000;
 
     let chunk = this.source.peekChunk();
-    while (chunk && chunk.timestamp <= targetPts) {
+    while (chunk && chunk.timestamp <= targetPtsUs) {
       this.decoder.decode(chunk);
       this.source.nextChunk();
       chunk = this.source.peekChunk();

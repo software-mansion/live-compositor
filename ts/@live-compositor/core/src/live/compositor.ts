@@ -62,7 +62,7 @@ export class LiveCompositor {
 
   public async unregisterOutput(outputId: string): Promise<object> {
     this.logger.info({ outputId }, 'Unregister output');
-    this.outputs[outputId].close();
+    await this.outputs[outputId].close();
     delete this.outputs[outputId];
     // TODO: wait for event
     return this.api.unregisterOutput(outputId, {});
@@ -143,6 +143,13 @@ export class LiveCompositor {
       output.initClock(startTime);
     });
     this.startTime = startTime;
+  }
+
+  public async terminate(): Promise<void> {
+    for (const output of Object.values(this.outputs)) {
+      await output.close();
+    }
+    await this.manager.terminate();
   }
 
   private handleEvent(rawEvent: unknown) {

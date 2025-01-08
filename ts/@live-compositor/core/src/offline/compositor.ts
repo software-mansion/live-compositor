@@ -57,7 +57,6 @@ export class OfflineCompositor {
     await this.api.registerOutput(OFFLINE_OUTPUT_ID, apiRequest);
     await output.scheduleAllUpdates();
     // at this point all scene update requests should already be delivered
-    output.outputShutdownStateStore.close();
 
     if (durationMs) {
       await this.api.unregisterOutput(OFFLINE_OUTPUT_ID, { schedule_time_ms: durationMs });
@@ -79,6 +78,7 @@ export class OfflineCompositor {
     await this.api.start();
 
     await renderPromise;
+    await this.manager.terminate();
   }
 
   public async registerInput(inputId: string, request: RegisterInput): Promise<object> {

@@ -1,5 +1,6 @@
 import type { ChildProcess, SpawnOptions } from 'child_process';
 import { spawn as nodeSpawn } from 'child_process';
+import { sleep } from './utils';
 
 export interface SpawnPromise extends Promise<void> {
   child: ChildProcess;
@@ -43,4 +44,23 @@ export function spawn(command: string, args: string[], options: SpawnOptions): S
   }) as SpawnPromise;
   promise.child = child;
   return promise;
+}
+
+export async function killProcess(spawnPromise: SpawnPromise): Promise<void> {
+  spawnPromise.child.kill('SIGINT');
+  const start = Date.now();
+  while (isProcessRunning(spawnPromise)) {
+    if (Date.now() - start > 5000) {
+      spawnPromise.child.kill('SIGKILL');
+    }
+    await sleep(100);
+  }
+}
+
+function isProcessRunning(spawnPromise: SpawnPromise): boolean {
+  try {
+    return !!spawnPromise.child.kill(0);
+  } catch (e: any) {
+    return e.code === 'EPERM';
+  }
 }

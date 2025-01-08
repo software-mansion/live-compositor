@@ -6,8 +6,8 @@ import type { ApiClient, Api } from '../api.js';
 import Renderer from '../renderer.js';
 import type { RegisterOutput } from '../api/output.js';
 import { intoAudioInputsConfiguration } from '../api/output.js';
-import { throttle } from '../utils.js';
-import { OutputRootComponent, OutputShutdownStateStore } from '../rootComponent.js';
+import { ThrottledFunction } from '../utils.js';
+import { OutputRootComponent } from '../rootComponent.js';
 import type { Logger } from 'pino';
 import type { ImageRef } from '../api/image.js';
 
@@ -22,11 +22,10 @@ class Output {
   audioContext: AudioContext;
   timeContext: LiveTimeContext;
   internalInputStreamStore: LiveInputStreamStore<number>;
-  outputShutdownStateStore: OutputShutdownStateStore;
   logger: Logger;
 
   shouldUpdateWhenReady: boolean = false;
-  throttledUpdate: () => void;
+  throttledUpdate: ThrottledFunction;
 
   supportsAudio: boolean;
   supportsVideo: boolean;
@@ -45,16 +44,21 @@ class Output {
     this.api = api;
     this.logger = logger;
     this.outputId = outputId;
-    this.outputShutdownStateStore = new OutputShutdownStateStore();
     this.shouldUpdateWhenReady = false;
-    this.throttledUpdate = () => {
-      this.shouldUpdateWhenReady = true;
-    };
+    this.throttledUpdate = new ThrottledFunction(
+      async () => {
+        this.shouldUpdateWhenReady = true;
+      },
+      {
+        timeoutMs: 30,
+        logger: this.logger,
+      }
+    );
 
     this.supportsAudio = 'audio' in registerRequest && !!registerRequest.audio;
     this.supportsVideo = 'video' in registerRequest && !!registerRequest.video;
 
-    const onUpdate = () => this.throttledUpdate();
+    const onUpdate = () => this.throttledUpdate.scheduleCall();
     this.audioContext = new _liveCompositorInternals.AudioContext(onUpdate);
     this.timeContext = new _liveCompositorInternals.LiveTimeContext();
     this.internalInputStreamStore = new _liveCompositorInternals.LiveInputStreamStore(this.logger);
@@ -65,7 +69,6 @@ class Output {
     const rootElement = createElement(OutputRootComponent, {
       outputContext: new OutputContext(this, this.outputId, store),
       outputRoot: root,
-      outputShutdownStateStore: this.outputShutdownStateStore,
       childrenLifetimeContext: new _liveCompositorInternals.ChildrenLifetimeContext(() => {}),
     });
 
@@ -88,25 +91,18 @@ class Output {
     };
   }
 
-  public close(): void {
-    this.throttledUpdate = () => {};
-    // close will switch a scene to just a <View />, so we need replace `throttledUpdate`
-    // callback before it is called
-    this.outputShutdownStateStore.close();
+  public async close(): Promise<void> {
+    this.throttledUpdate.setFn(async () => {});
+    this.renderer.stop();
+    await this.throttledUpdate.waitForPendingCalls();
   }
 
   public async ready() {
-    this.throttledUpdate = throttle(
-      async () => {
-        await this.api.updateScene(this.outputId, this.scene());
-      },
-      {
-        timeoutMs: 30,
-        logger: this.logger,
-      }
-    );
+    this.throttledUpdate.setFn(async () => {
+      await this.api.updateScene(this.outputId, this.scene());
+    });
     if (this.shouldUpdateWhenReady) {
-      this.throttledUpdate();
+      this.throttledUpdate.scheduleCall();
     }
   }
 
