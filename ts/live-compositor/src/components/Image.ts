@@ -20,6 +20,8 @@ export type ImageProps = Omit<ComponentBaseProps, 'children'> &
       }
   );
 
+type ImageSceneBuliderProps = Omit<ImageProps, 'imageId'> & { imageId: string };
+
 export const InnerImage = createCompositorComponent<ImageSceneBuliderProps>(sceneBuilder);
 
 function Image(props: ImageProps) {
@@ -27,10 +29,16 @@ function Image(props: ImageProps) {
   const [imageId, setImageId] = useState(0);
   const [isImageRegistered, setIsImageRegistered] = useState(!!props.imageId);
 
+  if ((props.imageId && props.source) || (!props.imageId && !props.source)) {
+    throw new Error('Either "imageId" or "source" must be provided, but not both.');
+  }
+
   useEffect(() => {
     if (props.imageId) {
+      setIsImageRegistered(true);
       return;
     }
+    setIsImageRegistered(false);
 
     const newImageId = newInternalImageId();
     setImageId(newImageId);
@@ -68,7 +76,7 @@ function Image(props: ImageProps) {
         await ctx.unregisterImage(newImageId);
       })();
     };
-  }, [props.source]);
+  }, [props.source, props.imageId]);
 
   if (!isImageRegistered) {
     return createElement(View, {});
@@ -90,8 +98,6 @@ function Image(props: ImageProps) {
 
   return createElement(View, {});
 }
-
-type ImageSceneBuliderProps = Omit<ImageProps, 'imageId'> & { imageId: string };
 
 function sceneBuilder(props: ImageSceneBuliderProps, _children: SceneComponent[]): Api.Component {
   return {
