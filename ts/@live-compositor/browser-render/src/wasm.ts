@@ -5,7 +5,7 @@ import init, * as wasm from './generated/compositor_web';
  * @param wasmModuleUrl {string} - An URL for `live-compositor.wasm` file. The file is located in `dist` folder.
  */
 export async function loadWasmModule(wasmModuleUrl: string) {
-  await init(wasmModuleUrl);
+  await init({ module_or_path: wasmModuleUrl });
 }
 
 export { wasm };

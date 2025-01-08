@@ -14,4 +14,5 @@ export interface CompositorManager {
   setupInstance(opts: SetupInstanceOptions): Promise<void>;
   sendRequest(request: ApiRequest): Promise<object>;
   registerEventListener(cb: (event: unknown) => void): void;
+  terminate(): Promise<void>;
 }

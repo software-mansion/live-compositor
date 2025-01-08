@@ -43,7 +43,7 @@ export function compositorInstanceLoggerOptions(): {
 
   if ([LoggerLevel.WARN, LoggerLevel.ERROR].includes(loggerLevel)) {
     return {
-      level: loggerLevel,
+      level: LoggerLevel.ERROR,
       format,
     };
   } else if (loggerLevel === LoggerLevel.INFO) {

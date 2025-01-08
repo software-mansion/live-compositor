@@ -8,7 +8,7 @@ import type { RegisterOutput } from '../api/output.js';
 import { intoAudioInputsConfiguration } from '../api/output.js';
 import { sleep } from '../utils.js';
 import { OFFLINE_OUTPUT_ID } from './compositor.js';
-import { OutputRootComponent, OutputShutdownStateStore } from '../rootComponent.js';
+import { OutputRootComponent } from '../rootComponent.js';
 import type { Logger } from 'pino';
 
 type AudioContext = _liveCompositorInternals.AudioContext;
@@ -26,7 +26,6 @@ class OfflineOutput {
   timeContext: OfflineTimeContext;
   childrenLifetimeContext: ChildrenLifetimeContext;
   internalInputStreamStore: OfflineInputStreamStore<number>;
-  outputShutdownStateStore: OutputShutdownStateStore;
   logger: Logger;
 
   durationMs?: number;
@@ -48,7 +47,6 @@ class OfflineOutput {
     this.api = api;
     this.logger = logger;
     this.outputId = OFFLINE_OUTPUT_ID;
-    this.outputShutdownStateStore = new OutputShutdownStateStore();
     this.durationMs = durationMs;
 
     this.supportsAudio = 'audio' in registerRequest && !!registerRequest.audio;
@@ -70,7 +68,6 @@ class OfflineOutput {
     const rootElement = createElement(OutputRootComponent, {
       outputContext: new OutputContext(this, this.outputId, store),
       outputRoot: root,
-      outputShutdownStateStore: this.outputShutdownStateStore,
       childrenLifetimeContext: this.childrenLifetimeContext,
     });
 
@@ -117,7 +114,7 @@ class OfflineOutput {
 
       this.timeContext.setNextTimestamp();
     }
-    this.outputShutdownStateStore.close();
+    this.renderer.stop();
   }
 }
 

@@ -236,6 +236,7 @@ class Renderer {
   public readonly root: FiberRootNode;
   public readonly onUpdate: () => void;
   private logger: Logger;
+  private lastScene?: Api.Component;
 
   constructor({ rootElement, onUpdate, idPrefix, logger }: RendererOptions) {
     this.logger = logger;
@@ -256,6 +257,11 @@ class Renderer {
   }
 
   public scene(): Api.Component {
+    if (this.lastScene) {
+      // Renderer was already stopped just return old scene
+      return this.lastScene;
+    }
+
     // When resetAfterCommit is called `this.root.current` is not updated yet, so we need to rely
     // on `pendingChildren`. I'm not sure it is always populated, so there is a fallback to
     // `root.current`.
@@ -263,6 +269,11 @@ class Renderer {
     const rootComponent =
       this.root.pendingChildren[0] ?? rootHostComponent(this.root.current, this.logger);
     return rootComponent.scene();
+  }
+
+  public stop() {
+    this.lastScene = this.scene();
+    CompositorRenderer.updateContainer(null, this.root, null, () => {});
   }
 }
 

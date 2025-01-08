@@ -55,7 +55,7 @@ async function run() {
   const compositor = new LiveCompositor();
   await compositor.init();
 
-  void ffplayStartPlayerAsync('127.0.0.1', 8001);
+  await ffplayStartPlayerAsync('127.0.0.1', 8001);
   await sleep(2000);
 
   await compositor.registerOutput('output_1', <ExampleApp />, {

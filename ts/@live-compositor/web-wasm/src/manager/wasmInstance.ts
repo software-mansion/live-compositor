@@ -62,19 +62,19 @@ class WasmInstance implements CompositorManager {
     this.eventSender.setEventCallback(cb);
   }
 
-  private start() {
-    if (this.stopQueue) {
-      throw new Error('Compositor is already running');
-    }
-    this.stopQueue = this.queue.start();
-  }
-
-  public stop() {
+  public async terminate(): Promise<void> {
     // TODO(noituri): Clean all remaining `InputFrame`s & stop input processing
     if (this.stopQueue) {
       this.stopQueue();
       this.stopQueue = undefined;
     }
+  }
+
+  private start() {
+    if (this.stopQueue) {
+      throw new Error('Compositor is already running');
+    }
+    this.stopQueue = this.queue.start();
   }
 
   private async handleInputRequest(
