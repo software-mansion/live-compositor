@@ -26,7 +26,7 @@ export const InnerImage = createCompositorComponent<ImageSceneBuliderProps>(scen
 
 function Image(props: ImageProps) {
   const ctx = useContext(LiveCompositorContext);
-  const [imageId, setImageId] = useState(0);
+  const [internalImageId, setInternalImageId] = useState(0);
   const [isImageRegistered, setIsImageRegistered] = useState(!!props.imageId);
 
   if ((props.imageId && props.source) || (!props.imageId && !props.source)) {
@@ -41,7 +41,7 @@ function Image(props: ImageProps) {
     setIsImageRegistered(false);
 
     const newImageId = newInternalImageId();
-    setImageId(newImageId);
+    setInternalImageId(newImageId);
     const task = newBlockingTask(ctx);
     const pathOrUrl =
       props.source?.startsWith('http://') || props.source?.startsWith('https://')
@@ -52,12 +52,12 @@ function Image(props: ImageProps) {
 
     let registerPromise: Promise<any>;
 
+    if (!assetType) {
+      throw new Error('Unsupported image type');
+    }
+
     void (async () => {
       try {
-        if (!assetType) {
-          throw new Error('Unsupported image type');
-        }
-
         registerPromise = ctx.registerImage(newImageId, {
           ...pathOrUrl,
           assetType,
@@ -85,7 +85,7 @@ function Image(props: ImageProps) {
       ...props,
       imageId: imageRefIntoRawId({
         type: 'output-specific-image',
-        id: imageId,
+        id: internalImageId,
         outputId: ctx.outputId,
       }),
     });
