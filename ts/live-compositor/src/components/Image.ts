@@ -28,7 +28,9 @@ function Image(props: ImageProps) {
   const [isImageRegistered, setIsImageRegistered] = useState(!!props.imageId);
 
   useEffect(() => {
-    if (props.imageId) return;
+    if (props.imageId) {
+      return;
+    }
 
     const newImageId = newInternalImageId();
     setImageId(newImageId);
@@ -44,7 +46,9 @@ function Image(props: ImageProps) {
 
     void (async () => {
       try {
-        if (!assetType) throw new Error('Unsupported image type');
+        if (!assetType) {
+          throw new Error('Unsupported image type');
+        }
 
         registerPromise = ctx.registerImage(newImageId, {
           ...pathOrUrl,
@@ -66,8 +70,9 @@ function Image(props: ImageProps) {
     };
   }, [props.source]);
 
-  if (!isImageRegistered) return createElement(View, {});
-  else if (props.source)
+  if (!isImageRegistered) {
+    return createElement(View, {});
+  } else if (props.source) {
     return createElement(InnerImage, {
       ...props,
       imageId: imageRefIntoRawId({
@@ -76,11 +81,12 @@ function Image(props: ImageProps) {
         outputId: ctx.outputId,
       }),
     });
-  else if (props.imageId)
+  } else if (props.imageId) {
     return createElement(InnerImage, {
       ...props,
       imageId: imageRefIntoRawId({ type: 'global', id: props.imageId }),
     });
+  }
 
   return createElement(View, {});
 }
