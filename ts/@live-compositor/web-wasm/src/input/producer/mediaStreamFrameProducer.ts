@@ -58,7 +58,7 @@ export default class MediaStreamFrameProducer implements InputFrameProducer {
       return;
     }
 
-    await this.produceFrame();
+    this.produceFrame();
 
     if (!this.onReadySent) {
       this.callbacks?.onReady();
@@ -66,7 +66,7 @@ export default class MediaStreamFrameProducer implements InputFrameProducer {
     }
   }
 
-  private async produceFrame(): Promise<void> {
+  private produceFrame() {
     this.canvasContext.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
 
     const videoFrame = new VideoFrame(this.canvas, { timestamp: performance.now() * 1000 });
