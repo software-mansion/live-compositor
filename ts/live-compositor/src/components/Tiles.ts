@@ -22,7 +22,7 @@ export type TilesStyleProps = {
    */
   height?: number;
   /**
-   * (**default=`"#00000000"`**) Background color in a `"#RRGGBBAA"` or `"#RRGGBB"` format.
+   * (**default=`"#00000000"`**) Background color in `RGB` or `RGBA` format.
    */
   backgroundColor?: string;
   /**

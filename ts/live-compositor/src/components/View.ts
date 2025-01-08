@@ -58,13 +58,13 @@ export type ViewStyleProps = {
    */
   overflow?: Api.Overflow;
   /**
-   * (**default=`"#00000000"`**) Background color in a `"#RRGGBBAA"` or `"#RRGGBB"`format.
+   * (**default=`"#00000000"`**) Background color in `RGB` or `RGBA` format.
    */
   backgroundColor?: string;
   /**
    * Properties of the BoxShadow applied to the container.
    */
-  boxShadow?: Api.BoxShadow[] | null;
+  boxShadow?: Api.BoxShadow[];
 };
 
 export type ViewProps = ComponentBaseProps & {

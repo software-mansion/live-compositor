@@ -34,11 +34,11 @@ export type TextStyleProps = {
    */
   lineHeight?: number;
   /**
-   * (**default=`"#FFFFFFFF"`**) Font color in `#RRGGBBAA` or `#RRGGBB` format.
+   * (**default=`"#FFFFFFFF"`**) Font color in `RGB` or `RGBA` format.
    */
   color?: string;
   /**
-   * (**default=`"#00000000"`**) Background color in `#RRGGBBAA` or `#RRGGBB` format.
+   * (**default=`"#00000000"`**) Background color in `RGB` or `RGBA` format.
    */
   backgroundColor?: string;
   /**
