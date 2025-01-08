@@ -11,14 +11,12 @@ export default class MediaStreamFrameProducer implements InputFrameProducer {
   private ptsOffset?: number;
   private onReadySent: boolean;
   private isVideoLoaded: boolean;
-  private isProducingFrame: boolean;
   private callbacks?: InputFrameProducerCallbacks;
   private lastFrame?: FrameRef;
 
   public constructor(stream: MediaStream) {
     this.stream = stream;
     this.onReadySent = false;
-    this.isProducingFrame = false;
     this.isVideoLoaded = false;
     this.video = document.createElement('video');
     this.canvas = document.createElement('canvas');
@@ -56,27 +54,16 @@ export default class MediaStreamFrameProducer implements InputFrameProducer {
   }
 
   public async produce(_framePts?: number): Promise<void> {
-    if (this.isProducingFrame) {
-      console.error('is producing');
-      return;
-    }
     if (this.isFinished()) {
       return;
     }
 
-    void (async () => {
-      this.isProducingFrame = true;
-      try {
-        await this.produceFrame();
-      } finally {
-        this.isProducingFrame = false;
-      }
+    await this.produceFrame();
 
-      if (!this.onReadySent) {
-        this.callbacks?.onReady();
-        this.onReadySent = true;
-      }
-    })()
+    if (!this.onReadySent) {
+      this.callbacks?.onReady();
+      this.onReadySent = true;
+    }
   }
 
   private async produceFrame(): Promise<void> {
