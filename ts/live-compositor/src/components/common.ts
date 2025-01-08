@@ -47,13 +47,3 @@ export function intoApiEasingFunction(easing: EasingFunction): Api.EasingFunctio
     throw new Error(`Invalid LiveCompositor.EasingFunction ${easing}`);
   }
 }
-
-const rgbRegExp = /^#[0-9a-fA-F]{6}$/;
-
-export function intoApiRgbaColor(color: string): Api.RGBAColor {
-  if (rgbRegExp.test(color)) {
-    return `${color}FF`;
-  } else {
-    return color;
-  }
-}

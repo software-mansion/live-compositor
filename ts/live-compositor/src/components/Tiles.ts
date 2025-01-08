@@ -1,6 +1,6 @@
 import type * as Api from '../api.js';
 import type { Transition } from './common.js';
-import { intoApiRgbaColor, intoApiTransition } from './common.js';
+import { intoApiTransition } from './common.js';
 import type { ComponentBaseProps, SceneComponent } from '../component.js';
 import { createCompositorComponent, sceneComponentIntoApi } from '../component.js';
 
@@ -71,7 +71,7 @@ function sceneBuilder(
     children: children.map(sceneComponentIntoApi),
     width: style?.width,
     height: style?.height,
-    background_color: style?.backgroundColor && intoApiRgbaColor(style?.backgroundColor),
+    background_color: style?.backgroundColor,
     tile_aspect_ratio: style?.tileAspectRatio,
     margin: style?.margin,
     padding: style?.padding,

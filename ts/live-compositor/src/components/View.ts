@@ -2,7 +2,7 @@ import type * as Api from '../api.js';
 import type { ComponentBaseProps, SceneComponent } from '../component.js';
 import { createCompositorComponent, sceneComponentIntoApi } from '../component.js';
 import type { Transition } from './common.js';
-import { intoApiRgbaColor, intoApiTransition } from './common.js';
+import { intoApiTransition } from './common.js';
 
 export type ViewStyleProps = {
   /**
@@ -62,6 +62,18 @@ export type ViewStyleProps = {
    */
   backgroundColor?: string;
   /**
+   * (**default=`0.0`**) Radius of a rounded corner.
+   */
+  borderRadius?: number;
+  /**
+   * (**default=`0.0`**) Border width.
+   */
+  borderWidth?: number;
+  /**
+   * (**default=`"#00000000"`**) Border color in `RGB` or `RGBA` format.
+   */
+  borderColor?: string;
+  /**
    * Properties of the BoxShadow applied to the container.
    */
   boxShadow?: Api.BoxShadow[];
@@ -100,8 +112,12 @@ function sceneBuilder(
 
     rotation: style.rotation,
     overflow: style.overflow,
-    background_color: style?.backgroundColor && intoApiRgbaColor(style.backgroundColor),
+    background_color: style.backgroundColor,
     transition: transition && intoApiTransition(transition),
+
+    border_radius: style.borderRadius,
+    border_width: style.borderWidth,
+    border_color: style.borderColor,
 
     box_shadow: style.boxShadow,
   };
