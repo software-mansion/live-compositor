@@ -70,7 +70,11 @@ function Image(props: ImageProps) {
   else if (props.source)
     return createElement(InnerImage, {
       ...props,
-      imageId: imageRefIntoRawId({ type: 'image-local', id: imageId, outputId: ctx.outputId }),
+      imageId: imageRefIntoRawId({
+        type: 'output-specific-image',
+        id: imageId,
+        outputId: ctx.outputId,
+      }),
     });
   else if (props.imageId)
     return createElement(InnerImage, {

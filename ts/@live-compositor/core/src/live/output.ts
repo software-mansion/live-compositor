@@ -148,7 +148,7 @@ class OutputContext implements CompositorOutputContext {
   ): Promise<{ videoDurationMs?: number; audioDurationMs?: number }> {
     return await this.output.internalInputStreamStore.runBlocking(async updateStore => {
       const inputRef = {
-        type: 'output-local',
+        type: 'output-specific-input',
         outputId: this.outputId,
         id: inputId,
       } as const;
@@ -176,7 +176,7 @@ class OutputContext implements CompositorOutputContext {
   public async unregisterMp4Input(inputId: number): Promise<void> {
     await this.output.api.unregisterInput(
       {
-        type: 'output-local',
+        type: 'output-specific-input',
         outputId: this.outputId,
         id: inputId,
       },
@@ -185,7 +185,7 @@ class OutputContext implements CompositorOutputContext {
   }
   public async registerImage(imageId: number, imageSpec: any) {
     const imageRef = {
-      type: 'image-local',
+      type: 'output-specific-image',
       outputId: this.outputId,
       id: imageId,
     } as const satisfies ImageRef;
@@ -197,7 +197,7 @@ class OutputContext implements CompositorOutputContext {
   }
   public async unregisterImage(imageId: number) {
     await this.output.api.unregisterImage({
-      type: 'image-local',
+      type: 'output-specific-image',
       outputId: this.outputId,
       id: imageId,
     });

@@ -64,7 +64,11 @@ function Mp4(props: Mp4Props) {
 
   return createElement(InnerInputStream, {
     ...otherProps,
-    inputId: inputRefIntoRawId({ type: 'output-local', id: inputId, outputId: ctx.outputId }),
+    inputId: inputRefIntoRawId({
+      type: 'output-specific-input',
+      id: inputId,
+      outputId: ctx.outputId,
+    }),
   });
 }
 
@@ -76,12 +80,12 @@ function useInternalAudioInput(inputId: number, volume: number) {
     }
     const options = { volume };
     ctx.audioContext.addInputAudioComponent(
-      { type: 'output-local', id: inputId, outputId: ctx.outputId },
+      { type: 'output-specific-input', id: inputId, outputId: ctx.outputId },
       options
     );
     return () => {
       ctx.audioContext.removeInputAudioComponent(
-        { type: 'output-local', id: inputId, outputId: ctx.outputId },
+        { type: 'output-specific-input', id: inputId, outputId: ctx.outputId },
         options
       );
     };
