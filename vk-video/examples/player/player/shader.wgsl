@@ -29,9 +29,10 @@ fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
     var u = uv.x;
     var v = uv.y;
 
-    let r = y + 1.40200 * (v - 128.0 / 255.0);
-    let g = y - 0.34414 * (u - 128.0 / 255.0) - 0.71414 * (v - 128.0 / 255.0);
-    let b = y + 1.77200 * (u - 128.0 / 255.0);
+    // https://en.wikipedia.org/wiki/YCbCr#ITU-R_BT.601_conversion
+    let r = 1.1643828125 * y + 1.59602734375 * v - 0.87078515625;
+    let g = 1.1643828125 * y - 0.39176171875 * u - 0.81296875000 * v + 0.52959375;
+    let b = 1.1643828125 * y + 2.01723437500 * u - 1.08139062500;
 
     return vec4<f32>(clamp(r, 0.0, 1.0), clamp(g, 0.0, 1.0), clamp(b, 0.0, 1.0), 1.0);
 }

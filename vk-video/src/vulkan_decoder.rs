@@ -94,6 +94,9 @@ pub enum VulkanDecoderError {
     #[error("Level changed during the stream")]
     LevelChangeUnsupported,
 
+    #[error("Monochrome video is not supported")]
+    MonochromeChromaFormatUnsupported,
+
     #[error(transparent)]
     VulkanCtxError(#[from] VulkanCtxError),
 }
@@ -522,10 +525,7 @@ impl VulkanDecoder<'_> {
             .get(&decode_information.sps_id)
             .ok_or(VulkanDecoderError::NoSession)?;
 
-        let dimensions = vk::Extent2D {
-            width: sps.width()?,
-            height: sps.height()?,
-        };
+        let dimensions = sps.size()?;
 
         Ok(DecodeSubmission {
             image: target_image,
