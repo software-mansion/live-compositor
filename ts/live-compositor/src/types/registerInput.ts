@@ -53,6 +53,10 @@ export type RegisterMp4Input = {
    * not defined then stream is synchronized based on the first frames delivery time.
    */
   offsetMs?: number | null;
+  /**
+   * (**default=`ffmpeg_h264`**) The decoder to use for decoding video.
+   */
+  videoDecoder?: Api.VideoDecoder | null;
 };
 
 export type InputRtpAudioOptions =

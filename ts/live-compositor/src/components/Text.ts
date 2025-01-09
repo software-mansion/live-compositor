@@ -1,7 +1,6 @@
 import type * as Api from '../api.js';
 import type { ComponentBaseProps, SceneComponent } from '../component.js';
 import { createCompositorComponent, DEFAULT_FONT_SIZE } from '../component.js';
-import { intoApiRgbaColor } from './common.js';
 
 export type TextStyleProps = {
   /**
@@ -34,11 +33,11 @@ export type TextStyleProps = {
    */
   lineHeight?: number;
   /**
-   * (**default=`"#FFFFFFFF"`**) Font color in `#RRGGBBAA` or `#RRGGBB` format.
+   * (**default=`"#FFFFFFFF"`**) Font color in `RGB` or `RGBA` format.
    */
   color?: string;
   /**
-   * (**default=`"#00000000"`**) Background color in `#RRGGBBAA` or `#RRGGBB` format.
+   * (**default=`"#00000000"`**) Background color in `RGB` or `RGBA` format.
    */
   backgroundColor?: string;
   /**
@@ -90,8 +89,8 @@ function sceneBuilder(props: TextProps, children: SceneComponent[]): Api.Compone
     max_height: style?.maxHeight,
     font_size: style?.fontSize ?? DEFAULT_FONT_SIZE,
     line_height: style?.lineHeight,
-    color_rgba: style?.color && intoApiRgbaColor(style?.color),
-    background_color_rgba: style?.backgroundColor && intoApiRgbaColor(style?.backgroundColor),
+    color: style?.color,
+    background_color: style?.backgroundColor,
     font_family: style?.fontFamily,
     style: style?.fontStyle,
     align: style?.align,
