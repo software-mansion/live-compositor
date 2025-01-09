@@ -23,6 +23,7 @@ export {
   RegisterRtpOutput,
   RegisterMp4Output,
   RegisterCanvasOutput,
+  RegisterWhipOutput,
 } from './types/registerOutput.js';
 
 export * as Inputs from './types/registerInput.js';

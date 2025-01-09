@@ -1,6 +1,6 @@
 import type * as Api from '../api.js';
 import type { Transition } from './common.js';
-import { intoApiRgbaColor, intoApiTransition } from './common.js';
+import { intoApiTransition } from './common.js';
 import type { ComponentBaseProps, SceneComponent } from '../component.js';
 import { createCompositorComponent, sceneComponentIntoApi } from '../component.js';
 
@@ -22,7 +22,7 @@ export type TilesStyleProps = {
    */
   height?: number;
   /**
-   * (**default=`"#00000000"`**) Background color in a `"#RRGGBBAA"` or `"#RRGGBB"` format.
+   * (**default=`"#00000000"`**) Background color in `RGB` or `RGBA` format.
    */
   backgroundColor?: string;
   /**
@@ -71,7 +71,7 @@ function sceneBuilder(
     children: children.map(sceneComponentIntoApi),
     width: style?.width,
     height: style?.height,
-    background_color_rgba: style?.backgroundColor && intoApiRgbaColor(style?.backgroundColor),
+    background_color: style?.backgroundColor,
     tile_aspect_ratio: style?.tileAspectRatio,
     margin: style?.margin,
     padding: style?.padding,

@@ -62,6 +62,22 @@ export type RescalerStyleProps = {
    * absolutely positioned, instead of being laid out by its parent.
    */
   rotation?: number;
+  /**
+   * (**default=`0.0`**) Radius of a rounded corner.
+   */
+  borderRadius?: number;
+  /**
+   * (**default=`0.0`**) Border width.
+   */
+  borderWidth?: number;
+  /**
+   * (**default=`"#00000000"`**) Border color in `RGB` or `RGBA` format.
+   */
+  borderColor?: string;
+  /**
+   * Properties of the BoxShadow applied to the container.
+   */
+  boxShadow?: Api.BoxShadow[];
 };
 
 export type RescalerProps = ComponentBaseProps & {
@@ -105,6 +121,10 @@ function sceneBuilder(
     right: style?.right,
     rotation: style?.rotation,
     transition: transition && intoApiTransition(transition),
+    border_radius: style?.borderRadius,
+    border_width: style?.borderWidth,
+    border_color: style?.borderColor,
+    box_shadow: style?.boxShadow,
   };
 }
 

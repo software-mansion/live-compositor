@@ -4,6 +4,7 @@ import type {
   RegisterRtpOutput,
   RegisterMp4Output,
   RegisterCanvasOutput,
+  RegisterWhipOutput,
   _liveCompositorInternals,
 } from 'live-compositor';
 import { inputRefIntoRawId } from './input.js';
@@ -27,7 +28,8 @@ export type OutputCanvasVideoOptions = {
 export type RegisterOutput =
   | ({ type: 'rtp_stream' } & RegisterRtpOutput)
   | ({ type: 'mp4' } & RegisterMp4Output)
-  | ({ type: 'canvas' } & RegisterCanvasOutput);
+  | ({ type: 'canvas' } & RegisterCanvasOutput)
+  | ({ type: 'whip' } & RegisterWhipOutput);
 
 export function intoRegisterOutput(
   output: RegisterOutput,
@@ -39,6 +41,8 @@ export function intoRegisterOutput(
     return intoRegisterMp4Output(output, initial);
   } else if (output.type === 'canvas') {
     return intoRegisterCanvasOutput(output, initial);
+  } else if (output.type === 'whip') {
+    return intoRegisterWhipOutput(output, initial);
   } else {
     throw new Error(`Unknown output type ${(output as any).type}`);
   }
@@ -84,8 +88,22 @@ function intoRegisterCanvasOutput(
   };
 }
 
+function intoRegisterWhipOutput(
+  output: Outputs.RegisterWhipOutput,
+  initial: { video?: Api.Video; audio?: Api.Audio }
+): RegisterOutputRequest {
+  return {
+    type: 'whip',
+    endpoint_url: output.endpointUrl,
+    bearer_token: output.bearerToken,
+
+    video: output.video && initial.video && intoOutputVideoOptions(output.video, initial.video),
+    audio: output.audio && initial.audio && intoOutputWhipAudioOptions(output.audio, initial.audio),
+  };
+}
+
 function intoOutputVideoOptions(
-  video: Outputs.RtpVideoOptions | Outputs.Mp4VideoOptions,
+  video: Outputs.RtpVideoOptions | Outputs.Mp4VideoOptions | Outputs.WhipVideoOptions,
   initial: Api.Video
 ): Api.OutputVideoOptions {
   return {
@@ -97,7 +115,10 @@ function intoOutputVideoOptions(
 }
 
 function intoVideoEncoderOptions(
-  encoder: Outputs.RtpVideoEncoderOptions | Outputs.Mp4VideoEncoderOptions
+  encoder:
+    | Outputs.RtpVideoEncoderOptions
+    | Outputs.Mp4VideoEncoderOptions
+    | Outputs.WhipVideoEncoderOptions
 ): Api.VideoEncoderOptions {
   return {
     type: 'ffmpeg_h264',
@@ -128,6 +149,17 @@ function intoOutputMp4AudioOptions(
   };
 }
 
+function intoOutputWhipAudioOptions(
+  audio: Outputs.WhipAudioOptions,
+  initial: Api.Audio
+): Api.OutputWhipAudioOptions {
+  return {
+    send_eos_when: audio.sendEosWhen && intoOutputEosCondition(audio.sendEosWhen),
+    encoder: intoWhipAudioEncoderOptions(audio.encoder),
+    initial,
+  };
+}
+
 function intoRtpAudioEncoderOptions(
   encoder: Outputs.RtpAudioEncoderOptions
 ): Api.RtpAudioEncoderOptions {
@@ -143,6 +175,15 @@ function intoMp4AudioEncoderOptions(
 ): Api.Mp4AudioEncoderOptions {
   return {
     type: 'aac',
+    channels: encoder.channels,
+  };
+}
+
+function intoWhipAudioEncoderOptions(
+  encoder: Outputs.WhipAudioEncoderOptions
+): Api.WhipAudioEncoderOptions {
+  return {
+    type: 'opus',
     channels: encoder.channels,
   };
 }
