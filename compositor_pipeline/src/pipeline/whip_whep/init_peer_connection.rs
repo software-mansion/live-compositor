@@ -21,6 +21,7 @@ use super::error::WhipServerError;
 pub async fn init_peer_connection(
     add_video_track: bool,
     add_audio_track: bool,
+    stun_servers: Vec<String>,
 ) -> Result<Arc<RTCPeerConnection>, WhipServerError> {
     let mut media_engine = MediaEngine::default();
 
@@ -65,7 +66,7 @@ pub async fn init_peer_connection(
 
     let config = RTCConfiguration {
         ice_servers: vec![RTCIceServer {
-            urls: vec!["stun:stun.l.google.com:19302".to_owned()],
+            urls: stun_servers,
             ..Default::default()
         }],
         ..Default::default()

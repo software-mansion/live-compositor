@@ -1,4 +1,3 @@
-use rand::{thread_rng, RngCore};
 use std::{
     sync::{Arc, Mutex},
     thread,
@@ -8,14 +7,13 @@ use tokio::sync::mpsc;
 use webrtc::track::track_remote::TrackRemote;
 
 use depayloader::Depayloader;
-use std::fmt::Write;
 use tracing::{error, warn, Span};
 
 use crate::{
     pipeline::{
         decoder,
         types::EncodedChunk,
-        whip_whep::{WhipInputConnectionOptions, WhipWhepState},
+        whip_whep::{bearer_token::generate_token, WhipInputConnectionOptions, WhipWhepState},
         PipelineCtx,
     },
     queue::PipelineEvent,
@@ -30,8 +28,8 @@ pub mod depayloader;
 
 #[derive(Debug, thiserror::Error)]
 pub enum WhipReceiverError {
-    #[error("Failed to add input {0} to input_connections hashmap")]
-    WhipWhepStateAddInput(InputId),
+    #[error("WHIP WHEP server is not running, cannot start WHIP input")]
+    WhipWhepServerNotRunning,
 }
 
 #[derive(Debug, Clone)]
@@ -61,6 +59,9 @@ impl WhipReceiver {
         opts: WhipReceiverOptions,
         pipeline_ctx: &PipelineCtx,
     ) -> Result<InputInitResult, WhipReceiverError> {
+        if !pipeline_ctx.start_whip_whep {
+            return Err(WhipReceiverError::WhipWhepServerNotRunning);
+        }
         let bearer_token = generate_token();
         let whip_whep_state = pipeline_ctx.whip_whep_state.clone();
         let depayloader = Arc::from(Mutex::new(Depayloader::new(&opts)));
@@ -71,7 +72,7 @@ impl WhipReceiver {
                 let (sync_sender, sync_receiver) = crossbeam_channel::bounded(100);
                 let span = span!(
                     Level::INFO,
-                    "Forwarding Video",
+                    "WHIP server video async-to-sync bridge",
                     input_id = input_id.to_string()
                 );
                 Self::start_forwarding_thread(async_receiver, sync_sender, span);
@@ -92,7 +93,7 @@ impl WhipReceiver {
                 let (sync_sender, sync_receiver) = crossbeam_channel::bounded(100);
                 let span = span!(
                     Level::INFO,
-                    "Forwarding Audio",
+                    "WHIP server audio async-to-sync bridge",
                     input_id = input_id.to_string(),
                 );
                 Self::start_forwarding_thread(async_receiver, sync_sender, span);
@@ -107,9 +108,7 @@ impl WhipReceiver {
             None => (None, None),
         };
 
-        let whip_whep_state_clone = whip_whep_state.clone();
-
-        let mut input_connections = whip_whep_state_clone.input_connections.lock().unwrap();
+        let mut input_connections = whip_whep_state.input_connections.lock().unwrap();
         input_connections.insert(
             input_id.clone(),
             WhipInputConnectionOptions {
@@ -125,7 +124,7 @@ impl WhipReceiver {
 
         Ok(InputInitResult {
             input: Input::Whip(Self {
-                whip_whep_state,
+                whip_whep_state: whip_whep_state.clone(),
                 input_id: input_id.clone(),
             }),
             video,
@@ -143,7 +142,7 @@ impl WhipReceiver {
             let _span = span.entered();
             loop {
                 let Some(chunk) = async_receiver.blocking_recv() else {
-                    debug!("Closing WHIP video forwarding thread.");
+                    debug!("Closing WHIP async-to-sync bridge.");
                     break;
                 };
 
@@ -161,13 +160,10 @@ impl Drop for WhipReceiver {
         let mut connections = self.whip_whep_state.input_connections.lock().unwrap();
         if let Some(connection) = connections.get_mut(&self.input_id) {
             if let Some(peer_connection) = connection.peer_connection.clone() {
-                let input_id_clone = self.input_id.clone();
+                let input_id = self.input_id.clone();
                 tokio::spawn(async move {
                     if let Err(err) = peer_connection.close().await {
-                        error!(
-                            "Cannot close peer_connection for {:?}: {:?}",
-                            input_id_clone, err
-                        );
+                        error!("Cannot close peer_connection for {:?}: {:?}", input_id, err);
                     };
                 });
             }
@@ -216,15 +212,4 @@ pub async fn process_track_stream(
             }
         }
     }
-}
-
-fn generate_token() -> String {
-    let mut bytes = [0u8; 16];
-    thread_rng().fill_bytes(&mut bytes);
-    bytes.iter().fold(String::new(), |mut acc, byte| {
-        if let Err(err) = write!(acc, "{byte:02X}") {
-            error!("Cannot generate token: {err:?}")
-        }
-        acc
-    })
 }

@@ -1,11 +1,22 @@
-use std::time::Duration;
+use std::{fmt::Write, time::Duration};
 
 use axum::http::HeaderValue;
-use rand::{rngs::StdRng, Rng, SeedableRng};
+use rand::{rngs::StdRng, thread_rng, Rng, RngCore, SeedableRng};
 use tokio::time::sleep;
-use tracing::warn;
+use tracing::error;
 
 use crate::pipeline::whip_whep::error::WhipServerError;
+
+pub fn generate_token() -> String {
+    let mut bytes = [0u8; 16];
+    thread_rng().fill_bytes(&mut bytes);
+    bytes.iter().fold(String::new(), |mut acc, byte| {
+        if let Err(err) = write!(acc, "{byte:02X}") {
+            error!("Cannot generate token: {err:?}")
+        }
+        acc
+    })
+}
 
 pub async fn validate_token(
     expected_token: Option<String>,
@@ -22,9 +33,8 @@ pub async fn validate_token(
                     Ok(())
                 } else {
                     let mut rng = StdRng::from_entropy();
-                    let millis = rng.gen_range(50..1000);
-                    sleep(Duration::from_millis(millis)).await;
-                    warn!("Invalid or mismatched token provided");
+                    let nanos = rng.gen_range(0..1000);
+                    sleep(Duration::from_nanos(nanos)).await;
                     Err(WhipServerError::Unauthorized(
                         "Invalid or mismatched token provided".to_string(),
                     ))

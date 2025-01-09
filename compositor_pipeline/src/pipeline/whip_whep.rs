@@ -1,4 +1,4 @@
-use crate::pipeline::input::whip::depayloader::Depayloader;
+use crate::{error::InitPipelineError, pipeline::input::whip::depayloader::Depayloader};
 use axum::{
     routing::{delete, get, patch, post},
     Router,
@@ -6,19 +6,19 @@ use axum::{
 use compositor_render::InputId;
 use error::WhipServerError;
 use reqwest::StatusCode;
-use serde_json::{json, Value};
+use serde_json::json;
 use std::{
     collections::HashMap,
     net::SocketAddr,
     sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
-use tokio::{
-    signal,
-    sync::{mpsc, oneshot},
+use tokio::sync::{
+    mpsc,
+    oneshot::{self, Sender},
 };
 use tower_http::cors::CorsLayer;
-use tracing::{error, warn};
+use tracing::error;
 use webrtc::{
     peer_connection::{peer_connection_state::RTCPeerConnectionState, RTCPeerConnection},
     rtp_transceiver::rtp_codec::RTPCodecType,
@@ -29,9 +29,9 @@ use whip_handlers::{
     terminate_whip_session::handle_terminate_whip_session,
 };
 
+pub mod bearer_token;
 mod error;
 mod init_peer_connection;
-mod validate_bearer_token;
 mod whip_handlers;
 
 use crate::queue::PipelineEvent;
@@ -42,9 +42,10 @@ pub async fn run_whip_whep_server(
     port: u16,
     state: Arc<WhipWhepState>,
     shutdown_signal_receiver: oneshot::Receiver<()>,
+    init_result_sender: Sender<Result<(), InitPipelineError>>,
 ) {
     let app = Router::new()
-        .route("/status", get(status))
+        .route("/status", get((StatusCode::OK, axum::Json(json!({})))))
         .route("/whip/:id", post(handle_create_whip_session))
         .route("/session/:id", patch(handle_new_whip_ice_candidates))
         .route("/session/:id", delete(handle_terminate_whip_session))
@@ -53,43 +54,31 @@ pub async fn run_whip_whep_server(
 
     let Ok(listener) = tokio::net::TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], port))).await
     else {
-        warn!("TCP listener error");
+        if let Err(err) = init_result_sender.send(Err(InitPipelineError::WhipWhepServerInitError)) {
+            error!("Cannot send init WHIP WHEP server result {err:?}");
+        }
         return;
+    };
+
+    if let Err(err) = init_result_sender.send(Ok(())) {
+        error!("Cannot send init WHIP WHEP server result {err:?}");
     };
 
     if let Err(err) = axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal(shutdown_signal_receiver))
         .await
     {
-        error!("Cannot serve WHIP/WHEP server task: {err:?}");
+        error!("Cannot start WHIP WHEP server: {err:?}");
     };
-    state.clear_state();
 }
 
 async fn shutdown_signal(receiver: oneshot::Receiver<()>) {
-    let ctrl_c = async {
-        signal::ctrl_c()
-            .await
-            .expect("failed to install Ctrl+C handler");
-    };
-
-    let terminate = async {
-        if let Err(err) = receiver.await {
-            warn!(
-                "Error while receiving whip_whep server shutdown signal {:?}",
-                err
-            );
-        }
-    };
-
-    tokio::select! {
-        _ = ctrl_c => {},
-        _ = terminate => {},
+    if let Err(err) = receiver.await {
+        error!(
+            "Error while receiving WHIP WHEP server shutdown signal {:?}",
+            err
+        );
     }
-}
-
-pub async fn status() -> Result<(StatusCode, axum::Json<Value>), WhipServerError> {
-    Ok((StatusCode::OK, axum::Json(json!({}))))
 }
 
 #[derive(Debug, Clone)]
@@ -125,12 +114,14 @@ impl WhipInputConnectionOptions {
 #[derive(Debug)]
 pub struct WhipWhepState {
     pub input_connections: Arc<Mutex<HashMap<InputId, WhipInputConnectionOptions>>>,
+    pub stun_servers: Arc<Vec<String>>,
 }
 
 impl WhipWhepState {
-    pub fn new() -> Arc<Self> {
+    pub fn new(stun_servers: Arc<Vec<String>>) -> Arc<Self> {
         Arc::new(WhipWhepState {
             input_connections: Arc::from(Mutex::new(HashMap::new())),
+            stun_servers,
         })
     }
 
@@ -141,18 +132,16 @@ impl WhipWhepState {
         let connections = self.input_connections.lock().unwrap();
         if let Some(connection) = connections.get(&input_id) {
             if let Some(peer_connection) = connection.peer_connection.clone() {
-                warn!("There is another stream streaming for given input {input_id:?}");
                 if peer_connection.connection_state() == RTCPeerConnectionState::Connected {
                     return Err(WhipServerError::InternalError(format!(
-                        "There is another stream streaming for given input {input_id:?}"
+                        "Another stream is currently connected to the given input_id: {input_id:?}. \
+                        Disconnect the existing stream before starting a new one, or check if the input_id is correct."
                     )));
                 }
             }
             Ok(connection.clone())
         } else {
-            Err(WhipServerError::NotFound(format!(
-                "InputID {input_id:?} not found"
-            )))
+            Err(WhipServerError::NotFound(format!("{input_id:?} not found")))
         }
     }
 
@@ -166,9 +155,10 @@ impl WhipWhepState {
             connection.peer_connection = Some(peer_connection);
             Ok(())
         } else {
-            Err(WhipServerError::InternalError(
-                "Peer connection initialization error".to_string(),
-            ))
+            Err(WhipServerError::InternalError(format!(
+                "Peer connection with input_id: {:?} does not exist",
+                input_id.0
+            )))
         }
     }
 
@@ -181,14 +171,9 @@ impl WhipWhepState {
         match connections.get_mut(&input_id) {
             Some(connection) => connection.get_or_initialize_elapsed_start_time(track_kind),
             None => {
-                error!("InputID {input_id:?} not found");
+                error!("{input_id:?} not found");
                 None
             }
         }
-    }
-
-    pub fn clear_state(&self) {
-        let mut connections = self.input_connections.lock().unwrap();
-        connections.clear();
     }
 }

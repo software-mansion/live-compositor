@@ -80,10 +80,7 @@ impl SchemaObjectExt for SchemaObject {
         // - oneOf or
         // - anyOf is present and has more than one non-nullable schema
 
-        let has_one_of = self
-            .subschemas
-            .as_ref()
-            .map_or(false, |s| s.one_of.is_some());
+        let has_one_of = self.subschemas.as_ref().is_some_and(|s| s.one_of.is_some());
 
         let non_nullabe_any_of_size = self
             .subschemas

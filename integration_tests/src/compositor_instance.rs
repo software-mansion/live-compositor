@@ -32,12 +32,13 @@ impl Drop for CompositorInstance {
 }
 
 impl CompositorInstance {
-    /// api port in config is overwritten
+    /// api port and  start_whip_whep  are overwritten in config
     pub fn start(config: Option<Config>) -> Self {
         init_compositor_prerequisites();
         let api_port = get_free_port();
         let mut config = config.unwrap_or(read_config());
         config.api_port = api_port;
+        config.start_whip_whep = false;
 
         info!("Starting LiveCompositor Integration Test with config:\n{config:#?}",);
 

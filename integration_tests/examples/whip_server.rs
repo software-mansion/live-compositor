@@ -47,9 +47,6 @@ fn client_code() -> Result<()> {
             "video": {
                 "decoder": "ffmpeg_h264"
             },
-            "audio": {
-                "decoder": "opus"
-            },
         }),
     )?
     .json::<serde_json::Value>();
@@ -64,9 +61,6 @@ fn client_code() -> Result<()> {
             "type": "whip",
             "video": {
                 "decoder": "ffmpeg_h264"
-            },
-            "audio": {
-                "decoder": "opus"
             },
         }),
     )?

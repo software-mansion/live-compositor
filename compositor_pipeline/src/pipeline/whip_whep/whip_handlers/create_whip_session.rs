@@ -1,8 +1,7 @@
 use crate::pipeline::{
     input::whip::process_track_stream,
     whip_whep::{
-        error::WhipServerError, init_peer_connection, validate_bearer_token::validate_token,
-        WhipWhepState,
+        bearer_token::validate_token, error::WhipServerError, init_peer_connection, WhipWhepState,
     },
 };
 use axum::{
@@ -14,12 +13,10 @@ use compositor_render::InputId;
 use init_peer_connection::init_peer_connection;
 use std::{sync::Arc, time::Duration};
 use tokio::{sync::watch, time::timeout};
-use tracing::{debug, error, info};
+use tracing::{debug, info};
 use urlencoding::encode;
 use webrtc::{
-    ice_transport::{
-        ice_gatherer_state::RTCIceGathererState, ice_gathering_state::RTCIceGatheringState,
-    },
+    ice_transport::ice_gatherer_state::RTCIceGathererState,
     peer_connection::{sdp::session_description::RTCSessionDescription, RTCPeerConnection},
     rtp_transceiver::rtp_codec::RTPCodecType,
 };
@@ -50,6 +47,7 @@ pub async fn handle_create_whip_session(
     let peer_connection = init_peer_connection(
         input_components.video_sender.is_some(),
         input_components.audio_sender.is_some(),
+        state.stun_servers.to_vec(),
     )
     .await?;
 
@@ -102,7 +100,7 @@ pub async fn handle_create_whip_session(
 
     let Some(sdp) = peer_connection.local_description().await else {
         return Err(WhipServerError::InternalError(
-            "Read local description error".to_string(),
+            "Local description is not set, cannot read it".to_string(),
         ));
     };
     debug!("Sending SDP answer: {sdp:?}");
@@ -120,13 +118,11 @@ pub async fn handle_create_whip_session(
 pub fn validate_sdp_content_type(headers: &HeaderMap) -> Result<(), WhipServerError> {
     if let Some(content_type) = headers.get("Content-Type") {
         if content_type.as_bytes() != b"application/sdp" {
-            error!("Invalid Content-Type, expecting application/sdp");
             return Err(WhipServerError::InternalError(
                 "Invalid Content-Type".to_string(),
             ));
         }
     } else {
-        error!("Missing Content-Type header");
         return Err(WhipServerError::BadRequest(
             "Missing Content-Type header".to_string(),
         ));
@@ -135,25 +131,18 @@ pub fn validate_sdp_content_type(headers: &HeaderMap) -> Result<(), WhipServerEr
 }
 
 pub async fn gather_ice_candidates_for_one_second(peer_connection: Arc<RTCPeerConnection>) {
-    let (sender, mut receiver) = watch::channel(peer_connection.ice_gathering_state());
+    let (sender, mut receiver) = watch::channel(RTCIceGathererState::Unspecified);
 
     peer_connection.on_ice_gathering_state_change(Box::new(move |gatherer_state| {
-        let gathering_state = match gatherer_state {
-            RTCIceGathererState::Complete => RTCIceGatheringState::Complete,
-            RTCIceGathererState::Unspecified => RTCIceGatheringState::Unspecified,
-            RTCIceGathererState::New => RTCIceGatheringState::New,
-            RTCIceGathererState::Gathering => RTCIceGatheringState::Gathering,
-            RTCIceGathererState::Closed => RTCIceGatheringState::Unspecified,
-        };
-        if let Err(err) = sender.send(gathering_state) {
-            debug!("Cannot send gathering_state: {err:?}");
+        if let Err(err) = sender.send(gatherer_state) {
+            debug!("Cannot send gathering state: {err:?}");
         };
         Box::pin(async {})
     }));
 
     let gather_candidates = async {
         while receiver.changed().await.is_ok() {
-            if *receiver.borrow() == RTCIceGatheringState::Complete {
+            if *receiver.borrow() == RTCIceGathererState::Complete {
                 break;
             }
         }

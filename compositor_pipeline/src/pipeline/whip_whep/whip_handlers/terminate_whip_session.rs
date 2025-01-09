@@ -1,5 +1,5 @@
 use crate::pipeline::whip_whep::{
-    error::WhipServerError, validate_bearer_token::validate_token, WhipWhepState,
+    bearer_token::validate_token, error::WhipServerError, WhipWhepState,
 };
 use axum::{
     extract::{Path, State},
@@ -21,7 +21,7 @@ pub async fn handle_terminate_whip_session(
         connections
             .get(&input_id)
             .map(|connection| connection.bearer_token.clone())
-            .ok_or_else(|| WhipServerError::NotFound(format!("InputID {input_id:?} not found")))?
+            .ok_or_else(|| WhipServerError::NotFound(format!("{input_id:?} not found")))?
     };
 
     validate_token(bearer_token, headers.get("Authorization")).await?;
@@ -31,9 +31,7 @@ pub async fn handle_terminate_whip_session(
         if let Some(connection) = connections.get_mut(&input_id) {
             connection.peer_connection.take()
         } else {
-            return Err(WhipServerError::NotFound(format!(
-                "InputID {input_id:?} not found"
-            )));
+            return Err(WhipServerError::NotFound(format!("{input_id:?} not found")));
         }
     };
 
@@ -45,6 +43,6 @@ pub async fn handle_terminate_whip_session(
         )));
     }
 
-    info!("[whip] session terminated for input: {:?}", input_id);
+    info!("WHIP session terminated for input: {:?}", input_id);
     Ok(StatusCode::OK)
 }

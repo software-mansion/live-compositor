@@ -1,5 +1,5 @@
 use crate::pipeline::whip_whep::{
-    error::WhipServerError, validate_bearer_token::validate_token, WhipWhepState,
+    bearer_token::validate_token, error::WhipServerError, WhipWhepState,
 };
 use axum::{
     extract::{Path, State},
@@ -23,7 +23,7 @@ pub async fn handle_new_whip_ice_candidates(
 
     if content_type != "application/trickle-ice-sdpfrag" {
         return Err(WhipServerError::BadRequest(
-            "Invalid content type".to_owned(),
+            "Invalid Content-Type".to_owned(),
         ));
     }
 
@@ -33,7 +33,7 @@ pub async fn handle_new_whip_ice_candidates(
         connections
             .get(&input_id)
             .map(|conn| (conn.bearer_token.clone(), conn.peer_connection.clone()))
-            .ok_or_else(|| WhipServerError::NotFound(format!("InputID {input_id:?} not found")))?
+            .ok_or_else(|| WhipServerError::NotFound(format!("{input_id:?} not found")))?
     };
 
     validate_token(bearer_token, headers.get("Authorization")).await?;
@@ -55,8 +55,8 @@ pub async fn handle_new_whip_ice_candidates(
     Ok(StatusCode::NO_CONTENT)
 }
 
-pub fn ice_fragment_unmarshal(sdp_content: &str) -> Vec<RTCIceCandidateInit> {
-    let lines = sdp_content.split("\n");
+pub fn ice_fragment_unmarshal(sdp_fragment_content: &str) -> Vec<RTCIceCandidateInit> {
+    let lines = sdp_fragment_content.split("\n");
     let mut candidates = Vec::new();
     let mut mid = None;
     let mut mid_num = None;
@@ -66,7 +66,7 @@ pub fn ice_fragment_unmarshal(sdp_content: &str) -> Vec<RTCIceCandidateInit> {
             mid = line
                 .split_once(':')
                 .map(|(_, value)| value.trim().to_string());
-            mid_num = mid.as_ref().and_then(|m| m.parse::<u16>().ok());
+            mid_num = mid_num.map_or(Some(0), |index| Some(index + 1));
         }
         if line.starts_with("a=candidate:") {
             candidates.push(RTCIceCandidateInit {

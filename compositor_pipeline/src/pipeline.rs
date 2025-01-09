@@ -146,6 +146,7 @@ pub struct PipelineCtx {
     pub event_emitter: Arc<EventEmitter>,
     pub whip_whep_state: Arc<WhipWhepState>,
     pub tokio_rt: Arc<Runtime>,
+    pub start_whip_whep: bool,
     #[cfg(feature = "vk-video")]
     pub vulkan_ctx: Option<graphics_context::VulkanCtx>,
 }
@@ -199,13 +200,26 @@ impl Pipeline {
             Some(tokio_rt) => tokio_rt,
             None => Arc::new(Runtime::new().map_err(InitPipelineError::CreateTokioRuntime)?),
         };
-        let whip_whep_state = WhipWhepState::new();
-        let shutdown_whip_whep_sender = if opts.start_whip_whep {
+        let stun_servers = opts.stun_servers;
+        let whip_whep_state = WhipWhepState::new(stun_servers.clone());
+        let start_whip_whep = opts.start_whip_whep;
+        let shutdown_whip_whep_sender = if start_whip_whep {
             let port = opts.whip_whep_server_port;
             let whip_whep_state = whip_whep_state.clone();
             let (sender, receiver) = oneshot::channel();
-            tokio_rt
-                .spawn(async move { run_whip_whep_server(port, whip_whep_state, receiver).await });
+            let (init_result_sender, init_result_receiver) = oneshot::channel();
+            tokio_rt.spawn(async move {
+                run_whip_whep_server(port, whip_whep_state, receiver, init_result_sender).await
+            });
+            match init_result_receiver.blocking_recv() {
+                Ok(init_result) => init_result?,
+                Err(err) => {
+                    error!(
+                        "Error while receiving WHIP WHEP server initialization result {:?}",
+                        err
+                    )
+                }
+            }
             Some(sender)
         } else {
             None
@@ -222,11 +236,12 @@ impl Pipeline {
             ctx: PipelineCtx {
                 output_sample_rate: opts.output_sample_rate,
                 output_framerate: opts.queue_options.output_framerate,
-                stun_servers: opts.stun_servers,
+                stun_servers,
                 download_dir: download_dir.into(),
                 event_emitter,
                 tokio_rt,
                 whip_whep_state,
+                start_whip_whep,
                 #[cfg(feature = "vk-video")]
                 vulkan_ctx: preinitialized_ctx.and_then(|ctx| ctx.vulkan_ctx),
             },
@@ -490,7 +505,7 @@ impl Drop for Pipeline {
     fn drop(&mut self) {
         if let Some(sender) = self.shutdown_whip_whep_sender.take() {
             if let Err(err) = sender.send(()) {
-                warn!("Cannot sent shutdown signal to whip_whep server: {err:?}")
+                error!("Cannot sent shutdown signal to WHIP WHEP server: {err:?}")
             }
         }
         self.queue.shutdown()
