@@ -56,6 +56,7 @@ export default [
       '@typescript-eslint/no-floating-promises': ['error'],
       'no-constant-condition': [0],
       'no-unused-vars': 'off',
+      'curly': 'error',
       '@typescript-eslint/no-unused-vars': [
         'error',
         {

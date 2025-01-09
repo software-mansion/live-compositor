@@ -9,6 +9,7 @@ import { intoAudioInputsConfiguration } from '../api/output.js';
 import { ThrottledFunction } from '../utils.js';
 import { OutputRootComponent } from '../rootComponent.js';
 import type { Logger } from 'pino';
+import type { ImageRef } from '../api/image.js';
 
 type AudioContext = _liveCompositorInternals.AudioContext;
 type LiveTimeContext = _liveCompositorInternals.LiveTimeContext;
@@ -143,7 +144,7 @@ class OutputContext implements CompositorOutputContext {
   ): Promise<{ videoDurationMs?: number; audioDurationMs?: number }> {
     return await this.output.internalInputStreamStore.runBlocking(async updateStore => {
       const inputRef = {
-        type: 'output-local',
+        type: 'output-specific-input',
         outputId: this.outputId,
         id: inputId,
       } as const;
@@ -171,12 +172,31 @@ class OutputContext implements CompositorOutputContext {
   public async unregisterMp4Input(inputId: number): Promise<void> {
     await this.output.api.unregisterInput(
       {
-        type: 'output-local',
+        type: 'output-specific-input',
         outputId: this.outputId,
         id: inputId,
       },
       {}
     );
+  }
+  public async registerImage(imageId: number, imageSpec: any) {
+    const imageRef = {
+      type: 'output-specific-image',
+      outputId: this.outputId,
+      id: imageId,
+    } as const satisfies ImageRef;
+
+    await this.output.api.registerImage(imageRef, {
+      url: imageSpec.url,
+      asset_type: imageSpec.assetType,
+    });
+  }
+  public async unregisterImage(imageId: number) {
+    await this.output.api.unregisterImage({
+      type: 'output-specific-image',
+      outputId: this.outputId,
+      id: imageId,
+    });
   }
 }
 

@@ -11,6 +11,7 @@ import OfflineOutput from './output.js';
 import { CompositorEventType, parseEvent } from '../event.js';
 import type { ReactElement } from 'react';
 import type { Logger } from 'pino';
+import type { ImageRef } from '../api/image.js';
 
 /**
  * Offline rendering only supports one output, so we can just pick any value to use
@@ -126,7 +127,9 @@ export class OfflineCompositor {
   public async registerImage(imageId: string, request: Renderers.RegisterImage): Promise<object> {
     this.checkNotStarted();
     this.logger.info({ imageId }, 'Register image');
-    return this.api.registerImage(imageId, intoRegisterImage(request));
+    const imageRef = { type: 'global', id: imageId } as const satisfies ImageRef;
+
+    return this.api.registerImage(imageRef, intoRegisterImage(request));
   }
 
   private checkNotStarted() {

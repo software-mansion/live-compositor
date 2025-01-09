@@ -1,19 +1,13 @@
 import { createElement, useContext, useEffect, useState, useSyncExternalStore } from 'react';
-import type * as Api from '../api.js';
 import { newBlockingTask } from '../hooks.js';
-import { useTimeLimitedComponent } from '../context/childrenLifetimeContext.js';
 import { LiveCompositorContext } from '../context/index.js';
 import { inputRefIntoRawId, OfflineTimeContext } from '../internal.js';
 import { InnerInputStream } from './InputStream.js';
-import { newInternalStreamId } from '../context/internalStreamStore.js';
+import { newInternalStreamId } from '../context/internalStreamIdManager.js';
+import type { ComponentBaseProps } from '../component.js';
+import { useTimeLimitedComponent } from '../context/childrenLifetimeContext.js';
 
-export type Mp4Props = {
-  children?: undefined;
-
-  /**
-   * Id of a component.
-   */
-  id?: Api.ComponentId;
+export type Mp4Props = Omit<ComponentBaseProps, 'children'> & {
   /**
    * Audio volume represented by a number between 0 and 1.
    */
@@ -43,6 +37,7 @@ function Mp4(props: Mp4Props) {
         ? { url: props.source }
         : { path: props.source };
     let registerPromise: Promise<any>;
+
     void (async () => {
       try {
         registerPromise = ctx.registerMp4Input(newInputId, {
@@ -69,7 +64,11 @@ function Mp4(props: Mp4Props) {
 
   return createElement(InnerInputStream, {
     ...otherProps,
-    inputId: inputRefIntoRawId({ type: 'output-local', id: inputId, outputId: ctx.outputId }),
+    inputId: inputRefIntoRawId({
+      type: 'output-specific-input',
+      id: inputId,
+      outputId: ctx.outputId,
+    }),
   });
 }
 
@@ -81,12 +80,12 @@ function useInternalAudioInput(inputId: number, volume: number) {
     }
     const options = { volume };
     ctx.audioContext.addInputAudioComponent(
-      { type: 'output-local', id: inputId, outputId: ctx.outputId },
+      { type: 'output-specific-input', id: inputId, outputId: ctx.outputId },
       options
     );
     return () => {
       ctx.audioContext.removeInputAudioComponent(
-        { type: 'output-local', id: inputId, outputId: ctx.outputId },
+        { type: 'output-specific-input', id: inputId, outputId: ctx.outputId },
         options
       );
     };

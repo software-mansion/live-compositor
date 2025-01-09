@@ -10,6 +10,7 @@ import { sleep } from '../utils.js';
 import { OFFLINE_OUTPUT_ID } from './compositor.js';
 import { OutputRootComponent } from '../rootComponent.js';
 import type { Logger } from 'pino';
+import type { ImageRef } from '../api/image.js';
 
 type AudioContext = _liveCompositorInternals.AudioContext;
 type OfflineTimeContext = _liveCompositorInternals.OfflineTimeContext;
@@ -146,7 +147,7 @@ class OutputContext implements CompositorOutputContext {
     registerRequest: RegisterMp4Input
   ): Promise<{ videoDurationMs?: number; audioDurationMs?: number }> {
     const inputRef = {
-      type: 'output-local',
+      type: 'output-specific-input',
       outputId: this.outputId,
       id: inputId,
     } as const;
@@ -184,15 +185,33 @@ class OutputContext implements CompositorOutputContext {
   public async unregisterMp4Input(inputId: number): Promise<void> {
     await this.output.api.unregisterInput(
       {
-        type: 'output-local',
+        type: 'output-specific-input',
         outputId: this.outputId,
         id: inputId,
       },
       { schedule_time_ms: this.timeContext.timestampMs() }
     );
   }
-}
+  public async registerImage(imageId: number, imageSpec: any) {
+    const imageRef = {
+      type: 'output-specific-image',
+      outputId: this.outputId,
+      id: imageId,
+    } as const satisfies ImageRef;
 
+    await this.output.api.registerImage(imageRef, {
+      url: imageSpec.url,
+      asset_type: imageSpec.assetType,
+    });
+  }
+  public async unregisterImage(imageId: number) {
+    await this.output.api.unregisterImage({
+      type: 'output-specific-image',
+      outputId: this.outputId,
+      id: imageId,
+    });
+  }
+}
 async function waitForBlockingTasks(offlineContext: OfflineTimeContext): Promise<void> {
   while (offlineContext.isBlocked()) {
     await sleep(100);

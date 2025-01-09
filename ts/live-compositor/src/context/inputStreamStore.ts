@@ -14,7 +14,7 @@ export function useInternalStreamId(): string {
     nextStreamNumber += 1;
     return result;
   });
-  return `output-local:${streamNumber}:${ctx.outputId}`;
+  return `output-specific-input:${streamNumber}:${ctx.outputId}`;
 }
 
 export type StreamState = 'ready' | 'playing' | 'finished';

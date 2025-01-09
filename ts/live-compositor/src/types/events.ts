@@ -1,4 +1,4 @@
-import type { InputRef } from './inputRef.js';
+import type { InputRef } from './refs/inputRef.js';
 
 export enum CompositorEventType {
   AUDIO_INPUT_DELIVERED = 'AUDIO_INPUT_DELIVERED',
