@@ -2,6 +2,7 @@ import type {
   ApiRequest,
   CompositorManager,
   RegisterInputRequest,
+  RegisterInputResponse,
   RegisterOutputRequest,
 } from '@live-compositor/core';
 import type { Renderer, Component, ImageSpec } from '@live-compositor/browser-render';
@@ -44,18 +45,18 @@ class WasmInstance implements CompositorManager {
     }
 
     if (route.type == 'input') {
-      await this.handleInputRequest(route.id, route.operation, request.body);
+      return this.handleInputRequest(route.id, route.operation, request.body);
     } else if (route.type === 'output') {
-      this.handleOutputRequest(route.id, route.operation, request.body);
+      return this.handleOutputRequest(route.id, route.operation, request.body);
     } else if (route.type === 'image') {
-      await this.handleImageRequest(route.id, route.operation, request.body);
+      return this.handleImageRequest(route.id, route.operation, request.body);
     } else if (route.type === 'shader') {
       throw new Error('Shaders are not supported');
     } else if (route.type === 'web-renderer') {
       throw new Error('Web renderers are not supported');
+    } else {
+      return {};
     }
-
-    return {};
   }
 
   public registerEventListener(cb: (event: unknown) => void): void {
@@ -81,16 +82,18 @@ class WasmInstance implements CompositorManager {
     inputId: string,
     operation: string,
     body?: object
-  ): Promise<void> {
+  ): Promise<object> {
     if (operation === 'register') {
-      await this.registerInput(inputId, body! as RegisterInputRequest);
+      return this.registerInput(inputId, body! as RegisterInputRequest);
     } else if (operation === 'unregister') {
       this.queue.removeInput(inputId);
       this.renderer.unregisterInput(inputId);
     }
+
+    return {};
   }
 
-  private handleOutputRequest(outputId: string, operation: string, body?: object) {
+  private handleOutputRequest(outputId: string, operation: string, body?: object): object {
     if (operation === 'register') {
       this.registerOutput(outputId, body! as RegisterOutputRequest);
     } else if (operation === 'unregister') {
@@ -99,21 +102,28 @@ class WasmInstance implements CompositorManager {
     } else if (operation === 'update') {
       this.updateScene(outputId, body! as Api.UpdateOutputRequest);
     }
+
+    return {};
   }
 
   private async handleImageRequest(
     imageId: string,
     operation: string,
     body?: object
-  ): Promise<void> {
+  ): Promise<object> {
     if (operation === 'register') {
       await this.renderer.registerImage(imageId, body as ImageSpec);
     } else if (operation === 'unregister') {
       this.renderer.unregisterImage(imageId);
     }
+
+    return {};
   }
 
-  private async registerInput(inputId: string, request: RegisterInputRequest): Promise<void> {
+  private async registerInput(
+    inputId: string,
+    request: RegisterInputRequest
+  ): Promise<RegisterInputResponse> {
     const frameProducer = producerFromRequest(request);
     await frameProducer.init();
 
@@ -121,7 +131,11 @@ class WasmInstance implements CompositorManager {
     // `addInput` will throw an exception if input already exists
     this.queue.addInput(inputId, input);
     this.renderer.registerInput(inputId);
-    input.start();
+
+    const startInfo = await input.start();
+    return {
+      video_duration_ms: startInfo?.videoDurationMs,
+    };
   }
 
   private registerOutput(outputId: string, request: RegisterOutputRequest) {

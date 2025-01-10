@@ -1,25 +1,19 @@
-import type { Mp4ReadyData } from './demuxer';
 import { MP4Demuxer } from './demuxer';
 import type InputSource from '../source';
-import type { InputSourceCallbacks, SourcePayload } from '../source';
+import type { InputSourceCallbacks, SourceMetadata, SourcePayload } from '../source';
 import { Queue } from '@datastructures-js/queue';
-import type { Framerate } from '../../compositor';
 
 export default class MP4Source implements InputSource {
   private fileUrl: string;
   private fileData?: ArrayBuffer;
-  private demuxer: MP4Demuxer;
+  private demuxer?: MP4Demuxer;
   private callbacks?: InputSourceCallbacks;
   private chunks: Queue<EncodedVideoChunk>;
   private eosReceived: boolean = false;
-  private framerate?: Framerate;
+  private metadata: SourceMetadata = {};
 
   public constructor(fileUrl: string) {
     this.fileUrl = fileUrl;
-    this.demuxer = new MP4Demuxer({
-      onReady: config => this.handleOnReady(config),
-      onPayload: payload => this.handlePayload(payload),
-    });
     this.chunks = new Queue();
   }
 
@@ -28,13 +22,25 @@ export default class MP4Source implements InputSource {
     this.fileData = await resp.arrayBuffer();
   }
 
-  public start(): void {
+  public async start(): Promise<void> {
     if (!this.fileData) {
       throw new Error('MP4Source has to be initialized first before processing can be started');
     }
 
-    this.demuxer.demux(this.fileData);
-    this.demuxer.flush();
+    await new Promise<void>(resolve => {
+      this.demuxer = new MP4Demuxer({
+        onReady: data => {
+          this.callbacks?.onDecoderConfig(data.decoderConfig);
+          this.metadata.framerate = data.framerate;
+          this.metadata.videoDurationMs = data.videoDurationMs;
+          resolve();
+        },
+        onPayload: payload => this.handlePayload(payload),
+      });
+
+      this.demuxer.demux(this.fileData!);
+      this.demuxer.flush();
+    });
   }
 
   public registerCallbacks(callbacks: InputSourceCallbacks): void {
@@ -45,8 +51,8 @@ export default class MP4Source implements InputSource {
     return this.eosReceived && this.chunks.isEmpty();
   }
 
-  public getFramerate(): Framerate | undefined {
-    return this.framerate;
+  public getMetadata(): SourceMetadata {
+    return this.metadata;
   }
 
   public nextChunk(): EncodedVideoChunk | undefined {
@@ -55,11 +61,6 @@ export default class MP4Source implements InputSource {
 
   public peekChunk(): EncodedVideoChunk | undefined {
     return this.chunks.front();
-  }
-
-  private handleOnReady(data: Mp4ReadyData) {
-    this.callbacks?.onDecoderConfig(data.decoderConfig);
-    this.framerate = data.framerate;
   }
 
   private handlePayload(payload: SourcePayload) {

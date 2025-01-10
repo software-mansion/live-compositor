@@ -7,6 +7,7 @@ import type { Framerate } from '../../compositor';
 export type Mp4ReadyData = {
   decoderConfig: VideoDecoderConfig;
   framerate: Framerate;
+  videoDurationMs: number;
 };
 
 export type MP4DemuxerCallbacks = {
@@ -51,6 +52,7 @@ export class MP4Demuxer {
     }
 
     const videoTrack = info.videoTracks[0];
+    const videoDurationMs = (videoTrack.movie_duration / videoTrack.movie_timescale) * 1000;
     const codecDescription = this.getCodecDescription(videoTrack.id);
     this.samplesCount = videoTrack.nb_samples;
 
@@ -68,6 +70,7 @@ export class MP4Demuxer {
     this.callbacks.onReady({
       decoderConfig,
       framerate,
+      videoDurationMs,
     });
 
     this.file.setExtractionOptions(videoTrack.id);

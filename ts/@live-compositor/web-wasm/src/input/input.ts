@@ -6,6 +6,10 @@ import type InputFrameProducer from './inputFrameProducer';
 
 export type InputState = 'waiting_for_start' | 'buffering' | 'playing' | 'finished';
 
+export type InputStartInfo = {
+  videoDurationMs?: number;
+};
+
 export class Input {
   private id: InputId;
   private state: InputState;
@@ -33,18 +37,20 @@ export class Input {
     });
   }
 
-  public start() {
+  public async start(): Promise<InputStartInfo | undefined> {
     if (this.state !== 'waiting_for_start') {
       console.warn(`Tried to start an already started input "${this.id}"`);
       return;
     }
 
-    this.frameProducer.start();
+    const startInfo = await this.frameProducer.start();
     this.state = 'buffering';
     this.eventSender.sendEvent({
       type: CompositorEventType.VIDEO_INPUT_DELIVERED,
       inputId: this.id,
     });
+
+    return startInfo;
   }
 
   /**

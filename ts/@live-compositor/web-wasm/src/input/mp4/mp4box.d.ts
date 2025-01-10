@@ -27,6 +27,7 @@ declare module 'mp4box' {
   export interface MP4MediaTrack {
     id: number;
     movie_duration: number;
+    movie_timescale: number;
     track_width: number;
     track_height: number;
     timescale: number;

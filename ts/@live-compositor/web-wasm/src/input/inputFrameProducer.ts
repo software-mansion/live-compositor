@@ -2,6 +2,7 @@ import type { RegisterInputRequest } from '@live-compositor/core';
 import type { FrameRef } from './frame';
 import DecodingFrameProducer from './producer/decodingFrameProducer';
 import MP4Source from './mp4/source';
+import type { InputStartInfo } from './input';
 
 export type InputFrameProducerCallbacks = {
   onReady(): void;
@@ -12,7 +13,7 @@ export default interface InputFrameProducer {
   /**
    * Starts resources required for producing frames. `init()` has to be called beforehand.
    */
-  start(): void;
+  start(): Promise<InputStartInfo>;
   registerCallbacks(callbacks: InputFrameProducerCallbacks): void;
   /**
    * Produce next frame.
