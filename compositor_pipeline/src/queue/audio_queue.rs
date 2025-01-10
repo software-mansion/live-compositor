@@ -216,7 +216,7 @@ impl AudioQueueInput {
         while self
             .queue
             .front()
-            .map_or(false, |batch| batch.end_pts < end_pts)
+            .is_some_and(|batch| batch.end_pts < end_pts)
         {
             self.queue.pop_front();
         }
