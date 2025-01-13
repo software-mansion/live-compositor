@@ -50,6 +50,7 @@ impl ApiState {
             output_sample_rate,
             stun_servers,
             required_wgpu_features,
+            load_system_fonts,
             ..
         } = config.clone();
         let (pipeline, event_loop) = Pipeline::new(pipeline::Options {
@@ -62,7 +63,7 @@ impl ApiState {
             stun_servers,
             wgpu_features: required_wgpu_features,
             wgpu_ctx: None,
-            load_system_fonts: Some(true),
+            load_system_fonts: Some(load_system_fonts),
             tokio_rt: Some(runtime),
         })?;
         Ok((

@@ -95,9 +95,10 @@ rand = { workspace = true }
 reqwest = { workspace = true }
 rubato = { workspace = true }
 tokio = { workspace = true }
-axum = { version = "0.7.4", features = ["ws"] }
+axum = { version = "0.7.4", features = ["ws", "multipart"] }
 futures-util = { workspace = true }
 wgpu = { workspace = true }
+glyphon = { workspace = true }
 http-body-util = "0.1.2"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]

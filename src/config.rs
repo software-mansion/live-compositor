@@ -26,6 +26,7 @@ pub struct Config {
     pub output_sample_rate: u32,
     pub stun_servers: Arc<Vec<String>>,
     pub required_wgpu_features: WgpuFeatures,
+    pub load_system_fonts: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -191,6 +192,13 @@ fn try_read_config() -> Result<Config, String> {
         Err(_) => queue::DEFAULT_BUFFER_DURATION,
     };
 
+    let load_system_fonts = match env::var("LIVE_COMPOSITOR_LOAD_SYSTEM_FONTS") {
+        Ok(load_system_fonts) => load_system_fonts
+            .parse::<bool>()
+            .map_err(|_| "LIVE_COMPOSITOR_LOAD_SYSTEM_FONTS has to be boolean value")?,
+        Err(_) => true,
+    };
+
     let log_file = match env::var("LIVE_COMPOSITOR_LOG_FILE") {
         Ok(path) => Some(Arc::from(PathBuf::from(path))),
         Err(_) => None,
@@ -236,6 +244,7 @@ fn try_read_config() -> Result<Config, String> {
         output_sample_rate,
         stun_servers,
         required_wgpu_features,
+        load_system_fonts,
     };
     Ok(config)
 }

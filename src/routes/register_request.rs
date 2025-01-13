@@ -1,5 +1,8 @@
-use axum::extract::{Path, State};
+use std::sync::Arc;
+
+use axum::extract::{FromRequest, Multipart, Path, Request, State};
 use compositor_pipeline::pipeline::{input::InputInitInfo, Port};
+use glyphon::fontdb::Source;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -134,6 +137,49 @@ pub(super) async fn handle_image(
     let api = api.clone();
     tokio::task::spawn_blocking(move || {
         Pipeline::register_renderer(&api.pipeline, image_id.into(), request.try_into()?)?;
+        Ok(Response::Ok {})
+    })
+    .await
+    .unwrap()
+}
+
+pub(super) async fn handle_font(
+    State(api): State<ApiState>,
+    request: Request,
+) -> Result<Response, ApiError> {
+    let Some(content_type) = request.headers().get("Content-Type") else {
+        return Err(ApiError::malformed_request(&"Missing Content-Type header"));
+    };
+
+    if let Ok(content_type_str) = content_type.to_str() {
+        if !content_type_str.starts_with("multipart/form-data") {
+            return Err(ApiError::malformed_request(&"Invalid Content-Type"));
+        }
+    } else {
+        return Err(ApiError::malformed_request(&"Invalid Content-Type"));
+    }
+
+    let mut multipart = Multipart::from_request(request, &api)
+        .await
+        .map_err(|err| ApiError::malformed_request(&err))?;
+    let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|err| ApiError::malformed_request(&err))?
+    else {
+        return Err(ApiError::malformed_request(&"Missing font file"));
+    };
+
+    let bytes = field
+        .bytes()
+        .await
+        .map_err(|err| ApiError::malformed_request(&err))?;
+
+    tokio::task::spawn_blocking(move || {
+        Pipeline::register_font(
+            &api.pipeline.lock().unwrap(),
+            Source::Binary(Arc::new(bytes.to_vec())),
+        );
         Ok(Response::Ok {})
     })
     .await
