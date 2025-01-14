@@ -56,6 +56,8 @@ pub fn routes(state: ApiState) -> Router {
         .route("/:id/register", post(register_request::handle_shader))
         .route("/:id/unregister", post(unregister_request::handle_shader));
 
+    let font = Router::new().route("/register", post(register_request::handle_font));
+
     async fn handle_start(State(state): State<ApiState>) -> Result<Response, ApiError> {
         Pipeline::start(&state.pipeline);
         Ok(Response::Ok {})
@@ -67,6 +69,7 @@ pub fn routes(state: ApiState) -> Router {
         .nest("/api/image", image)
         .nest("/api/web-renderer", web)
         .nest("/api/shader", shader)
+        .nest("/api/font", font)
         // Start request
         .route("/api/start", post(handle_start))
         // WebSocket - events
