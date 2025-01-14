@@ -110,7 +110,8 @@ pub async fn connect(
         .and_then(|url| url.to_str().ok())
         .ok_or_else(|| WhipError::MissingLocationHeader)?;
 
-    let port = endpoint_url.port().ok_or_else(|| WhipError::MissingPort)?;
+    //let port = endpoint_url.port().ok_or_else(|| WhipError::MissingPort)?;
+    let port = endpoint_url.port();
     let location_url = match Url::parse(location_url_str) {
         Ok(url) => Ok(url),
         Err(err) => match err {
@@ -119,9 +120,14 @@ pub async fn connect(
                 let host = endpoint_url
                     .host_str()
                     .ok_or_else(|| WhipError::MissingHost)?;
-                let formatted_url = format!("{}://{}:{}{}", scheme, host, port, location_url_str);
+                let mut formatted_url = String::from("");
+                if let Some(port) = port {
+                    formatted_url = format!("{}://{}:{}{}", scheme, host, port, location_url_str);
+                } else {
+                    formatted_url = format!("{}://{}{}", scheme, host, location_url_str);
+                }
                 let location_url = Url::try_from(formatted_url.as_str())
-                    .map_err(|e| WhipError::InvalidEndpointUrl(e, formatted_url))?;
+                    .map_err(|e| WhipError::InvalidEndpointUrl(e, formatted_url.to_string()))?;
                 Ok(location_url)
             }
             _ => Err(WhipError::InvalidEndpointUrl(
@@ -213,7 +219,11 @@ async fn handle_candidate(
     let response = client
         .patch(location.clone())
         .headers(header_map)
-        .body(serde_json::to_string(&ice_candidate)?)
+        .body(
+            candidate
+                .try_into()
+                .map_err(WhipError::IceCandidateToJsonError),
+        )
         .send()
         .await
         .map_err(|_| WhipError::RequestFailed(Method::PATCH, location.clone()))?;
