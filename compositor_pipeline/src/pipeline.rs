@@ -467,6 +467,7 @@ impl Pipeline {
 
 impl Drop for Pipeline {
     fn drop(&mut self) {
+        info!("dropping pipeline");
         self.queue.shutdown()
     }
 }

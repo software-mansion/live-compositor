@@ -2406,6 +2406,7 @@ dependencies = [
  "ffmpeg-next",
  "futures-util",
  "image",
+ "libc",
  "live_compositor",
  "log",
  "opus",

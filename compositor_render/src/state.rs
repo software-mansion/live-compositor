@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use glyphon::fontdb;
+use log::info;
 
 use crate::error::{RegisterRendererError, UnregisterRendererError};
 
@@ -81,6 +82,12 @@ pub enum RendererSpec {
     Shader(shader::ShaderSpec),
     WebRenderer(web_renderer::WebRendererSpec),
     Image(image::ImageSpec),
+}
+
+impl Drop for Renderer {
+    fn drop(&mut self) {
+        info!("dropping renderer");
+    }
 }
 
 impl Renderer {
