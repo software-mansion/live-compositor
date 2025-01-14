@@ -7,7 +7,7 @@ use ash::{vk, Entry};
 use tracing::{debug, error, warn};
 use wgpu::hal::Adapter;
 
-use crate::{parser::Parser, BytesDecoder, DecoderError, WgpuTexturesDeocder};
+use crate::{parser::Parser, BytesDecoder, DecoderError, WgpuTexturesDecoder};
 
 use super::{
     Allocator, CommandBuffer, CommandPool, DebugMessenger, Device, FrameSorter, Instance,
@@ -48,10 +48,10 @@ pub enum VulkanCtxError {
 }
 
 pub struct VulkanInstance {
+    pub wgpu_instance: Arc<wgpu::Instance>,
     _entry: Arc<Entry>,
     instance: Arc<Instance>,
     _debug_messenger: Option<DebugMessenger>,
-    pub wgpu_instance: Arc<wgpu::Instance>,
 }
 
 impl VulkanInstance {
@@ -323,6 +323,9 @@ impl std::fmt::Debug for VulkanInstance {
 }
 
 pub struct VulkanDevice {
+    pub wgpu_device: Arc<wgpu::Device>,
+    pub wgpu_queue: Arc<wgpu::Queue>,
+    pub wgpu_adapter: Arc<wgpu::Adapter>,
     _physical_device: vk::PhysicalDevice,
     pub(crate) device: Arc<Device>,
     pub(crate) allocator: Arc<Allocator>,
@@ -331,20 +334,17 @@ pub struct VulkanDevice {
     pub(crate) h264_dpb_format_properties: vk::VideoFormatPropertiesKHR<'static>,
     pub(crate) h264_dst_format_properties: Option<vk::VideoFormatPropertiesKHR<'static>>,
     pub(crate) h264_caps: vk::VideoDecodeH264CapabilitiesKHR<'static>,
-    pub wgpu_device: Arc<wgpu::Device>,
-    pub wgpu_queue: Arc<wgpu::Queue>,
-    pub wgpu_adapter: Arc<wgpu::Adapter>,
 }
 
 impl VulkanDevice {
     pub fn create_wgpu_textures_decoder(
         self: &Arc<Self>,
-    ) -> Result<WgpuTexturesDeocder, DecoderError> {
+    ) -> Result<WgpuTexturesDecoder, DecoderError> {
         let parser = Parser::default();
         let vulkan_decoder = VulkanDecoder::new(self.clone())?;
         let frame_sorter = FrameSorter::<wgpu::Texture>::new();
 
-        Ok(WgpuTexturesDeocder {
+        Ok(WgpuTexturesDecoder {
             parser,
             vulkan_decoder,
             frame_sorter,

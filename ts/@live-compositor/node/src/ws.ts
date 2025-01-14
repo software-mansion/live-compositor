@@ -1,24 +1,25 @@
+import { type Logger } from 'pino';
 import WebSocket from 'ws';
 
 export class WebSocketConnection {
   private url: string;
   private listeners: Set<(event: object) => void>;
-  // @ts-expect-error: unused if we don't send messages via WebSocket
   private ws: WebSocket | null = null;
+  private donePromise?: Promise<void>;
 
   constructor(url: string) {
     this.url = url;
     this.listeners = new Set();
   }
 
-  public async connect(): Promise<void> {
+  public async connect(logger: Logger): Promise<void> {
     const ws = new WebSocket(this.url);
 
     let connected = false;
     await new Promise<void>((res, rej) => {
       ws.on('error', (err: any) => {
         if (connected) {
-          console.log('error', err);
+          logger.error(err, 'WebSocket error');
         } else {
           rej(err);
         }
@@ -30,7 +31,7 @@ export class WebSocketConnection {
       });
 
       ws.on('message', data => {
-        const event = parseEvent(data);
+        const event = parseEvent(data, logger);
         if (event) {
           for (const listener of this.listeners) {
             listener(event);
@@ -38,8 +39,11 @@ export class WebSocketConnection {
         }
       });
 
-      ws.on('close', () => {
-        this.ws = null;
+      this.donePromise = new Promise(res => {
+        ws.on('close', () => {
+          this.ws = null;
+          res();
+        });
       });
     });
     this.ws = ws;
@@ -48,13 +52,18 @@ export class WebSocketConnection {
   public registerEventListener(cb: (event: object) => void): void {
     this.listeners.add(cb);
   }
+
+  public async close(): Promise<void> {
+    this.ws?.close();
+    await this.donePromise;
+  }
 }
 
-function parseEvent(data: WebSocket.RawData): unknown {
+function parseEvent(data: WebSocket.RawData, logger: Logger): unknown {
   try {
     return JSON.parse(data.toString());
-  } catch {
-    console.error(`Invalid event received ${data}`);
+  } catch (err: any) {
+    logger.warn(err, `Invalid event received ${data}`);
     return null;
   }
 }

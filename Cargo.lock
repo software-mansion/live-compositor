@@ -2412,6 +2412,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "bytes",
+ "clap",
  "compositor_api",
  "compositor_chromium",
  "compositor_pipeline",
@@ -5487,6 +5488,7 @@ dependencies = [
  "clap",
  "derivative",
  "h264-reader",
+ "memchr",
  "thiserror",
  "tracing",
  "tracing-subscriber 0.3.18",

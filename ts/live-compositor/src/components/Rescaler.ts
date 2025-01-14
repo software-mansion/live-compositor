@@ -2,14 +2,14 @@ import type React from 'react';
 import type * as Api from '../api.js';
 import type { Transition } from './common.js';
 import { intoApiTransition } from './common.js';
-import type { SceneComponent } from '../component.js';
+import type { ComponentBaseProps, SceneComponent } from '../component.js';
 import { createCompositorComponent, sceneComponentIntoApi } from '../component.js';
 
-export type RescalerStyle = {
+export type RescalerStyleProps = {
   /**
-   * (**default=`"fit"`**) Resize mode:
+   * (**default=`"fit"`**) Rescale mode:
    */
-  resizeMode?: Api.RescaleMode;
+  rescaleMode?: Api.RescaleMode;
   /**
    * (**default=`"center"`**) Horizontal alignment.
    */
@@ -40,11 +40,11 @@ export type RescalerStyle = {
    */
   top?: number;
   /**
-   * Distance in pixels between this component's left edge and its parent's left edge.
+   * Distance in pixels between this component's right edge and its parent's right edge.
    * If this field is defined, this element will be absolutely positioned, instead of being
    * laid out by its parent.
    */
-  left?: number;
+  right?: number;
   /**
    * Distance in pixels between this component's bottom edge and its parent's bottom edge.
    * If this field is defined, this element will be absolutely positioned, instead of being
@@ -52,29 +52,43 @@ export type RescalerStyle = {
    */
   bottom?: number;
   /**
-   * Distance in pixels between this component's right edge and its parent's right edge.
+   * Distance in pixels between this component's left edge and its parent's left edge.
    * If this field is defined, this element will be absolutely positioned, instead of being
    * laid out by its parent.
    */
-  right?: number;
+  left?: number;
   /**
    * Rotation of a component in degrees. If this field is defined, this element will be
    * absolutely positioned, instead of being laid out by its parent.
    */
   rotation?: number;
+  /**
+   * (**default=`0.0`**) Radius of a rounded corner.
+   */
+  borderRadius?: number;
+  /**
+   * (**default=`0.0`**) Border width.
+   */
+  borderWidth?: number;
+  /**
+   * (**default=`"#00000000"`**) Border color in `RGB` or `RGBA` format.
+   */
+  borderColor?: string;
+  /**
+   * Properties of the BoxShadow applied to the container.
+   */
+  boxShadow?: Api.BoxShadow[];
 };
 
-export type RescalerProps = {
-  children: React.ReactElement | string | number;
-
+export type RescalerProps = ComponentBaseProps & {
   /**
-   * Id of a component.
+   * Single component child.
    */
-  id?: Api.ComponentId;
+  children: React.ReactElement | string | number;
   /**
    * Rescaler styling properties
    */
-  style?: RescalerStyle;
+  style?: RescalerStyleProps;
   /**
    * Defines how this component will behave during a scene update. This will only have an
    * effect if the previous scene already contained a `Rescaler` component with the same id.
@@ -96,7 +110,7 @@ function sceneBuilder(
     type: 'rescaler',
     id: id,
     child: sceneComponentIntoApi(children[0]),
-    mode: style?.resizeMode,
+    mode: style?.rescaleMode,
     horizontal_align: style?.horizontalAlign,
     vertical_align: style?.verticalAlign,
     width: style?.width,
@@ -107,6 +121,10 @@ function sceneBuilder(
     right: style?.right,
     rotation: style?.rotation,
     transition: transition && intoApiTransition(transition),
+    border_radius: style?.borderRadius,
+    border_width: style?.borderWidth,
+    border_color: style?.borderColor,
+    box_shadow: style?.boxShadow,
   };
 }
 

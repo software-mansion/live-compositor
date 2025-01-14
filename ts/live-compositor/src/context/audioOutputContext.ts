@@ -1,5 +1,5 @@
-import type { InputRef } from '../types/inputRef.js';
-import { areInputRefsEqual } from '../types/inputRef.js';
+import type { InputRef } from '../types/refs/inputRef.js';
+import { areRefsEqual } from '../types/refs/utils.js';
 
 export type ContextAudioOptions = {
   volume: number;
@@ -34,9 +34,7 @@ export class AudioContext {
   }
 
   public addInputAudioComponent(inputRef: InputRef, options: ContextAudioOptions) {
-    const inputConfig = this.audioMixerConfig.find(input =>
-      areInputRefsEqual(input.inputRef, inputRef)
-    );
+    const inputConfig = this.audioMixerConfig.find(input => areRefsEqual(input.inputRef, inputRef));
     if (inputConfig) {
       inputConfig.volumeComponents = [...inputConfig.volumeComponents, options];
     } else {
@@ -52,9 +50,7 @@ export class AudioContext {
   }
 
   public removeInputAudioComponent(inputRef: InputRef, options: ContextAudioOptions) {
-    const inputConfig = this.audioMixerConfig.find(input =>
-      areInputRefsEqual(input.inputRef, inputRef)
-    );
+    const inputConfig = this.audioMixerConfig.find(input => areRefsEqual(input.inputRef, inputRef));
     if (inputConfig) {
       // opt !== options compares objects by reference
       inputConfig.volumeComponents = inputConfig.volumeComponents.filter(opt => opt !== options);

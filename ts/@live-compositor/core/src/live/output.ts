@@ -6,8 +6,10 @@ import type { ApiClient, Api } from '../api.js';
 import Renderer from '../renderer.js';
 import type { RegisterOutput } from '../api/output.js';
 import { intoAudioInputsConfiguration } from '../api/output.js';
-import { throttle } from '../utils.js';
-import { OutputRootComponent, OutputShutdownStateStore } from '../rootComponent.js';
+import { ThrottledFunction } from '../utils.js';
+import { OutputRootComponent } from '../rootComponent.js';
+import type { Logger } from 'pino';
+import type { ImageRef } from '../api/image.js';
 
 type AudioContext = _liveCompositorInternals.AudioContext;
 type LiveTimeContext = _liveCompositorInternals.LiveTimeContext;
@@ -20,10 +22,10 @@ class Output {
   audioContext: AudioContext;
   timeContext: LiveTimeContext;
   internalInputStreamStore: LiveInputStreamStore<number>;
-  outputShutdownStateStore: OutputShutdownStateStore;
+  logger: Logger;
 
   shouldUpdateWhenReady: boolean = false;
-  throttledUpdate: () => void;
+  throttledUpdate: ThrottledFunction;
 
   supportsAudio: boolean;
   supportsVideo: boolean;
@@ -36,23 +38,30 @@ class Output {
     registerRequest: RegisterOutput,
     api: ApiClient,
     store: LiveInputStreamStore<string>,
-    startTimestamp: number | undefined
+    startTimestamp: number | undefined,
+    logger: Logger
   ) {
     this.api = api;
+    this.logger = logger;
     this.outputId = outputId;
-    this.outputShutdownStateStore = new OutputShutdownStateStore();
     this.shouldUpdateWhenReady = false;
-    this.throttledUpdate = () => {
-      this.shouldUpdateWhenReady = true;
-    };
+    this.throttledUpdate = new ThrottledFunction(
+      async () => {
+        this.shouldUpdateWhenReady = true;
+      },
+      {
+        timeoutMs: 30,
+        logger: this.logger,
+      }
+    );
 
     this.supportsAudio = 'audio' in registerRequest && !!registerRequest.audio;
     this.supportsVideo = 'video' in registerRequest && !!registerRequest.video;
 
-    const onUpdate = () => this.throttledUpdate();
+    const onUpdate = () => this.throttledUpdate.scheduleCall();
     this.audioContext = new _liveCompositorInternals.AudioContext(onUpdate);
     this.timeContext = new _liveCompositorInternals.LiveTimeContext();
-    this.internalInputStreamStore = new _liveCompositorInternals.LiveInputStreamStore();
+    this.internalInputStreamStore = new _liveCompositorInternals.LiveInputStreamStore(this.logger);
     if (startTimestamp !== undefined) {
       this.timeContext.initClock(startTimestamp);
     }
@@ -60,7 +69,6 @@ class Output {
     const rootElement = createElement(OutputRootComponent, {
       outputContext: new OutputContext(this, this.outputId, store),
       outputRoot: root,
-      outputShutdownStateStore: this.outputShutdownStateStore,
       childrenLifetimeContext: new _liveCompositorInternals.ChildrenLifetimeContext(() => {}),
     });
 
@@ -68,6 +76,7 @@ class Output {
       rootElement,
       onUpdate,
       idPrefix: `${outputId}-`,
+      logger: logger.child({ element: 'react-renderer' }),
     });
   }
 
@@ -82,19 +91,18 @@ class Output {
     };
   }
 
-  public close(): void {
-    this.throttledUpdate = () => {};
-    // close will switch a scene to just a <View />, so we need replace `throttledUpdate`
-    // callback before it is called
-    this.outputShutdownStateStore.close();
+  public async close(): Promise<void> {
+    this.throttledUpdate.setFn(async () => {});
+    this.renderer.stop();
+    await this.throttledUpdate.waitForPendingCalls();
   }
 
   public async ready() {
-    this.throttledUpdate = throttle(async () => {
+    this.throttledUpdate.setFn(async () => {
       await this.api.updateScene(this.outputId, this.scene());
-    }, 30);
+    });
     if (this.shouldUpdateWhenReady) {
-      this.throttledUpdate();
+      this.throttledUpdate.scheduleCall();
     }
   }
 
@@ -113,6 +121,7 @@ class OutputContext implements CompositorOutputContext {
   public readonly audioContext: _liveCompositorInternals.AudioContext;
   public readonly timeContext: _liveCompositorInternals.TimeContext;
   public readonly outputId: string;
+  public readonly logger: Logger;
   private output: Output;
 
   constructor(
@@ -126,6 +135,7 @@ class OutputContext implements CompositorOutputContext {
     this.audioContext = output.audioContext;
     this.timeContext = output.timeContext;
     this.outputId = outputId;
+    this.logger = output.logger;
   }
 
   public async registerMp4Input(
@@ -134,7 +144,7 @@ class OutputContext implements CompositorOutputContext {
   ): Promise<{ videoDurationMs?: number; audioDurationMs?: number }> {
     return await this.output.internalInputStreamStore.runBlocking(async updateStore => {
       const inputRef = {
-        type: 'output-local',
+        type: 'output-specific-input',
         outputId: this.outputId,
         id: inputId,
       } as const;
@@ -158,15 +168,35 @@ class OutputContext implements CompositorOutputContext {
       };
     });
   }
+
   public async unregisterMp4Input(inputId: number): Promise<void> {
     await this.output.api.unregisterInput(
       {
-        type: 'output-local',
+        type: 'output-specific-input',
         outputId: this.outputId,
         id: inputId,
       },
       {}
     );
+  }
+  public async registerImage(imageId: number, imageSpec: any) {
+    const imageRef = {
+      type: 'output-specific-image',
+      outputId: this.outputId,
+      id: imageId,
+    } as const satisfies ImageRef;
+
+    await this.output.api.registerImage(imageRef, {
+      url: imageSpec.url,
+      asset_type: imageSpec.assetType,
+    });
+  }
+  public async unregisterImage(imageId: number) {
+    await this.output.api.unregisterImage({
+      type: 'output-specific-image',
+      outputId: this.outputId,
+      id: imageId,
+    });
   }
 }
 

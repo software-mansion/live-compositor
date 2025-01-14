@@ -91,3 +91,13 @@ impl std::ops::Deref for CommandBuffer {
         &self.buffer
     }
 }
+
+impl Drop for CommandBuffer {
+    fn drop(&mut self) {
+        unsafe {
+            self.pool
+                .device
+                .free_command_buffers(**self.pool, &[self.buffer])
+        };
+    }
+}

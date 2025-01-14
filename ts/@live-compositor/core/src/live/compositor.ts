@@ -11,6 +11,8 @@ import { parseEvent } from '../event.js';
 import { intoRegisterImage, intoRegisterWebRenderer } from '../api/renderer.js';
 import { handleEvent } from './event.js';
 import type { ReactElement } from 'react';
+import type { Logger } from 'pino';
+import type { ImageRef } from '../api/image.js';
 
 export class LiveCompositor {
   private manager: CompositorManager;
@@ -18,16 +20,21 @@ export class LiveCompositor {
   private store: _liveCompositorInternals.LiveInputStreamStore<string>;
   private outputs: Record<string, Output> = {};
   private startTime?: number;
+  private logger: Logger;
 
-  public constructor(manager: CompositorManager) {
+  public constructor(manager: CompositorManager, logger: Logger) {
     this.manager = manager;
     this.api = new ApiClient(this.manager);
-    this.store = new _liveCompositorInternals.LiveInputStreamStore();
+    this.store = new _liveCompositorInternals.LiveInputStreamStore(logger);
+    this.logger = logger;
   }
 
   public async init(): Promise<void> {
     this.manager.registerEventListener((event: unknown) => this.handleEvent(event));
-    await this.manager.setupInstance({ aheadOfTimeProcessing: false });
+    await this.manager.setupInstance({
+      aheadOfTimeProcessing: false,
+      logger: this.logger.child({ element: 'connection-manager' }),
+    });
   }
 
   public async registerOutput(
@@ -35,7 +42,16 @@ export class LiveCompositor {
     root: ReactElement,
     request: RegisterOutput
   ): Promise<object> {
-    const output = new Output(outputId, root, request, this.api, this.store, this.startTime);
+    this.logger.info({ outputId, type: request.type }, 'Register new output');
+    const output = new Output(
+      outputId,
+      root,
+      request,
+      this.api,
+      this.store,
+      this.startTime,
+      this.logger
+    );
 
     const apiRequest = intoRegisterOutput(request, output.scene());
     const result = await this.api.registerOutput(outputId, apiRequest);
@@ -45,13 +61,15 @@ export class LiveCompositor {
   }
 
   public async unregisterOutput(outputId: string): Promise<object> {
-    this.outputs[outputId].close();
+    this.logger.info({ outputId }, 'Unregister output');
+    await this.outputs[outputId].close();
     delete this.outputs[outputId];
     // TODO: wait for event
     return this.api.unregisterOutput(outputId, {});
   }
 
   public async registerInput(inputId: string, request: RegisterInput): Promise<object> {
+    this.logger.info({ inputId, type: request.type }, 'Register new input');
     return this.store.runBlocking(async updateStore => {
       const inputRef = { type: 'global', id: inputId } as const;
       const result = await this.api.registerInput(inputRef, intoRegisterInput(request));
@@ -68,6 +86,7 @@ export class LiveCompositor {
   }
 
   public async unregisterInput(inputId: string): Promise<object> {
+    this.logger.info({ inputId }, 'Unregister input');
     return this.store.runBlocking(async updateStore => {
       const inputRef = { type: 'global', id: inputId } as const;
       const result = this.api.unregisterInput(inputRef, {});
@@ -80,33 +99,44 @@ export class LiveCompositor {
     shaderId: string,
     request: Renderers.RegisterShader
   ): Promise<object> {
+    this.logger.info({ shaderId }, 'Register shader');
     return this.api.registerShader(shaderId, request);
   }
 
   public async unregisterShader(shaderId: string): Promise<object> {
+    this.logger.info({ shaderId }, 'Unregister shader');
     return this.api.unregisterShader(shaderId);
   }
 
   public async registerImage(imageId: string, request: Renderers.RegisterImage): Promise<object> {
-    return this.api.registerImage(imageId, intoRegisterImage(request));
+    this.logger.info({ imageId }, 'Register image');
+    const imageRef = { type: 'global', id: imageId } as const satisfies ImageRef;
+
+    return this.api.registerImage(imageRef, intoRegisterImage(request));
   }
 
   public async unregisterImage(imageId: string): Promise<object> {
-    return this.api.unregisterImage(imageId);
+    this.logger.info({ imageId }, 'Unregister image');
+    const imageRef = { type: 'global', id: imageId } as const satisfies ImageRef;
+
+    return this.api.unregisterImage(imageRef);
   }
 
   public async registerWebRenderer(
     instanceId: string,
     request: Renderers.RegisterWebRenderer
   ): Promise<object> {
+    this.logger.info({ instanceId }, 'Register web renderer');
     return this.api.registerWebRenderer(instanceId, intoRegisterWebRenderer(request));
   }
 
   public async unregisterWebRenderer(instanceId: string): Promise<object> {
+    this.logger.info({ instanceId }, 'Unregister web renderer');
     return this.api.unregisterWebRenderer(instanceId);
   }
 
   public async start(): Promise<void> {
+    this.logger.info('Start compositor instance.');
     const startTime = Date.now();
     await this.api.start();
     Object.values(this.outputs).forEach(output => {
@@ -115,11 +145,19 @@ export class LiveCompositor {
     this.startTime = startTime;
   }
 
+  public async terminate(): Promise<void> {
+    for (const output of Object.values(this.outputs)) {
+      await output.close();
+    }
+    await this.manager.terminate();
+  }
+
   private handleEvent(rawEvent: unknown) {
-    const event = parseEvent(rawEvent);
+    const event = parseEvent(rawEvent, this.logger);
     if (!event) {
       return;
     }
+    this.logger.debug({ event }, 'New event received');
     handleEvent(this.store, this.outputs, event);
   }
 }

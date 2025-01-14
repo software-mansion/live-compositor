@@ -1,4 +1,4 @@
-import { Renderer } from '@live-compositor/browser-render';
+import { loadWasmModule, Renderer } from '@live-compositor/browser-render';
 import { LiveCompositor as CoreLiveCompositor } from '@live-compositor/core';
 import WasmInstance from './manager/wasmInstance';
 import type { RegisterOutput } from './output/registerOutput';
@@ -7,6 +7,9 @@ import type { RegisterInput } from './input/registerInput';
 import { intoRegisterInput } from './input/registerInput';
 import type { RegisterImage } from './renderers';
 import type { ReactElement } from 'react';
+import type { Logger } from 'pino';
+import { pino } from 'pino';
+import { assert } from './utils';
 
 export type LiveCompositorOptions = {
   framerate?: Framerate;
@@ -18,11 +21,22 @@ export type Framerate = {
   den: number;
 };
 
+let wasmBundleUrl: string | undefined;
+
+/*
+ * Defines url where WASM bundle is hosted. This method needs to be called before
+ * first LiveCompositor instance is initiated.
+ */
+export function setWasmBundleUrl(url: string) {
+  wasmBundleUrl = url;
+}
+
 export default class LiveCompositor {
   private coreCompositor?: CoreLiveCompositor;
   private instance?: WasmInstance;
   private renderer?: Renderer;
   private options: LiveCompositorOptions;
+  private logger: Logger = pino({ level: 'warn' });
 
   public constructor(options: LiveCompositorOptions) {
     this.options = options;
@@ -33,6 +47,7 @@ export default class LiveCompositor {
    * Outputs won't produce any results until `start()` is called.
    */
   public async init(): Promise<void> {
+    await ensureWasmModuleLoaded();
     this.renderer = await Renderer.create({
       streamFallbackTimeoutMs: this.options.streamFallbackTimeoutMs ?? 500,
     });
@@ -40,7 +55,7 @@ export default class LiveCompositor {
       renderer: this.renderer!,
       framerate: this.options.framerate ?? { num: 30, den: 1 },
     });
-    this.coreCompositor = new CoreLiveCompositor(this.instance!);
+    this.coreCompositor = new CoreLiveCompositor(this.instance, this.logger);
 
     await this.coreCompositor!.init();
   }
@@ -50,31 +65,38 @@ export default class LiveCompositor {
     root: ReactElement,
     request: RegisterOutput
   ): Promise<void> {
-    await this.coreCompositor!.registerOutput(outputId, root, intoRegisterOutput(request));
+    assert(this.coreCompositor);
+    await this.coreCompositor.registerOutput(outputId, root, intoRegisterOutput(request));
   }
 
   public async unregisterOutput(outputId: string): Promise<void> {
-    await this.coreCompositor!.unregisterOutput(outputId);
+    assert(this.coreCompositor);
+    await this.coreCompositor.unregisterOutput(outputId);
   }
 
   public async registerInput(inputId: string, request: RegisterInput): Promise<void> {
-    await this.coreCompositor!.registerInput(inputId, intoRegisterInput(request));
+    assert(this.coreCompositor);
+    await this.coreCompositor.registerInput(inputId, intoRegisterInput(request));
   }
 
   public async unregisterInput(inputId: string): Promise<void> {
-    await this.coreCompositor!.unregisterInput(inputId);
+    assert(this.coreCompositor);
+    await this.coreCompositor.unregisterInput(inputId);
   }
 
   public async registerImage(imageId: string, request: RegisterImage): Promise<void> {
-    await this.coreCompositor!.registerImage(imageId, request);
+    assert(this.coreCompositor);
+    await this.coreCompositor.registerImage(imageId, request);
   }
 
   public async unregisterImage(imageId: string): Promise<void> {
-    await this.coreCompositor!.unregisterImage(imageId);
+    assert(this.coreCompositor);
+    await this.coreCompositor.unregisterImage(imageId);
   }
 
   public async registerFont(fontUrl: string): Promise<void> {
-    await this.renderer!.registerFont(fontUrl);
+    assert(this.renderer);
+    await this.renderer.registerFont(fontUrl);
   }
 
   /**
@@ -87,7 +109,19 @@ export default class LiveCompositor {
   /**
    * Stops processing pipeline.
    */
-  public stop(): void {
-    this.instance!.stop();
+  public async terminate(): Promise<void> {
+    await this.coreCompositor?.terminate();
+    await this.instance?.terminate();
   }
 }
+
+const ensureWasmModuleLoaded = (() => {
+  let loadedState: Promise<void> | undefined = undefined;
+  return async () => {
+    assert(wasmBundleUrl, 'Location of WASM bundle is not defined, call setWasmBundleUrl() first.');
+    if (!loadedState) {
+      loadedState = loadWasmModule(wasmBundleUrl);
+    }
+    await loadedState;
+  };
+})();

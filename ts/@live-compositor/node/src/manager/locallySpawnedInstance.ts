@@ -8,8 +8,10 @@ import type { ApiRequest, CompositorManager, SetupInstanceOptions } from '@live-
 
 import { download, sendRequest } from '../fetch';
 import { retry, sleep } from '../utils';
-import { spawn } from '../spawn';
+import type { SpawnPromise } from '../spawn';
+import { killProcess, spawn } from '../spawn';
 import { WebSocketConnection } from '../ws';
+import { compositorInstanceLoggerOptions } from '../logger';
 
 const VERSION = `v0.3.0`;
 
@@ -29,6 +31,7 @@ class LocallySpawnedInstance implements CompositorManager {
   private executablePath?: string;
   private wsConnection: WebSocketConnection;
   private enableWebRenderer?: boolean;
+  private childSpawnPromise?: SpawnPromise;
 
   constructor(opts: ManagedInstanceOptions) {
     this.port = opts.port;
@@ -51,22 +54,29 @@ class LocallySpawnedInstance implements CompositorManager {
   public async setupInstance(opts: SetupInstanceOptions): Promise<void> {
     const executablePath = this.executablePath ?? (await prepareExecutable(this.enableWebRenderer));
 
-    spawn(executablePath, [], {
-      env: {
-        LIVE_COMPOSITOR_DOWNLOAD_DIR: path.join(this.workingdir, 'download'),
-        LIVE_COMPOSITOR_API_PORT: this.port.toString(),
-        LIVE_COMPOSITOR_WEB_RENDERER_ENABLE: this.enableWebRenderer ? 'true' : 'false',
-        // silence scene updates logging
-        LIVE_COMPOSITOR_LOGGER_FORMAT: 'compact',
-        LIVE_COMPOSITOR_LOGGER_LEVEL:
-          'info,wgpu_hal=warn,wgpu_core=warn,compositor_pipeline::pipeline=warn,live_compositor::log_request_body=debug',
-        LIVE_COMPOSITOR_AHEAD_OF_TIME_PROCESSING_ENABLE: opts.aheadOfTimeProcessing
-          ? 'true'
-          : 'false',
-        ...process.env,
-      },
-    }).catch(err => {
-      console.error('LiveCompositor instance failed', err);
+    const { level, format } = compositorInstanceLoggerOptions();
+
+    const env = {
+      LIVE_COMPOSITOR_DOWNLOAD_DIR: path.join(this.workingdir, 'download'),
+      LIVE_COMPOSITOR_API_PORT: this.port.toString(),
+      LIVE_COMPOSITOR_WEB_RENDERER_ENABLE: this.enableWebRenderer ? 'true' : 'false',
+      LIVE_COMPOSITOR_AHEAD_OF_TIME_PROCESSING_ENABLE: opts.aheadOfTimeProcessing
+        ? 'true'
+        : 'false',
+      ...process.env,
+      LIVE_COMPOSITOR_LOGGER_FORMAT: format,
+      LIVE_COMPOSITOR_LOGGER_LEVEL: level,
+    };
+    this.childSpawnPromise = spawn(executablePath, [], { env, stdio: 'inherit' });
+    this.childSpawnPromise.catch(err => {
+      opts.logger.error(err, 'LiveCompositor instance failed');
+      // TODO: parse structured logging from compositor and send them to this logger
+      if (err.stderr) {
+        console.error(err.stderr);
+      }
+      if (err.stdout) {
+        console.error(err.stdout);
+      }
     });
 
     await retry(async () => {
@@ -77,7 +87,7 @@ class LocallySpawnedInstance implements CompositorManager {
       });
     }, 10);
 
-    await this.wsConnection.connect();
+    await this.wsConnection.connect(opts.logger);
   }
 
   public async sendRequest(request: ApiRequest): Promise<object> {
@@ -86,6 +96,13 @@ class LocallySpawnedInstance implements CompositorManager {
 
   public registerEventListener(cb: (event: object) => void): void {
     this.wsConnection.registerEventListener(cb);
+  }
+
+  public async terminate(): Promise<void> {
+    await this.wsConnection.close();
+    if (this.childSpawnPromise) {
+      await killProcess(this.childSpawnPromise);
+    }
   }
 }
 

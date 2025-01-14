@@ -16,7 +16,7 @@ export function handleEvent(
         type: 'update_input',
         input: { inputId: event.inputRef.id, videoState: 'ready' },
       });
-    } else if (event.inputRef.type === 'output-local') {
+    } else if (event.inputRef.type === 'output-specific-input') {
       outputs[event.inputRef.outputId]?.inputStreamStore().dispatchUpdate({
         type: 'update_input',
         input: { inputId: event.inputRef.id, videoState: 'ready' },
@@ -28,7 +28,7 @@ export function handleEvent(
         type: 'update_input',
         input: { inputId: event.inputRef.id, videoState: 'playing' },
       });
-    } else if (event.inputRef.type === 'output-local') {
+    } else if (event.inputRef.type === 'output-specific-input') {
       outputs[event.inputRef.outputId]?.inputStreamStore().dispatchUpdate({
         type: 'update_input',
         input: { inputId: event.inputRef.id, videoState: 'playing' },
@@ -40,7 +40,7 @@ export function handleEvent(
         type: 'update_input',
         input: { inputId: event.inputRef.id, videoState: 'finished' },
       });
-    } else if (event.inputRef.type === 'output-local') {
+    } else if (event.inputRef.type === 'output-specific-input') {
       outputs[event.inputRef.outputId]?.inputStreamStore().dispatchUpdate({
         type: 'update_input',
         input: { inputId: event.inputRef.id, videoState: 'finished' },
@@ -52,7 +52,7 @@ export function handleEvent(
         type: 'update_input',
         input: { inputId: event.inputRef.id, audioState: 'ready' },
       });
-    } else if (event.inputRef.type === 'output-local') {
+    } else if (event.inputRef.type === 'output-specific-input') {
       outputs[event.inputRef.outputId]?.inputStreamStore().dispatchUpdate({
         type: 'update_input',
         input: { inputId: event.inputRef.id, audioState: 'ready' },
@@ -64,7 +64,7 @@ export function handleEvent(
         type: 'update_input',
         input: { inputId: event.inputRef.id, audioState: 'playing' },
       });
-    } else if (event.inputRef.type === 'output-local') {
+    } else if (event.inputRef.type === 'output-specific-input') {
       outputs[event.inputRef.outputId]?.inputStreamStore().dispatchUpdate({
         type: 'update_input',
         input: { inputId: event.inputRef.id, audioState: 'playing' },
@@ -76,7 +76,7 @@ export function handleEvent(
         type: 'update_input',
         input: { inputId: event.inputRef.id, audioState: 'finished' },
       });
-    } else if (event.inputRef.type === 'output-local') {
+    } else if (event.inputRef.type === 'output-specific-input') {
       outputs[event.inputRef.outputId]?.inputStreamStore().dispatchUpdate({
         type: 'update_input',
         input: { inputId: event.inputRef.id, audioState: 'finished' },

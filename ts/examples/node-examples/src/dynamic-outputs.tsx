@@ -115,5 +115,6 @@ async function run() {
   console.log('Stop all remaining outputs.');
   await compositor.unregisterOutput('output_recording_part2');
   await compositor.unregisterOutput('output_stream');
+  await compositor.terminate();
 }
 void run();

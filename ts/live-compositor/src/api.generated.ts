@@ -65,6 +65,10 @@ export type RegisterInput =
        * not defined then stream is synchronized based on the first frames delivery time.
        */
       offset_ms?: number | null;
+      /**
+       * (**default=`ffmpeg_h264`**) The decoder to use for decoding video.
+       */
+      video_decoder?: VideoDecoder | null;
     }
   | {
       type: "decklink";
@@ -106,9 +110,7 @@ export type RegisterInput =
     };
 export type PortOrPortRange = string | number;
 export type TransportProtocol = "udp" | "tcp_server";
-export type InputRtpVideoOptions = {
-  decoder: "ffmpeg_h264";
-};
+export type VideoDecoder = "ffmpeg_h264" | "vulkan_video";
 export type InputRtpAudioOptions =
   | {
       decoder: "opus";
@@ -185,6 +187,22 @@ export type RegisterOutput =
        * Audio track configuration.
        */
       audio?: OutputMp4AudioOptions | null;
+    }
+  | {
+      type: "whip";
+      /**
+       * WHIP server endpoint
+       */
+      endpoint_url: string;
+      bearer_token?: string | null;
+      /**
+       * Video track configuration.
+       */
+      video?: OutputVideoOptions | null;
+      /**
+       * Audio track configuration.
+       */
+      audio?: OutputWhipAudioOptions | null;
     };
 export type InputId = string;
 export type VideoEncoderOptions = {
@@ -234,16 +252,16 @@ export type Component =
        */
       children?: Component[] | null;
       /**
-       * Width of a component in pixels. Exact behavior might be different based on the parent
-       * component:
+       * Width of a component in pixels (without a border). Exact behavior might be different
+       * based on the parent component:
        * - If the parent component is a layout, check sections "Absolute positioning" and "Static
        * positioning" of that component.
        * - If the parent component is not a layout, then this field is required.
        */
       width?: number | null;
       /**
-       * Height of a component in pixels. Exact behavior might be different based on the parent
-       * component:
+       * Height of a component in pixels (without a border). Exact behavior might be different
+       * based on the parent component:
        * - If the parent component is a layout, check sections "Absolute positioning" and "Static
        * positioning" of that component.
        * - If the parent component is not a layout, then this field is required.
@@ -254,20 +272,20 @@ export type Component =
        */
       direction?: ViewDirection | null;
       /**
-       * Distance in pixels between this component's top edge and its parent's top edge.
+       * Distance in pixels between this component's top edge and its parent's top edge (including a border).
        * If this field is defined, then the component will ignore a layout defined by its parent.
        */
       top?: number | null;
       /**
-       * Distance in pixels between this component's left edge and its parent's left edge.
+       * Distance in pixels between this component's left edge and its parent's left edge (including a border).
        * If this field is defined, this element will be absolutely positioned, instead of being
        * laid out by its parent.
        */
       left?: number | null;
       /**
-       * Distance in pixels between the bottom edge of this component and the bottom edge of its parent.
-       * If this field is defined, this element will be absolutely positioned, instead of being
-       * laid out by its parent.
+       * Distance in pixels between the bottom edge of this component and the bottom edge of its
+       * parent (including a border). If this field is defined, this element will be absolutely
+       * positioned, instead of being laid out by its parent.
        */
       bottom?: number | null;
       /**
@@ -293,7 +311,23 @@ export type Component =
       /**
        * (**default=`"#00000000"`**) Background color in a `"#RRGGBBAA"` format.
        */
-      background_color_rgba?: RGBAColor | null;
+      background_color?: RGBAColor | null;
+      /**
+       * (**default=`0.0`**) Radius of a rounded corner.
+       */
+      border_radius?: number | null;
+      /**
+       * (**default=`0.0`**) Border width.
+       */
+      border_width?: number | null;
+      /**
+       * (**default=`"#00000000"`**) Border color in a `"#RRGGBBAA"` format.
+       */
+      border_color?: RGBAColor | null;
+      /**
+       * List of box shadows.
+       */
+      box_shadow?: BoxShadow[] | null;
     }
   | {
       type: "web_view";
@@ -306,7 +340,8 @@ export type Component =
        */
       children?: Component[] | null;
       /**
-       * Id of a web renderer instance. It identifies an instance registered using a [`register web renderer`](../routes.md#register-web-renderer-instance) request.
+       * Id of a web renderer instance. It identifies an instance registered using a
+       * [`register web renderer`](../routes.md#register-web-renderer-instance) request.
        *
        * :::warning
        * You can only refer to specific instances in one Component at a time.
@@ -335,8 +370,10 @@ export type Component =
        * @group(1) @binding(0) var<uniform>
        * ```
        * :::note
-       * This object's structure must match the structure defined in a shader source code. Currently, we do not handle memory layout automatically.
-       * To achieve the correct memory alignment, you might need to pad your data with additional fields. See [WGSL documentation](https://www.w3.org/TR/WGSL/#alignment-and-size) for more details.
+       * This object's structure must match the structure defined in a shader source code.
+       * Currently, we do not handle memory layout automatically. To achieve the correct memory
+       * alignment, you might need to pad your data with additional fields. See
+       * [WGSL documentation](https://www.w3.org/TR/WGSL/#alignment-and-size) for more details.
        * :::
        */
       shader_param?: ShaderParam | null;
@@ -398,11 +435,11 @@ export type Component =
       /**
        * (**default=`"#FFFFFFFF"`**) Font color in `#RRGGBBAA` format.
        */
-      color_rgba?: RGBAColor | null;
+      color?: RGBAColor | null;
       /**
        * (**default=`"#00000000"`**) Background color in `#RRGGBBAA` format.
        */
-      background_color_rgba?: RGBAColor | null;
+      background_color?: RGBAColor | null;
       /**
        * (**default=`"Verdana"`**) Font family. Provide [family-name](https://www.w3.org/TR/2018/REC-css-fonts-3-20180920/#family-name-value)
        * for a specific font. "generic-family" values like e.g. "sans-serif" will not work.
@@ -454,7 +491,7 @@ export type Component =
       /**
        * (**default=`"#00000000"`**) Background color in a `"#RRGGBBAA"` format.
        */
-      background_color_rgba?: RGBAColor | null;
+      background_color?: RGBAColor | null;
       /**
        * (**default=`"16:9"`**) Aspect ratio of a tile in `"W:H"` format, where W and H are integers.
        */
@@ -480,6 +517,7 @@ export type Component =
        * effect if the previous scene already contained a `Tiles` component with the same id.
        */
       transition?: Transition | null;
+      border_radius?: number | null;
     }
   | {
       type: "rescaler";
@@ -504,36 +542,36 @@ export type Component =
        */
       vertical_align?: VerticalAlign | null;
       /**
-       * Width of a component in pixels. Exact behavior might be different based on the parent
-       * component:
+       * Width of a component in pixels (without a border). Exact behavior might be different
+       * based on the parent component:
        * - If the parent component is a layout, check sections "Absolute positioning" and "Static
        * positioning" of that component.
        * - If the parent component is not a layout, then this field is required.
        */
       width?: number | null;
       /**
-       * Height of a component in pixels. Exact behavior might be different based on the parent
-       * component:
+       * Height of a component in pixels (without a border). Exact behavior might be different
+       * based on the parent component:
        * - If the parent component is a layout, check sections "Absolute positioning" and "Static
        * positioning" of that component.
        * - If the parent component is not a layout, then this field is required.
        */
       height?: number | null;
       /**
-       * Distance in pixels between this component's top edge and its parent's top edge.
+       * Distance in pixels between this component's top edge and its parent's top edge (including a border).
        * If this field is defined, then the component will ignore a layout defined by its parent.
        */
       top?: number | null;
       /**
-       * Distance in pixels between this component's left edge and its parent's left edge.
+       * Distance in pixels between this component's left edge and its parent's left edge (including a border).
        * If this field is defined, this element will be absolutely positioned, instead of being
        * laid out by its parent.
        */
       left?: number | null;
       /**
-       * Distance in pixels between this component's bottom edge and its parent's bottom edge.
-       * If this field is defined, this element will be absolutely positioned, instead of being
-       * laid out by its parent.
+       * Distance in pixels between the bottom edge of this component and the bottom edge of its
+       * parent (including a border). If this field is defined, this element will be absolutely
+       * positioned, instead of being laid out by its parent.
        */
       bottom?: number | null;
       /**
@@ -552,6 +590,22 @@ export type Component =
        * effect if the previous scene already contained a `Rescaler` component with the same id.
        */
       transition?: Transition | null;
+      /**
+       * (**default=`0.0`**) Radius of a rounded corner.
+       */
+      border_radius?: number | null;
+      /**
+       * (**default=`0.0`**) Border width.
+       */
+      border_width?: number | null;
+      /**
+       * (**default=`"#00000000"`**) Border color in a `"#RRGGBBAA"` format.
+       */
+      border_color?: RGBAColor | null;
+      /**
+       * List of box shadows.
+       */
+      box_shadow?: BoxShadow[] | null;
     };
 export type ComponentId = string;
 export type ViewDirection = "row" | "column";
@@ -667,6 +721,17 @@ export type Mp4AudioEncoderOptions = {
   type: "aac";
   channels: AudioChannels;
 };
+export type WhipAudioEncoderOptions = {
+  type: "opus";
+  /**
+   * Specifies channels configuration.
+   */
+  channels: AudioChannels;
+  /**
+   * (**default="voip"**) Specifies preset for audio output encoder.
+   */
+  preset?: OpusEncoderPreset | null;
+};
 export type ImageSpec =
   | {
       asset_type: "png";
@@ -694,6 +759,9 @@ export type WebEmbeddingMethod =
   | "native_embedding_over_content"
   | "native_embedding_under_content";
 
+export interface InputRtpVideoOptions {
+  decoder: VideoDecoder;
+}
 export interface OutputVideoOptions {
   /**
    * Output resolution in pixels.
@@ -761,6 +829,12 @@ export interface Transition {
    */
   easing_function?: EasingFunction | null;
 }
+export interface BoxShadow {
+  offset_x?: number | null;
+  offset_y?: number | null;
+  color?: RGBAColor | null;
+  blur_radius?: number | null;
+}
 export interface OutputRtpAudioOptions {
   /**
    * (**default="sum_clip"**) Specifies how audio should be mixed.
@@ -802,6 +876,24 @@ export interface OutputMp4AudioOptions {
    * Audio encoder options.
    */
   encoder: Mp4AudioEncoderOptions;
+  /**
+   * Initial audio mixer configuration for output.
+   */
+  initial: Audio;
+}
+export interface OutputWhipAudioOptions {
+  /**
+   * (**default="sum_clip"**) Specifies how audio should be mixed.
+   */
+  mixing_strategy?: MixingStrategy | null;
+  /**
+   * Condition for termination of output stream based on the input streams states.
+   */
+  send_eos_when?: OutputEndCondition | null;
+  /**
+   * Audio encoder options.
+   */
+  encoder: WhipAudioEncoderOptions;
   /**
    * Initial audio mixer configuration for output.
    */

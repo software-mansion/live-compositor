@@ -11,8 +11,10 @@ export {
 } from './context/inputStreamStore.js';
 export { SceneBuilder, SceneComponent } from './component.js';
 export { CompositorEvent, CompositorEventType } from './types/events.js';
-export { InputRef, inputRefIntoRawId, parseInputRef } from './types/inputRef.js';
+export { InputRef, inputRefIntoRawId, parseInputRef } from './types/refs/inputRef.js';
+export { ImageRef, imageRefIntoRawId, parseImageRef } from './types/refs/imageRef.js';
 export {
   ChildrenLifetimeContext,
   ChildrenLifetimeContextType,
 } from './context/childrenLifetimeContext.js';
+export { Logger } from './types/logger.js';

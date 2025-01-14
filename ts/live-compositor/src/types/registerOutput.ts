@@ -38,6 +38,25 @@ export type RegisterCanvasOutput = {
   video: OutputCanvasVideoOptions;
 };
 
+export type RegisterWhipOutput = {
+  /**
+   * WHIP server endpoint.
+   */
+  endpointUrl: string;
+  /**
+   * Token for authenticating comunication with the WHIP server.
+   */
+  bearerToken?: string | null;
+  /**
+   * Video track configuration.
+   */
+  video?: WhipVideoOptions | null;
+  /**
+   * Audio track configuration.
+   */
+  audio?: WhipAudioOptions | null;
+};
+
 export type RtpVideoOptions = {
   /**
    * Output resolution in pixels.
@@ -66,6 +85,21 @@ export type Mp4VideoOptions = {
    * Video encoder options.
    */
   encoder: Mp4VideoEncoderOptions;
+};
+
+export type WhipVideoOptions = {
+  /**
+   * Output resolution in pixels.
+   */
+  resolution: Api.Resolution;
+  /**
+   * Defines when output stream should end if some of the input streams are finished. If output includes both audio and video streams, then EOS needs to be sent on both.
+   */
+  sendEosWhen?: OutputEndCondition | null;
+  /**
+   * Video encoder options.
+   */
+  encoder: WhipVideoEncoderOptions;
 };
 
 export type OutputCanvasVideoOptions = {
@@ -103,6 +137,18 @@ export type Mp4VideoEncoderOptions = {
   ffmpegOptions?: Api.VideoEncoderOptions['ffmpeg_options'];
 };
 
+export type WhipVideoEncoderOptions = {
+  type: 'ffmpeg_h264';
+  /**
+   * (**default=`"fast"`**) Preset for an encoder. See `FFmpeg` [docs](https://trac.ffmpeg.org/wiki/Encode/H.264#Preset) to learn more.
+   */
+  preset: Api.H264EncoderPreset;
+  /**
+   * Raw FFmpeg encoder options. See [docs](https://ffmpeg.org/ffmpeg-codecs.html) for more.
+   */
+  ffmpegOptions?: Api.VideoEncoderOptions['ffmpeg_options'];
+};
+
 export type RtpAudioOptions = {
   /**
    * (**default="sum_clip"**) Specifies how audio should be mixed.
@@ -118,7 +164,7 @@ export type RtpAudioOptions = {
   encoder: RtpAudioEncoderOptions;
 };
 
-export interface Mp4AudioOptions {
+export type Mp4AudioOptions = {
   /**
    * (**default="sum_clip"**) Specifies how audio should be mixed.
    */
@@ -131,7 +177,22 @@ export interface Mp4AudioOptions {
    * Audio encoder options.
    */
   encoder: Mp4AudioEncoderOptions;
-}
+};
+
+export type WhipAudioOptions = {
+  /**
+   * (**default="sum_clip"**) Specifies how audio should be mixed.
+   */
+  mixingStrategy?: Api.MixingStrategy | null;
+  /**
+   * Condition for termination of output stream based on the input streams states.
+   */
+  sendEosWhen?: OutputEndCondition | null;
+  /**
+   * Audio encoder options.
+   */
+  encoder: WhipAudioEncoderOptions;
+};
 
 export type RtpAudioEncoderOptions = {
   type: 'opus';
@@ -145,6 +206,15 @@ export type RtpAudioEncoderOptions = {
 export type Mp4AudioEncoderOptions = {
   type: 'aac';
   channels: Api.AudioChannels;
+};
+
+export type WhipAudioEncoderOptions = {
+  type: 'opus';
+  channels: Api.AudioChannels;
+  /**
+   * (**default="voip"**) Specifies preset for audio output encoder.
+   */
+  preset?: Api.OpusEncoderPreset;
 };
 
 export type OutputEndCondition =

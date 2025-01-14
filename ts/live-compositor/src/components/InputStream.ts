@@ -1,19 +1,13 @@
 import { createElement, useContext, useEffect, useState } from 'react';
 import type * as Api from '../api.js';
-import type { SceneComponent } from '../component.js';
+import type { ComponentBaseProps, SceneComponent } from '../component.js';
 import { createCompositorComponent } from '../component.js';
 import { useAudioInput, useInputStreams } from '../hooks.js';
 import { useTimeLimitedComponent } from '../context/childrenLifetimeContext.js';
 import { LiveCompositorContext } from '../context/index.js';
 import { inputRefIntoRawId } from '../internal.js';
 
-export type InputStreamProps = {
-  children?: undefined;
-
-  /**
-   * Id of a component.
-   */
-  id?: Api.ComponentId;
+export type InputStreamProps = Omit<ComponentBaseProps, 'children'> & {
   /**
    * Id of an input. It identifies a stream registered using a `LiveCompositor.registerInput`.
    */

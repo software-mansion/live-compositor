@@ -1,12 +1,8 @@
 import type * as Api from '../api.js';
-import type { SceneComponent } from '../component.js';
+import type { ComponentBaseProps, SceneComponent } from '../component.js';
 import { createCompositorComponent, sceneComponentIntoApi } from '../component.js';
 
-export type ShaderProps = {
-  /**
-   * Id of a component.
-   */
-  id?: Api.ComponentId;
+export type ShaderProps = ComponentBaseProps & {
   /**
    * Id of a shader. It identifies a shader registered using `LiveCompositor.registerShader`.
    */

@@ -1,9 +1,8 @@
 import type * as Api from '../api.js';
-import type { SceneComponent } from '../component.js';
+import type { ComponentBaseProps, SceneComponent } from '../component.js';
 import { createCompositorComponent, DEFAULT_FONT_SIZE } from '../component.js';
-import { intoApiRgbaColor } from './common.js';
 
-export type TextStyle = {
+export type TextStyleProps = {
   /**
    * Width of a texture that text will be rendered on. If not provided, the resulting texture
    * will be sized based on the defined text but limited to `max_width` value.
@@ -34,11 +33,11 @@ export type TextStyle = {
    */
   lineHeight?: number;
   /**
-   * (**default=`"#FFFFFFFF"`**) Font color in `#RRGGBBAA` or `#RRGGBB` format.
+   * (**default=`"#FFFFFFFF"`**) Font color in `RGB` or `RGBA` format.
    */
   color?: string;
   /**
-   * (**default=`"#00000000"`**) Background color in `#RRGGBBAA` or `#RRGGBB` format.
+   * (**default=`"#00000000"`**) Background color in `RGB` or `RGBA` format.
    */
   backgroundColor?: string;
   /**
@@ -64,18 +63,15 @@ export type TextStyle = {
   fontWeight?: Api.TextWeight;
 };
 
-export type TextProps = {
-  children?: (string | number)[] | string | number;
-
+export type TextProps = ComponentBaseProps & {
   /**
-   * Id of a component.
+   * Text content.
    */
-  id?: Api.ComponentId;
-
+  children?: (string | number)[] | string | number;
   /**
    * Text styling properties
    */
-  style?: TextStyle;
+  style?: TextStyleProps;
 };
 
 const Text = createCompositorComponent<TextProps>(sceneBuilder);
@@ -93,8 +89,8 @@ function sceneBuilder(props: TextProps, children: SceneComponent[]): Api.Compone
     max_height: style?.maxHeight,
     font_size: style?.fontSize ?? DEFAULT_FONT_SIZE,
     line_height: style?.lineHeight,
-    color_rgba: style?.color && intoApiRgbaColor(style?.color),
-    background_color_rgba: style?.backgroundColor && intoApiRgbaColor(style?.backgroundColor),
+    color: style?.color,
+    background_color: style?.backgroundColor,
     font_family: style?.fontFamily,
     style: style?.fontStyle,
     align: style?.align,

@@ -4,6 +4,7 @@ import { DefaultEventPriority, LegacyRoot } from 'react-reconciler/constants.js'
 import type { Api } from './api.js';
 import type { _liveCompositorInternals } from 'live-compositor';
 import type React from 'react';
+import type { Logger } from 'pino';
 
 type SceneBuilder<P> = _liveCompositorInternals.SceneBuilder<P>;
 type SceneComponent = _liveCompositorInternals.SceneComponent;
@@ -36,6 +37,7 @@ type HostContext = object;
 type Instance = LiveCompositorHostComponent;
 type TextInstance = string;
 type ChildSet = Array<string | Instance>;
+type Timeout = ReturnType<typeof setTimeout>;
 
 const HostConfig: Reconciler.HostConfig<
   Type,
@@ -49,7 +51,7 @@ const HostConfig: Reconciler.HostConfig<
   HostContext,
   object, // UpdatePayload
   ChildSet,
-  number, // TimeoutHandle
+  Timeout, // TimeoutHandle
   -1 // NoTimeout
 > = {
   getPublicInstance(instance: Instance | TextInstance) {
@@ -219,6 +221,7 @@ type RendererOptions = {
   rootElement: React.ReactElement;
   onUpdate: () => void;
   idPrefix: string;
+  logger: Logger;
 };
 
 // docs
@@ -232,8 +235,11 @@ interface FiberRootNode {
 class Renderer {
   public readonly root: FiberRootNode;
   public readonly onUpdate: () => void;
+  private logger: Logger;
+  private lastScene?: Api.Component;
 
-  constructor({ rootElement, onUpdate, idPrefix }: RendererOptions) {
+  constructor({ rootElement, onUpdate, idPrefix, logger }: RendererOptions) {
+    this.logger = logger;
     this.onUpdate = onUpdate;
 
     this.root = CompositorRenderer.createContainer(
@@ -243,7 +249,7 @@ class Renderer {
       false, // isStrictMode
       null, // concurrentUpdatesByDefaultOverride
       idPrefix, // identifierPrefix
-      console.error, // onRecoverableError
+      logger.error, // onRecoverableError
       null // transitionCallbacks
     );
 
@@ -251,17 +257,28 @@ class Renderer {
   }
 
   public scene(): Api.Component {
+    if (this.lastScene) {
+      // Renderer was already stopped just return old scene
+      return this.lastScene;
+    }
+
     // When resetAfterCommit is called `this.root.current` is not updated yet, so we need to rely
     // on `pendingChildren`. I'm not sure it is always populated, so there is a fallback to
     // `root.current`.
 
-    const rootComponent = this.root.pendingChildren[0] ?? rootHostComponent(this.root.current);
+    const rootComponent =
+      this.root.pendingChildren[0] ?? rootHostComponent(this.root.current, this.logger);
     return rootComponent.scene();
+  }
+
+  public stop() {
+    this.lastScene = this.scene();
+    CompositorRenderer.updateContainer(null, this.root, null, () => {});
   }
 }
 
-function rootHostComponent(root: any): LiveCompositorHostComponent {
-  console.error('No pendingChildren found, this might be an error.');
+function rootHostComponent(root: any, logger: Logger): LiveCompositorHostComponent {
+  logger.error('No pendingChildren found, this might be an error.');
   let current = root;
   while (current) {
     if (current?.stateNode instanceof LiveCompositorHostComponent) {

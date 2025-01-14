@@ -1,5 +1,6 @@
 import { useContext, useState } from 'react';
 import { LiveCompositorContext } from './index.js';
+import type { Logger } from '../types/logger.js';
 
 let nextStreamNumber = 1;
 
@@ -13,7 +14,7 @@ export function useInternalStreamId(): string {
     nextStreamNumber += 1;
     return result;
   });
-  return `output-local:${streamNumber}:${ctx.outputId}`;
+  return `output-specific-input:${streamNumber}:${ctx.outputId}`;
 }
 
 export type StreamState = 'ready' | 'playing' | 'finished';
@@ -43,6 +44,11 @@ export class LiveInputStreamStore<Id> {
   private context: Record<string, InputStreamInfo<Id>> = {};
   private onChangeCallbacks: Set<() => void> = new Set();
   private eventQueue?: UpdateAction<Id>[];
+  private logger: Logger;
+
+  constructor(logger: Logger) {
+    this.logger = logger;
+  }
 
   /**
    * Apply update immediately if there are no `runBlocking` calls in progress.
@@ -87,7 +93,7 @@ export class LiveInputStreamStore<Id> {
 
   private addInput(input: InputStreamInfo<Id>) {
     if (this.context[String(input.inputId)]) {
-      console.warn(`Adding input ${input.inputId}. Input already exists.`);
+      this.logger.warn(`Adding input ${input.inputId}. Input already exists.`);
     }
     this.context = { ...this.context, [String(input.inputId)]: input };
     this.signalUpdate();
@@ -96,7 +102,7 @@ export class LiveInputStreamStore<Id> {
   private updateInput(update: InputStreamInfo<Id>) {
     const oldInput = this.context[String(update.inputId)];
     if (!oldInput) {
-      console.warn(`Updating input ${update.inputId}. Input does not exist.`);
+      this.logger.warn(`Updating input ${update.inputId}. Input does not exist.`);
       return;
     }
     this.context = {
