@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use axum::extract::{FromRequest, Multipart, Path, Request, State};
+use axum::extract::{Multipart, Path, State};
 use compositor_pipeline::pipeline::{input::InputInitInfo, Port};
 use glyphon::fontdb::Source;
 use schemars::JsonSchema;
@@ -145,23 +145,8 @@ pub(super) async fn handle_image(
 
 pub(super) async fn handle_font(
     State(api): State<ApiState>,
-    request: Request,
+    mut multipart: Multipart,
 ) -> Result<Response, ApiError> {
-    let Some(content_type) = request.headers().get("Content-Type") else {
-        return Err(ApiError::malformed_request(&"Missing Content-Type header"));
-    };
-
-    if let Ok(content_type_str) = content_type.to_str() {
-        if !content_type_str.starts_with("multipart/form-data") {
-            return Err(ApiError::malformed_request(&"Invalid Content-Type"));
-        }
-    } else {
-        return Err(ApiError::malformed_request(&"Invalid Content-Type"));
-    }
-
-    let mut multipart = Multipart::from_request(request, &api)
-        .await
-        .map_err(|err| ApiError::malformed_request(&err))?;
     let Some(field) = multipart
         .next_field()
         .await
@@ -175,11 +160,10 @@ pub(super) async fn handle_font(
         .await
         .map_err(|err| ApiError::malformed_request(&err))?;
 
+    let binary_font_source = Source::Binary(Arc::new(bytes));
+
     tokio::task::spawn_blocking(move || {
-        Pipeline::register_font(
-            &api.pipeline.lock().unwrap(),
-            Source::Binary(Arc::new(bytes.to_vec())),
-        );
+        Pipeline::register_font(&api.pipeline.lock().unwrap(), binary_font_source);
         Ok(Response::Ok {})
     })
     .await

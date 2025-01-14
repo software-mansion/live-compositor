@@ -193,9 +193,7 @@ fn try_read_config() -> Result<Config, String> {
     };
 
     let load_system_fonts = match env::var("LIVE_COMPOSITOR_LOAD_SYSTEM_FONTS") {
-        Ok(load_system_fonts) => load_system_fonts
-            .parse::<bool>()
-            .map_err(|_| "LIVE_COMPOSITOR_LOAD_SYSTEM_FONTS has to be boolean value")?,
+        Ok(enable) => bool_env_from_str(&enable).unwrap_or(true),
         Err(_) => true,
     };
 
