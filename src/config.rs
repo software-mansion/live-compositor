@@ -201,9 +201,7 @@ fn try_read_config() -> Result<Config, String> {
     };
 
     let start_whip_whep = match env::var("LIVE_COMPOSITOR_START_WHIP_WHEP_SERVER") {
-        Ok(start_whip_whep) => start_whip_whep
-            .parse::<bool>()
-            .map_err(|_| "LIVE_COMPOSITOR_START_WHIP_WHEP_SERVER has to be boolean value")?,
+        Ok(enable) => bool_env_from_str(&enable).unwrap_or(true),
         Err(_) => true,
     };
 

@@ -222,6 +222,8 @@ fn run_single_test(ctx: GraphicsContext, bench_config: SingleBenchConfig) -> boo
         stream_fallback_timeout: Duration::from_millis(500),
         tokio_rt: None,
         stun_servers: Vec::new().into(),
+        whip_whep_server_port: None,
+        start_whip_whep: false,
     });
 
     let Ok((pipeline, _event_loop)) = pipeline_result else {

@@ -132,7 +132,7 @@ pub struct Options {
     pub wgpu_features: WgpuFeatures,
     pub load_system_fonts: Option<bool>,
     pub wgpu_ctx: Option<GraphicsContext>,
-    pub whip_whep_server_port: u16,
+    pub whip_whep_server_port: Option<u16>,
     pub start_whip_whep: bool,
     pub tokio_rt: Option<Arc<Runtime>>,
 }
@@ -204,23 +204,27 @@ impl Pipeline {
         let whip_whep_state = WhipWhepState::new(stun_servers.clone());
         let start_whip_whep = opts.start_whip_whep;
         let shutdown_whip_whep_sender = if start_whip_whep {
-            let port = opts.whip_whep_server_port;
-            let whip_whep_state = whip_whep_state.clone();
-            let (sender, receiver) = oneshot::channel();
-            let (init_result_sender, init_result_receiver) = oneshot::channel();
-            tokio_rt.spawn(async move {
-                run_whip_whep_server(port, whip_whep_state, receiver, init_result_sender).await
-            });
-            match init_result_receiver.blocking_recv() {
-                Ok(init_result) => init_result?,
-                Err(err) => {
-                    error!(
-                        "Error while receiving WHIP WHEP server initialization result {:?}",
-                        err
-                    )
+            if let Some(port) = opts.whip_whep_server_port {
+                let whip_whep_state = whip_whep_state.clone();
+                let (sender, receiver) = oneshot::channel();
+                let (init_result_sender, init_result_receiver) = oneshot::channel();
+                tokio_rt.spawn(async move {
+                    run_whip_whep_server(port, whip_whep_state, receiver, init_result_sender).await
+                });
+                match init_result_receiver.blocking_recv() {
+                    Ok(init_result) => init_result?,
+                    Err(err) => {
+                        error!(
+                            "Error while receiving WHIP WHEP server initialization result {:?}",
+                            err
+                        )
+                    }
                 }
+                Some(sender)
+            } else {
+                error!("WHIP WHEP server port not specified.");
+                None
             }
-            Some(sender)
         } else {
             None
         };

@@ -69,7 +69,7 @@ impl ApiState {
             wgpu_ctx: None,
             load_system_fonts: Some(true),
             start_whip_whep,
-            whip_whep_server_port,
+            whip_whep_server_port: Some(whip_whep_server_port),
             tokio_rt: Some(runtime),
         })?;
         Ok((
