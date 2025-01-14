@@ -1,5 +1,8 @@
-use axum::extract::{Path, State};
+use std::sync::Arc;
+
+use axum::extract::{Multipart, Path, State};
 use compositor_pipeline::pipeline::{input::InputInitInfo, Port};
+use glyphon::fontdb::Source;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -139,6 +142,33 @@ pub(super) async fn handle_image(
     let api = api.clone();
     tokio::task::spawn_blocking(move || {
         Pipeline::register_renderer(&api.pipeline, image_id.into(), request.try_into()?)?;
+        Ok(Response::Ok {})
+    })
+    .await
+    .unwrap()
+}
+
+pub(super) async fn handle_font(
+    State(api): State<ApiState>,
+    mut multipart: Multipart,
+) -> Result<Response, ApiError> {
+    let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|err| ApiError::malformed_request(&err))?
+    else {
+        return Err(ApiError::malformed_request(&"Missing font file"));
+    };
+
+    let bytes = field
+        .bytes()
+        .await
+        .map_err(|err| ApiError::malformed_request(&err))?;
+
+    let binary_font_source = Source::Binary(Arc::new(bytes));
+
+    tokio::task::spawn_blocking(move || {
+        Pipeline::register_font(&api.pipeline.lock().unwrap(), binary_font_source);
         Ok(Response::Ok {})
     })
     .await

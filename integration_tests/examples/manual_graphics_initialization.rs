@@ -38,7 +38,7 @@ fn main() {
         wgpu_features: config.required_wgpu_features,
         load_system_fonts: Some(true),
         tokio_rt: Some(Arc::new(Runtime::new().unwrap())),
-        whip_whep_server_port: config.whip_whep_server_port,
+        whip_whep_server_port: Some(config.whip_whep_server_port),
         start_whip_whep: config.start_whip_whep,
     })
     .unwrap();

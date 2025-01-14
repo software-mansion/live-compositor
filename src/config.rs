@@ -26,6 +26,7 @@ pub struct Config {
     pub output_sample_rate: u32,
     pub stun_servers: Arc<Vec<String>>,
     pub required_wgpu_features: WgpuFeatures,
+    pub load_system_fonts: bool,
     pub whip_whep_server_port: u16,
     pub start_whip_whep: bool,
 }
@@ -193,6 +194,11 @@ fn try_read_config() -> Result<Config, String> {
         Err(_) => queue::DEFAULT_BUFFER_DURATION,
     };
 
+    let load_system_fonts = match env::var("LIVE_COMPOSITOR_LOAD_SYSTEM_FONTS") {
+        Ok(enable) => bool_env_from_str(&enable).unwrap_or(true),
+        Err(_) => true,
+    };
+
     let whip_whep_server_port = match env::var("LIVE_COMPOSITOR_WHIP_WHEP_SERVER_PORT") {
         Ok(whip_whep_port) => whip_whep_port
             .parse::<u16>()
@@ -250,6 +256,7 @@ fn try_read_config() -> Result<Config, String> {
         output_sample_rate,
         stun_servers,
         required_wgpu_features,
+        load_system_fonts,
         whip_whep_server_port,
         start_whip_whep,
     };

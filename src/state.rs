@@ -53,6 +53,7 @@ impl ApiState {
             output_sample_rate,
             stun_servers,
             required_wgpu_features,
+            load_system_fonts,
             start_whip_whep,
             whip_whep_server_port,
             ..
@@ -67,7 +68,7 @@ impl ApiState {
             stun_servers,
             wgpu_features: required_wgpu_features,
             wgpu_ctx: None,
-            load_system_fonts: Some(true),
+            load_system_fonts: Some(load_system_fonts),
             start_whip_whep,
             whip_whep_server_port: Some(whip_whep_server_port),
             tokio_rt: Some(runtime),
