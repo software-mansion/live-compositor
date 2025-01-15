@@ -1,4 +1,4 @@
-export { ApiClient, ApiRequest } from './api.js';
+export { ApiClient, ApiRequest, RegisterInputResponse } from './api.js';
 export { LiveCompositor } from './live/compositor.js';
 export { OfflineCompositor } from './offline/compositor.js';
 export { CompositorManager, SetupInstanceOptions } from './compositorManager.js';

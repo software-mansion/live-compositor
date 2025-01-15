@@ -11,7 +11,7 @@ function SimpleMp4Example() {
     await compositor.registerFont(
       'https://fonts.gstatic.com/s/notosans/v36/o-0mIpQlx3QUlC5A4PNB6Ryti20_6n1iPHjcz6L1SoM-jCpoiyD9A-9a6Vc.ttf'
     );
-    await compositor.registerInput('bunny_video', { type: 'mp4', url: MP4_URL });
+    await compositor.registerInput('video', { type: 'mp4', url: MP4_URL });
   }, []);
 
   return (
@@ -25,12 +25,12 @@ function SimpleMp4Example() {
 
 function Scene() {
   const inputs = useInputStreams();
-  const inputState = inputs['bunny_video']?.videoState;
+  const inputState = inputs['video']?.videoState;
 
   if (inputState === 'playing') {
     return (
       <View style={{ width: 1280, height: 720 }}>
-        <InputStream inputId="bunny_video" />
+        <InputStream inputId="video" />
         <View style={{ width: 230, height: 40, backgroundColor: '#000000', bottom: 20, left: 500 }}>
           <Text style={{ fontSize: 30, fontFamily: 'Noto Sans' }}>Playing MP4 file</Text>
         </View>

@@ -5,6 +5,7 @@ import { FrameRef } from '../frame';
 import type { InputFrameProducerCallbacks } from '../inputFrameProducer';
 import type InputFrameProducer from '../inputFrameProducer';
 import type InputSource from '../source';
+import type { InputStartInfo } from '../input';
 
 const MAX_BUFFERING_SIZE = 3;
 
@@ -32,8 +33,13 @@ export default class DecodingFrameProducer implements InputFrameProducer {
     await this.source.init();
   }
 
-  public start(): void {
-    this.source.start();
+  public async start(): Promise<InputStartInfo> {
+    await this.source.start();
+
+    const metadata = this.source.getMetadata();
+    return {
+      videoDurationMs: metadata.videoDurationMs,
+    };
   }
 
   public registerCallbacks(callbacks: InputFrameProducerCallbacks): void {
@@ -133,10 +139,10 @@ export default class DecodingFrameProducer implements InputFrameProducer {
   }
 
   private enqueueChunksForPts(framePts: number) {
-    const framerate = this.source.getFramerate();
-    assert(framerate);
+    const metadata = this.source.getMetadata();
+    assert(metadata.framerate);
 
-    const frameDuration = framerateToDurationMs(framerate);
+    const frameDuration = framerateToDurationMs(metadata.framerate);
     const targetPtsUs = (framePts + frameDuration * MAX_BUFFERING_SIZE) * 1000;
 
     let chunk = this.source.peekChunk();
