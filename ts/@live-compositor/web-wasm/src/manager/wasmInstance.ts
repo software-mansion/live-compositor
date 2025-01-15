@@ -45,11 +45,11 @@ class WasmInstance implements CompositorManager {
     }
 
     if (route.type == 'input') {
-      return this.handleInputRequest(route.id, route.operation, request.body);
+      return await this.handleInputRequest(route.id, route.operation, request.body);
     } else if (route.type === 'output') {
       return this.handleOutputRequest(route.id, route.operation, request.body);
     } else if (route.type === 'image') {
-      return this.handleImageRequest(route.id, route.operation, request.body);
+      return await this.handleImageRequest(route.id, route.operation, request.body);
     } else if (route.type === 'shader') {
       throw new Error('Shaders are not supported');
     } else if (route.type === 'web-renderer') {
@@ -84,26 +84,24 @@ class WasmInstance implements CompositorManager {
     body?: object
   ): Promise<object> {
     if (operation === 'register') {
-      return this.registerInput(inputId, body! as RegisterInputRequest);
+      return await this.registerInput(inputId, body! as RegisterInputRequest);
     } else if (operation === 'unregister') {
-      this.queue.removeInput(inputId);
-      this.renderer.unregisterInput(inputId);
+      return this.unregisterInput(inputId);
+    } else {
+      return {};
     }
-
-    return {};
   }
 
   private handleOutputRequest(outputId: string, operation: string, body?: object): object {
     if (operation === 'register') {
-      this.registerOutput(outputId, body! as RegisterOutputRequest);
+      return this.registerOutput(outputId, body! as RegisterOutputRequest);
     } else if (operation === 'unregister') {
-      this.queue.removeOutput(outputId);
-      this.renderer.unregisterOutput(outputId);
+      return this.unregisterOutput(outputId);
     } else if (operation === 'update') {
-      this.updateScene(outputId, body! as Api.UpdateOutputRequest);
+      return this.updateScene(outputId, body! as Api.UpdateOutputRequest);
+    } else {
+      return {};
     }
-
-    return {};
   }
 
   private async handleImageRequest(
@@ -138,7 +136,13 @@ class WasmInstance implements CompositorManager {
     };
   }
 
-  private registerOutput(outputId: string, request: RegisterOutputRequest) {
+  private unregisterInput(inputId: string): object {
+    this.queue.removeInput(inputId);
+    this.renderer.unregisterInput(inputId);
+    return {};
+  }
+
+  private registerOutput(outputId: string, request: RegisterOutputRequest): object {
     if (request.video) {
       const output = new Output(request);
       this.queue.addOutput(outputId, output);
@@ -156,17 +160,27 @@ class WasmInstance implements CompositorManager {
         throw e;
       }
     }
+
+    return {};
   }
 
-  private updateScene(outputId: string, request: Api.UpdateOutputRequest) {
+  private unregisterOutput(outputId: string): object {
+    this.queue.removeOutput(outputId);
+    this.renderer.unregisterOutput(outputId);
+    return {};
+  }
+
+  private updateScene(outputId: string, request: Api.UpdateOutputRequest): object {
     if (!request.video) {
-      return;
+      return {};
     }
     const output = this.queue.getOutput(outputId);
     if (!output) {
       throw `Unknown output "${outputId}"`;
     }
     this.renderer.updateScene(outputId, output.resolution, request.video.root as Component);
+
+    return {};
   }
 }
 

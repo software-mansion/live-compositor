@@ -23,11 +23,11 @@ export default class MP4Source implements InputSource {
   }
 
   public async start(): Promise<void> {
-    if (!this.fileData) {
-      throw new Error('MP4Source has to be initialized first before processing can be started');
-    }
-
     await new Promise<void>(resolve => {
+      if (!this.fileData) {
+        throw new Error('MP4Source has to be initialized first before processing can be started');
+      }
+
       this.demuxer = new MP4Demuxer({
         onReady: data => {
           this.callbacks?.onDecoderConfig(data.decoderConfig);
@@ -38,7 +38,7 @@ export default class MP4Source implements InputSource {
         onPayload: payload => this.handlePayload(payload),
       });
 
-      this.demuxer.demux(this.fileData!);
+      this.demuxer.demux(this.fileData);
       this.demuxer.flush();
     });
   }
