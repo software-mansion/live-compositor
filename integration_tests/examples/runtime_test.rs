@@ -3,7 +3,7 @@ use compositor_pipeline::{
     pipeline::{GraphicsContext, Options},
     Pipeline,
 };
-use compositor_render::error::ErrorStack;
+use compositor_render::{create_wgpu_ctx, error::ErrorStack, WgpuComponents};
 use crossbeam_channel::Receiver;
 use signal_hook::{consts, iterator::Signals};
 use std::{
@@ -28,6 +28,28 @@ fn main() {
     let _ = io::stdin().read_line(&mut input);
 
     let config = read_config();
+
+    // let WgpuComponents {
+    //     instance,
+    //     adapter,
+    //     queue,
+    //     device,
+    // } = create_wgpu_ctx(
+    //     config.force_gpu,
+    //     config.required_wgpu_features,
+    //     Default::default(),
+    //     None,
+    // )
+    // .unwrap();
+    //
+    // let ctx = GraphicsContext {
+    //     instance,
+    //     adapter,
+    //     queue,
+    //     device,
+    //     vulkan_ctx: None,
+    // };
+
     let ctx = GraphicsContext::new(
         config.force_gpu,
         config.required_wgpu_features,
@@ -42,16 +64,17 @@ fn main() {
     //let mut i = 0;
     //loop {
     //    i += 1;
-    for i in 0..2000 {
+    for i in 0..10000 {
         //for i in 0..1 {
         println!(">>>>>>>>>> ITERATION {i} <<<<<<<<<<<<");
-        run_pipeline(config.clone(), ctx.clone(), runtime.clone());
+        run_pipeline(config.clone(), runtime.clone(), ctx.clone())
     }
 
-    let _ = io::stdin().read_line(&mut input);
+    // let _ = io::stdin().read_line(&mut input);
 }
 
-fn run_pipeline(config: Config, ctx: GraphicsContext, rt: Arc<Runtime>) {
+fn run_pipeline(config: Config, runtime: Arc<Runtime>, ctx: GraphicsContext) {
+    // let runtime = Arc::new(Runtime::new().unwrap());
     let _ = Pipeline::new(Options {
         queue_options: config.queue_options,
         stream_fallback_timeout: config.stream_fallback_timeout,
@@ -63,7 +86,7 @@ fn run_pipeline(config: Config, ctx: GraphicsContext, rt: Arc<Runtime>) {
         wgpu_features: config.required_wgpu_features,
         load_system_fonts: Some(true),
         wgpu_ctx: Some(ctx),
-        tokio_rt: Some(rt),
+        tokio_rt: Some(runtime),
     })
     .unwrap_or_else(|err| {
         panic!(

@@ -4,13 +4,10 @@ mod utils;
 mod video_queue;
 
 use std::{
-    collections::HashMap,
-    fmt::Debug,
-    sync::{
+    collections::HashMap, fmt::Debug, sync::{
         atomic::{AtomicBool, Ordering},
         Arc, Mutex,
-    },
-    time::{Duration, Instant},
+    }, time::{Duration, Instant}
 };
 
 use compositor_render::{Frame, FrameSet, Framerate, InputId};
