@@ -1,0 +1,49 @@
+{
+  "video": {
+    "root": {
+      "type": "view",
+      "background_color": "#000000FF",
+      "children": [
+        {
+          "type": "view",
+          "background_color": "#FF0000FF",
+          "direction": "column",
+          "width": 300,
+          "height": 300,
+          "children": [
+            {
+              "type": "view",
+              "padding_top": 10,
+              "padding_left": 20,
+              "border_width": 4,
+              "border_color": "#FF00FFFF",
+              "background_color": "#0000FFFF",
+              "children": []
+            },
+            {
+              "type": "view",
+              "padding_top": 10,
+              "padding_bottom": 30,
+              "padding_right": 10,
+              "padding_left": 20,
+              "border_width": 4,
+              "border_color": "#0F0FF0FF",
+              "background_color": "#00FF00FF",
+              "children": [
+                {
+                  "type": "view",
+                  "width": 250,
+                  "height": 250,
+                  "border_width": 4,
+                  "border_color": "#FF00FFFF",
+                  "background_color": "#00FFFFFF",
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

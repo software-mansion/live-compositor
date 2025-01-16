@@ -1,3 +1,5 @@
+use crate::scene::Padding;
+
 use super::{HorizontalPosition, VerticalPosition};
 
 #[derive(Debug, Clone, Copy)]
@@ -74,6 +76,17 @@ impl ContinuousValue for HorizontalPosition {
                 Self::RightOffset(ContinuousValue::interpolate(start, end, state))
             }
             (_, end) => *end,
+        }
+    }
+}
+
+impl ContinuousValue for Padding {
+    fn interpolate(start: &Self, end: &Self, state: InterpolationState) -> Self {
+        Self {
+            top: ContinuousValue::interpolate(&start.top, &end.top, state),
+            right: ContinuousValue::interpolate(&start.right, &end.right, state),
+            bottom: ContinuousValue::interpolate(&start.bottom, &end.bottom, state),
+            left: ContinuousValue::interpolate(&start.left, &end.left, state),
         }
     }
 }

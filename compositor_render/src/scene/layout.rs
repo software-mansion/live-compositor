@@ -8,7 +8,7 @@ use crate::{
 use super::{
     rescaler_component::StatefulRescalerComponent, tiles_component::StatefulTilesComponent,
     view_component::StatefulViewComponent, AbsolutePosition, BorderRadius, ComponentId,
-    HorizontalPosition, Position, RGBAColor, Size, StatefulComponent, VerticalPosition,
+    HorizontalPosition, Padding, Position, RGBAColor, Size, StatefulComponent, VerticalPosition,
 };
 
 #[derive(Debug, Clone)]
@@ -161,18 +161,28 @@ impl StatefulLayoutComponent {
         child: &mut StatefulComponent,
         position: AbsolutePosition,
         parent_size: Size,
+        child_padding: Padding,
+        parent_padding: Padding,
         pts: Duration,
     ) -> NestedLayout {
-        let width = position.width.unwrap_or(parent_size.width);
-        let height = position.height.unwrap_or(parent_size.height);
+        let width = position
+            .width
+            .unwrap_or(parent_size.width + child_padding.horizontal());
+        let height = position
+            .height
+            .unwrap_or(parent_size.height + child_padding.vertical());
 
         let top = match position.position_vertical {
-            VerticalPosition::TopOffset(top) => top,
-            VerticalPosition::BottomOffset(bottom) => parent_size.height - bottom - height,
+            VerticalPosition::TopOffset(top) => top + parent_padding.top,
+            VerticalPosition::BottomOffset(bottom) => {
+                parent_size.height - bottom - height - parent_padding.bottom + parent_padding.top
+            }
         };
         let left = match position.position_horizontal {
-            HorizontalPosition::LeftOffset(left) => left,
-            HorizontalPosition::RightOffset(right) => parent_size.width - right - width,
+            HorizontalPosition::LeftOffset(left) => left + parent_padding.left,
+            HorizontalPosition::RightOffset(right) => {
+                parent_size.width - right - width - parent_padding.right + parent_padding.left
+            }
         };
 
         let rotation_degrees = position.rotation_degrees;

@@ -2,8 +2,8 @@ use std::time::Duration;
 
 use crate::{
     scene::{
-        layout::StatefulLayoutComponent, BorderRadius, Overflow, Position, RGBAColor, Size,
-        StatefulComponent, ViewChildrenDirection,
+        layout::StatefulLayoutComponent, BorderRadius, Overflow, Padding, Position, RGBAColor,
+        Size, StatefulComponent, ViewChildrenDirection,
     },
     transformations::layout::{LayoutContent, Mask, NestedLayout},
 };
@@ -72,12 +72,18 @@ impl ViewComponentParam {
         let children: Vec<_> = children
             .iter_mut()
             .map(|child| {
-                let position = match child {
-                    StatefulComponent::Layout(layout) => layout.position(pts),
-                    ref non_layout_component => Position::Static {
-                        width: non_layout_component.width(pts),
-                        height: non_layout_component.height(pts),
-                    },
+                let (position, padding) = match child {
+                    StatefulComponent::Layout(StatefulLayoutComponent::View(view)) => {
+                        (view.position(pts), view.padding(pts))
+                    }
+                    StatefulComponent::Layout(layout) => (layout.position(pts), Padding::default()),
+                    ref non_layout_component => (
+                        Position::Static {
+                            width: non_layout_component.width(pts),
+                            height: non_layout_component.height(pts),
+                        },
+                        Padding::default(),
+                    ),
                 };
                 match position {
                     Position::Static { width, height } => {
@@ -99,7 +105,12 @@ impl ViewComponentParam {
                     }
                     Position::Absolute(position) => {
                         StatefulLayoutComponent::layout_absolute_position_child(
-                            child, position, size, pts,
+                            child,
+                            position,
+                            size,
+                            padding,
+                            self.padding,
+                            pts,
                         )
                     }
                 }
@@ -132,24 +143,34 @@ impl ViewComponentParam {
         pts: Duration,
     ) -> (NestedLayout, f32) {
         let mut static_offset = opts.static_offset;
+
+        let (static_width, static_height) = match self.direction {
+            ViewChildrenDirection::Row => (opts.static_child_size, opts.parent_size.height),
+            ViewChildrenDirection::Column => (opts.parent_size.width, opts.static_child_size),
+        };
+
+        // Parent padding can shrink the child if it doesn't have width/height provided
+        let static_width = static_width - self.padding.horizontal();
+        let static_height = static_height - self.padding.vertical();
+
+        let width = opts.width.unwrap_or(static_width);
+        let height = opts.height.unwrap_or(static_height);
+
         let (top, left, width, height) = match self.direction {
             ViewChildrenDirection::Row => {
-                let width = opts.width.unwrap_or(opts.static_child_size);
-                let height = opts.height.unwrap_or(opts.parent_size.height);
-                let top = opts.parent_border_width;
-                let left = static_offset;
+                let top = opts.parent_border_width + self.padding.top;
+                let left = static_offset + self.padding.left;
                 static_offset += width;
                 (top, left, width, height)
             }
             ViewChildrenDirection::Column => {
-                let height = opts.height.unwrap_or(opts.static_child_size);
-                let width = opts.width.unwrap_or(opts.parent_size.width);
-                let top = static_offset;
-                let left = opts.parent_border_width;
+                let top = static_offset + self.padding.top;
+                let left = opts.parent_border_width + self.padding.left;
                 static_offset += height;
                 (top, left, width, height)
             }
         };
+
         let layout = match child {
             StatefulComponent::Layout(layout_component) => {
                 let children_layouts = layout_component.layout(Size { width, height }, pts);

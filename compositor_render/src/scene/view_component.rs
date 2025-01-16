@@ -8,7 +8,7 @@ use super::{
     scene_state::BuildStateTreeCtx,
     transition::{TransitionOptions, TransitionState},
     types::interpolation::ContinuousValue,
-    BorderRadius, BoxShadow, Component, ComponentId, IntermediateNode, Overflow, Position,
+    BorderRadius, BoxShadow, Component, ComponentId, IntermediateNode, Overflow, Padding, Position,
     RGBAColor, SceneError, Size, StatefulComponent,
 };
 
@@ -37,6 +37,8 @@ struct ViewComponentParam {
     border_color: RGBAColor,
 
     box_shadow: Vec<BoxShadow>,
+
+    padding: Padding,
 }
 
 impl StatefulViewComponent {
@@ -56,10 +58,16 @@ impl StatefulViewComponent {
         self.children.iter_mut().collect()
     }
 
-    /// External position of a component (includes border)
+    /// External position of a component (includes border and padding)
     pub(super) fn position(&self, pts: Duration) -> Position {
         let view = self.view(pts);
-        view.position.with_border(view.border_width)
+        view.position
+            .with_border(view.border_width)
+            .with_padding(view.padding)
+    }
+
+    pub(super) fn padding(&self, pts: Duration) -> Padding {
+        self.view(pts).padding
     }
 
     pub(super) fn component_id(&self) -> Option<&ComponentId> {
@@ -130,6 +138,7 @@ impl ViewComponent {
                 border_width: self.border_width,
                 border_color: self.border_color,
                 box_shadow: self.box_shadow,
+                padding: self.padding,
             },
             transition,
             children: self

@@ -77,6 +77,34 @@ export type ViewStyleProps = {
    * Properties of the BoxShadow applied to the container.
    */
   boxShadow?: Api.BoxShadow[];
+  /**
+   * (**default=`0.0`**) Sets padding for all sides of the component.
+   */
+  padding?: number;
+  /**
+   * (**default=`0.0`**) Sets padding for the top and bottom of the component.
+   */
+  paddingVertical?: number;
+  /**
+   * (**default=`0.0`**) Sets padding for the left and right of the component.
+   */
+  paddingHorizontal?: number;
+  /**
+   * (**default=`0.0`**) Sets padding for the top of the component.
+   */
+  paddingTop?: number;
+  /**
+   * (**default=`0.0`**) Sets padding for the right of the component.
+   */
+  paddingRight?: number;
+  /**
+   * (**default=`0.0`**) Sets padding for the bottom of the component.
+   */
+  paddingBottom?: number;
+  /**
+   * (**default=`0.0`**) Sets padding for the left of the component.
+   */
+  paddingLeft?: number;
 };
 
 export type ViewProps = ComponentBaseProps & {
@@ -120,6 +148,11 @@ function sceneBuilder(
     border_color: style.borderColor,
 
     box_shadow: style.boxShadow,
+
+    padding_top: style.paddingTop ?? style.paddingVertical ?? style.padding,
+    padding_bottom: style.paddingBottom ?? style.paddingVertical ?? style.padding,
+    padding_right: style.paddingRight ?? style.paddingHorizontal ?? style.padding,
+    padding_left: style.paddingLeft ?? style.paddingHorizontal ?? style.padding,
   };
 }
 

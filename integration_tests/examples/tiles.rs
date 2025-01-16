@@ -39,7 +39,7 @@ fn client_code() -> Result<()> {
             .map(|_| {
                 json!({
                     "type": "input_stream",
-                    "input_id": "input_1",
+                    "input_id": "input_1"
                 })
             })
             .collect();

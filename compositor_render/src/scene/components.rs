@@ -148,6 +148,8 @@ pub struct ViewComponent {
     pub border_color: RGBAColor,
 
     pub box_shadow: Vec<BoxShadow>,
+
+    pub padding: Padding,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -176,6 +178,24 @@ pub enum Position {
 pub enum ViewChildrenDirection {
     Row,
     Column,
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Padding {
+    pub top: f32,
+    pub right: f32,
+    pub bottom: f32,
+    pub left: f32,
+}
+
+impl Padding {
+    pub fn horizontal(&self) -> f32 {
+        self.left + self.right
+    }
+
+    pub fn vertical(&self) -> f32 {
+        self.top + self.bottom
+    }
 }
 
 #[derive(Debug, Clone)]

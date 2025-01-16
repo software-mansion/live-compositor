@@ -86,6 +86,17 @@ impl TryFrom<View> for scene::ViewComponent {
             Some(Overflow::Fit) => scene::Overflow::Fit,
             None => scene::Overflow::Hidden,
         };
+        let padding = scene::Padding {
+            top: view.padding_top.unwrap_or(0.0),
+            right: view.padding_right.unwrap_or(0.0),
+            bottom: view.padding_bottom.unwrap_or(0.0),
+            left: view.padding_left.unwrap_or(0.0),
+        };
+
+        if padding.top < 0.0 || padding.right < 0.0 || padding.bottom < 0.0 || padding.left < 0.0 {
+            return Err(TypeError::new("Padding values cannot be negative."));
+        }
+
         Ok(Self {
             id: view.id.map(Into::into),
             children: view
@@ -114,6 +125,7 @@ impl TryFrom<View> for scene::ViewComponent {
                 .into_iter()
                 .map(TryInto::try_into)
                 .collect::<Result<_, _>>()?,
+            padding,
         })
     }
 }
