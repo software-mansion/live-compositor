@@ -166,8 +166,8 @@ impl AudioEncoder {
     ) -> Result<Self, EncoderInitError> {
         let resampler = if options.sample_rate() != mixing_sample_rate {
             Some(OutputResampler::new(
-                options.sample_rate(),
                 mixing_sample_rate,
+                options.sample_rate(),
             )?)
         } else {
             None

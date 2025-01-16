@@ -63,7 +63,7 @@ fn run_encoder_thread(
     samples_batch_receiver: Receiver<PipelineEvent<OutputSamples>>,
     packets_sender: Sender<EncoderOutputEvent>,
 ) {
-    let mut output_buffer = [0u8; 1024 * 1024];
+    let mut output_buffer = vec![0u8; 1024 * 1024];
 
     let mut encode = |samples: &[i16]| match encoder.encode(samples, &mut output_buffer) {
         Ok(len) => Some(bytes::Bytes::copy_from_slice(&output_buffer[..len])),
