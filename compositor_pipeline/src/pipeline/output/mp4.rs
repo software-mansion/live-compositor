@@ -11,7 +11,8 @@ use crate::{
     error::OutputInitError,
     event::Event,
     pipeline::{
-        types::IsKeyframe, EncodedChunk, EncodedChunkKind, EncoderOutputEvent, PipelineCtx, VideoCodec
+        types::IsKeyframe, EncodedChunk, EncodedChunkKind, EncoderOutputEvent, PipelineCtx,
+        VideoCodec,
     },
 };
 
@@ -32,7 +33,7 @@ pub struct Mp4VideoTrack {
 #[derive(Debug, Clone)]
 pub struct Mp4AudioTrack {
     pub channels: AudioChannels,
-    pub sample_rate: u32
+    pub sample_rate: u32,
 }
 
 pub enum Mp4OutputVideoTrack {
@@ -51,7 +52,7 @@ impl Mp4FileWriter {
         output_id: OutputId,
         options: Mp4OutputOptions,
         packets_receiver: Receiver<EncoderOutputEvent>,
-        pipeline_ctx: Arc<PipelineCtx>
+        pipeline_ctx: Arc<PipelineCtx>,
     ) -> Result<Self, OutputInitError> {
         if options.output_path.exists() {
             let mut old_index = 0;
@@ -78,8 +79,7 @@ impl Mp4FileWriter {
             };
         }
 
-        let (output_ctx, video_stream, audio_stream) =
-            init_ffmpeg_output(options)?;
+        let (output_ctx, video_stream, audio_stream) = init_ffmpeg_output(options)?;
 
         let event_emitter = pipeline_ctx.event_emitter.clone();
         std::thread::Builder::new()
