@@ -508,8 +508,8 @@ impl Pipeline {
 impl Drop for Pipeline {
     fn drop(&mut self) {
         if let Some(sender) = self.shutdown_whip_whep_sender.take() {
-            if let Err(err) = sender.send(()) {
-                error!("Cannot sent shutdown signal to WHIP WHEP server: {err:?}")
+            if sender.send(()).is_err() {
+                error!("Cannot send shutdown signal to WHIP WHEP server")
             }
         }
         self.queue.shutdown()
