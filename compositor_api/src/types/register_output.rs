@@ -125,13 +125,20 @@ pub enum RtpAudioEncoderOptions {
 
         /// (**default="voip"**) Specifies preset for audio output encoder.
         preset: Option<OpusEncoderPreset>,
+
+        /// (**default=`48000`**) Sample rate. Allowed values: [8000, 16000, 24000, 48000].
+        sample_rate: Option<u32>,
     },
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
 pub enum Mp4AudioEncoderOptions {
-    Aac { channels: AudioChannels },
+    Aac {
+        channels: AudioChannels,
+        /// (**default=`44100`**) Sample rate. Allowed values: [8000, 16000, 24000, 44100, 48000].
+        sample_rate: Option<u32>,
+    },
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -143,6 +150,9 @@ pub enum WhipAudioEncoderOptions {
 
         /// (**default="voip"**) Specifies preset for audio output encoder.
         preset: Option<OpusEncoderPreset>,
+
+        /// (**default=`48000`**) Sample rate. Allowed values: [8000, 16000, 24000, 48000].
+        sample_rate: Option<u32>,
     },
 }
 

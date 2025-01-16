@@ -107,7 +107,7 @@ impl OutputOptionsExt<Option<Port>> for OutputOptions {
             audio: self.audio.clone(),
         };
 
-        let (encoder, packets) = Encoder::new(output_id, encoder_opts, ctx.output_sample_rate)
+        let (encoder, packets) = Encoder::new(output_id, encoder_opts, ctx.mixing_sample_rate)
             .map_err(|e| RegisterOutputError::EncoderError(output_id.clone(), e))?;
 
         match &self.output_protocol {
@@ -151,7 +151,7 @@ impl OutputOptionsExt<Receiver<EncoderOutputEvent>> for EncodedDataOutputOptions
             audio: self.audio.clone(),
         };
 
-        let (encoder, packets) = Encoder::new(output_id, encoder_opts, ctx.output_sample_rate)
+        let (encoder, packets) = Encoder::new(output_id, encoder_opts, ctx.mixing_sample_rate)
             .map_err(|e| RegisterOutputError::EncoderError(output_id.clone(), e))?;
 
         Ok((Output::EncodedData { encoder }, packets))

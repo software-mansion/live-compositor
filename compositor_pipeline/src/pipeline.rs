@@ -122,7 +122,7 @@ pub struct Options {
     pub web_renderer: WebRendererInitOptions,
     pub force_gpu: bool,
     pub download_root: PathBuf,
-    pub output_sample_rate: u32,
+    pub mixing_sample_rate: u32,
     pub stun_servers: Arc<Vec<String>>,
     pub wgpu_features: WgpuFeatures,
     pub load_system_fonts: Option<bool>,
@@ -132,7 +132,7 @@ pub struct Options {
 
 #[derive(Clone)]
 pub struct PipelineCtx {
-    pub output_sample_rate: u32,
+    pub mixing_sample_rate: u32,
     pub output_framerate: Framerate,
     pub stun_servers: Arc<Vec<String>>,
     pub download_dir: Arc<PathBuf>,
@@ -145,7 +145,7 @@ pub struct PipelineCtx {
 impl std::fmt::Debug for PipelineCtx {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("PipelineCtx")
-            .field("output_sample_rate", &self.output_sample_rate)
+            .field("mixing_sample_rate", &self.mixing_sample_rate)
             .field("output_framerate", &self.output_framerate)
             .field("download_dir", &self.download_dir)
             .field("event_emitter", &self.event_emitter)
@@ -197,10 +197,10 @@ impl Pipeline {
             inputs: HashMap::new(),
             queue: Queue::new(opts.queue_options, &event_emitter),
             renderer,
-            audio_mixer: AudioMixer::new(opts.output_sample_rate),
+            audio_mixer: AudioMixer::new(opts.mixing_sample_rate),
             is_started: false,
             ctx: PipelineCtx {
-                output_sample_rate: opts.output_sample_rate,
+                mixing_sample_rate: opts.mixing_sample_rate,
                 output_framerate: opts.queue_options.output_framerate,
                 stun_servers: opts.stun_servers,
                 download_dir: download_dir.into(),

@@ -23,7 +23,7 @@ pub struct Config {
     pub force_gpu: bool,
     pub download_root: PathBuf,
     pub queue_options: QueueOptions,
-    pub output_sample_rate: u32,
+    pub mixing_sample_rate: u32,
     pub stun_servers: Arc<Vec<String>>,
     pub required_wgpu_features: WgpuFeatures,
     pub load_system_fonts: bool,
@@ -82,20 +82,20 @@ fn try_read_config() -> Result<Config, String> {
 
     /// Valid Opus sample rates
     const SUPPORTED_SAMPLE_RATES: [u32; 5] = [8_000, 12_000, 16_000, 24_000, 48_000];
-    const DEFAULT_OUTPUT_SAMPLE_RATE: u32 = 48_000;
-    let output_sample_rate: u32 = match env::var("LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE") {
+    const DEFAULT_MIXING_SAMPLE_RATE: u32 = 48_000;
+    let mixing_sample_rate: u32 = match env::var("LIVE_COMPOSITOR_MIXING_SAMPLE_RATE") {
         Ok(sample_rate) => {
             let sample_rate = sample_rate
                 .parse()
-                .map_err(|_| "LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE has to be a valid number")?;
+                .map_err(|_| "LIVE_COMPOSITOR_MIXING_SAMPLE_RATE has to be a valid number")?;
 
             if SUPPORTED_SAMPLE_RATES.contains(&sample_rate) {
                 sample_rate
             } else {
-                return Err("LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE has to be a supported sample rate. Supported sample rates are: 8000, 12000, 16000, 24000, 48000".to_string());
+                return Err("LIVE_COMPOSITOR_MIXING_SAMPLE_RATE has to be a supported sample rate. Supported sample rates are: 8000, 12000, 16000, 24000, 48000".to_string());
             }
         }
-        Err(_) => DEFAULT_OUTPUT_SAMPLE_RATE,
+        Err(_) => DEFAULT_MIXING_SAMPLE_RATE,
     };
 
     let force_gpu = match env::var("LIVE_COMPOSITOR_FORCE_GPU") {
@@ -239,7 +239,7 @@ fn try_read_config() -> Result<Config, String> {
             enable_gpu: web_renderer_gpu_enable,
         },
         download_root,
-        output_sample_rate,
+        mixing_sample_rate,
         stun_servers,
         required_wgpu_features,
         load_system_fonts,

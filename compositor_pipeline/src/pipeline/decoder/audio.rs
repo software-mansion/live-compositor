@@ -37,7 +37,7 @@ trait AudioDecoderExt {
 
 pub fn start_audio_resampler_only_thread(
     input_sample_rate: u32,
-    output_sample_rate: u32,
+    mixing_sample_rate: u32,
     raw_samples_receiver: Receiver<PipelineEvent<DecodedSamples>>,
     samples_sender: Sender<PipelineEvent<InputSamples>>,
     input_id: InputId,
@@ -55,7 +55,7 @@ pub fn start_audio_resampler_only_thread(
 
             run_resampler_only_thread(
                 input_sample_rate,
-                output_sample_rate,
+                mixing_sample_rate,
                 raw_samples_receiver,
                 samples_sender,
                 decoder_init_result_sender,
@@ -72,12 +72,12 @@ pub fn start_audio_resampler_only_thread(
 
 fn run_resampler_only_thread(
     input_sample_rate: u32,
-    output_sample_rate: u32,
+    mixing_sample_rate: u32,
     raw_samples_receiver: Receiver<PipelineEvent<DecodedSamples>>,
     samples_sender: Sender<PipelineEvent<InputSamples>>,
     init_result_sender: Sender<Result<(), InputInitError>>,
 ) {
-    let mut resampler = match Resampler::new(input_sample_rate, output_sample_rate) {
+    let mut resampler = match Resampler::new(input_sample_rate, mixing_sample_rate) {
         Ok(resampler) => {
             if init_result_sender.send(Ok(())).is_err() {
                 error!("Failed to send rescaler init result.");
@@ -114,7 +114,7 @@ fn run_resampler_only_thread(
 
 pub fn start_audio_decoder_thread(
     opts: AudioDecoderOptions,
-    output_sample_rate: u32,
+    mixing_sample_rate: u32,
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
     samples_sender: Sender<PipelineEvent<InputSamples>>,
     input_id: InputId,
@@ -139,7 +139,7 @@ pub fn start_audio_decoder_thread(
 
             run_decoding(
                 opts,
-                output_sample_rate,
+                mixing_sample_rate,
                 chunks_receiver,
                 sender,
                 init_result_sender,
@@ -163,7 +163,7 @@ pub fn start_audio_decoder_thread(
 /// - always ok for AAC (aac sample rate is unknown at register time, first chunk is need to determine it)
 fn run_decoding<F>(
     opts: AudioDecoderOptions,
-    output_sample_rate: u32,
+    mixing_sample_rate: u32,
     chunks_receiver: Receiver<PipelineEvent<EncodedChunk>>,
     samples_sender: F,
     init_result_sender: Sender<Result<(), InputInitError>>,
@@ -191,7 +191,7 @@ fn run_decoding<F>(
         AudioDecoderOptions::Opus(opus_decoder_opts) => {
             // Opus decoder initialization doesn't require input stream data,
             // so this can wait and send init result
-            match init_opus_decoder(opus_decoder_opts, output_sample_rate) {
+            match init_opus_decoder(opus_decoder_opts, mixing_sample_rate) {
                 Ok((mut decoder, mut resampler)) => {
                     send_result(Ok(()));
                     run_decoding_loop(
@@ -224,7 +224,7 @@ fn run_decoding<F>(
             let init_res = AacDecoder::new(aac_decoder_opts, &first_chunk)
                 .map(|decoder| {
                     let resampler =
-                        Resampler::new(decoder.decoded_sample_rate(), output_sample_rate)?;
+                        Resampler::new(decoder.decoded_sample_rate(), mixing_sample_rate)?;
                     Ok((decoder, resampler))
                 })
                 .and_then(|res| res);
@@ -277,9 +277,9 @@ fn run_decoding_loop<Decoder, F>(
 
 fn init_opus_decoder(
     opus_decoder_opts: OpusDecoderOptions,
-    output_sample_rate: u32,
+    mixing_sample_rate: u32,
 ) -> Result<(OpusDecoder, Resampler), InputInitError> {
-    let decoder = OpusDecoder::new(opus_decoder_opts, output_sample_rate)?;
-    let resampler = Resampler::new(decoder.decoded_sample_rate(), output_sample_rate)?;
+    let decoder = OpusDecoder::new(opus_decoder_opts, mixing_sample_rate)?;
+    let resampler = Resampler::new(decoder.decoded_sample_rate(), mixing_sample_rate)?;
     Ok((decoder, resampler))
 }

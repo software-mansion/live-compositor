@@ -21,7 +21,7 @@ pub fn validate(
     let expected_audio_packets = find_packets_for_payload_type(&expected_packets, 97);
     let actual_audio_packets = find_packets_for_payload_type(&actual_packets, 97);
 
-    let sample_rate = read_config().output_sample_rate;
+    let sample_rate = read_config().mixing_sample_rate;
 
     let mut expected_audio_decoder = AudioDecoder::new(sample_rate, channels)?;
     let mut actual_audio_decoder = AudioDecoder::new(sample_rate, channels)?;

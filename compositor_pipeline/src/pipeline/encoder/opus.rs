@@ -18,6 +18,7 @@ use super::AudioEncoderPreset;
 pub struct OpusEncoderOptions {
     pub channels: AudioChannels,
     pub preset: AudioEncoderPreset,
+    pub sample_rate: u32,
 }
 
 pub struct OpusEncoder {

@@ -28,6 +28,7 @@ pub struct AacEncoder {
 #[derive(Debug, Clone)]
 pub struct AacEncoderOptions {
     pub channels: AudioChannels,
+    pub sample_rate: u32,
 }
 
 impl AacEncoder {

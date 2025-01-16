@@ -79,7 +79,7 @@ impl Mp4FileWriter {
         }
 
         let (output_ctx, video_stream, audio_stream) =
-            init_ffmpeg_output(options, pipeline_ctx.output_sample_rate)?;
+            init_ffmpeg_output(options, pipeline_ctx.mixing_sample_rate)?;
 
         let event_emitter = pipeline_ctx.event_emitter.clone();
         std::thread::Builder::new()

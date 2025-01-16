@@ -28,9 +28,9 @@ struct OutputInfo {
 pub(super) struct AudioMixer(Arc<Mutex<InternalAudioMixer>>);
 
 impl AudioMixer {
-    pub fn new(output_sample_rate: u32) -> Self {
+    pub fn new(mixing_sample_rate: u32) -> Self {
         Self(Arc::new(Mutex::new(InternalAudioMixer::new(
-            output_sample_rate,
+            mixing_sample_rate,
         ))))
     }
 
@@ -72,14 +72,14 @@ impl AudioMixer {
 #[derive(Debug)]
 pub(super) struct InternalAudioMixer {
     outputs: HashMap<OutputId, OutputInfo>,
-    output_sample_rate: u32,
+    mixing_sample_rate: u32,
 }
 
 impl InternalAudioMixer {
-    pub fn new(output_sample_rate: u32) -> Self {
+    pub fn new(mixing_sample_rate: u32) -> Self {
         Self {
             outputs: HashMap::new(),
-            output_sample_rate,
+            mixing_sample_rate,
         }
     }
 
@@ -102,9 +102,9 @@ impl InternalAudioMixer {
         let samples_count = expected_samples_count(
             samples_set.start_pts,
             samples_set.end_pts,
-            self.output_sample_rate,
+            self.mixing_sample_rate,
         );
-        let input_samples = prepare_input_samples(samples_set, self.output_sample_rate);
+        let input_samples = prepare_input_samples(samples_set, self.mixing_sample_rate);
 
         OutputSamplesSet(
             self.outputs

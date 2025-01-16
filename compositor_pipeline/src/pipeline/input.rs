@@ -192,7 +192,7 @@ fn start_input_threads(
                 let (sender, receiver) = bounded(10);
                 start_audio_resampler_only_thread(
                     sample_rate,
-                    pipeline_ctx.output_sample_rate,
+                    pipeline_ctx.mixing_sample_rate,
                     sample_receiver,
                     sender,
                     input_id.clone(),
@@ -206,7 +206,7 @@ fn start_input_threads(
                 let (sender, receiver) = bounded(10);
                 start_audio_decoder_thread(
                     decoder_options,
-                    pipeline_ctx.output_sample_rate,
+                    pipeline_ctx.mixing_sample_rate,
                     chunk_receiver,
                     sender,
                     input_id.clone(),
