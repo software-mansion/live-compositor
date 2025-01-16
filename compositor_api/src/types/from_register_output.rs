@@ -131,8 +131,9 @@ impl TryFrom<Mp4Output> for pipeline::RegisterOutputOptions<output::OutputOption
             },
         });
         let mp4_audio = audio.as_ref().map(|a| match &a.encoder {
-            Mp4AudioEncoderOptions::Aac { channels, .. } => Mp4AudioTrack {
+            Mp4AudioEncoderOptions::Aac { channels, sample_rate } => Mp4AudioTrack {
                 channels: channels.clone().into(),
+                sample_rate: sample_rate.unwrap_or(44100),
             },
         });
 

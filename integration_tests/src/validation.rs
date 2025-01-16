@@ -59,6 +59,7 @@ pub fn compare_audio_dumps<P: AsRef<Path> + fmt::Debug>(
         sampling_intervals,
         allowed_error,
         channels,
+        sample_rate,
     } = config;
 
     if let Err(err) = audio::validate(
@@ -67,6 +68,7 @@ pub fn compare_audio_dumps<P: AsRef<Path> + fmt::Debug>(
         &sampling_intervals,
         allowed_error,
         channels,
+        sample_rate,
     ) {
         save_failed_test_dumps(&expected, actual, &snapshot_filename);
         handle_error(err, snapshot_filename, actual)?;
@@ -109,6 +111,7 @@ pub struct AudioValidationConfig {
     pub sampling_intervals: Vec<Range<Duration>>,
     pub allowed_error: f32,
     pub channels: AudioChannels,
+    pub sample_rate: u32,
 }
 
 impl Default for AudioValidationConfig {
@@ -117,6 +120,7 @@ impl Default for AudioValidationConfig {
             sampling_intervals: vec![Duration::from_secs(0)..Duration::from_secs(1)],
             allowed_error: 4.0,
             channels: AudioChannels::Stereo,
+            sample_rate: 48000,
         }
     }
 }
