@@ -6,6 +6,7 @@
 
 - Drop support for `SHADER_UNUSED_VERTEX_OUTPUT` `wgpu` feature.  ([#733](https://github.com/software-mansion/live-compositor/pull/733)) by [@jerzywilczek](https://github.com/jerzywilczek)
 - Rename component properties describing color. Remove `_rgba` suffix. ([#896](https://github.com/software-mansion/live-compositor/issues/896)) by [@BrtqKr](https://github.com/BrtqKr)
+- Replace `LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE` configuration environment variable with `LIVE_COMPOSITOR_MIXING_SAMPLE_RATE`. Output sample rate is now determined using encoder options provided on `register_output`. Change default output sample rate for AAC codec to 44100 Hz. ([#925](https://github.com/software-mansion/live-compositor/pull/925) by [@WojciechBarczynski](https://github.com/WojciechBarczynski)).
 
 ### ✨ New features
 
@@ -13,6 +14,7 @@
 - Add `LIVE_COMPOSITOR_LOG_FILE` environment variable to enable logging to file ([#853](https://github.com/software-mansion/live-compositor/pull/853) by [@wkozyra95](https://github.com/wkozyra95))
 - Add border, border radius and box shadow options to `Rescaler` and `View` components. ([#815](https://github.com/software-mansion/live-compositor/pull/815) by [@WojciechBarczynski](https://github.com/WojciechBarczynski), ([#839](https://github.com/software-mansion/live-compositor/pull/839), [#842](https://github.com/software-mansion/live-compositor/pull/842), [#858](https://github.com/software-mansion/live-compositor/pull/858) by [@wkozyra95](https://github.com/wkozyra95))
 - Extend supported color formats. ([#896](https://github.com/software-mansion/live-compositor/issues/896)) by [@BrtqKr](https://github.com/BrtqKr)
+- Allow specifing output sample rates per output in `register_output` requests. ([#925](https://github.com/software-mansion/live-compositor/pull/925) by [@WojciechBarczynski](https://github.com/WojciechBarczynski))
 
 ### 🐛 Bug fixes
 

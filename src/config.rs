@@ -81,7 +81,7 @@ fn try_read_config() -> Result<Config, String> {
     };
 
     /// Valid Opus sample rates
-    const SUPPORTED_SAMPLE_RATES: [u32; 5] = [8_000, 12_000, 16_000, 24_000, 48_000];
+    const SUPPORTED_SAMPLE_RATES: [u32; 6] = [8_000, 12_000, 16_000, 24_000, 44_100, 48_000];
     const DEFAULT_MIXING_SAMPLE_RATE: u32 = 48_000;
     let mixing_sample_rate: u32 = match env::var("LIVE_COMPOSITOR_MIXING_SAMPLE_RATE") {
         Ok(sample_rate) => {
