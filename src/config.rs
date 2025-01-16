@@ -27,6 +27,8 @@ pub struct Config {
     pub stun_servers: Arc<Vec<String>>,
     pub required_wgpu_features: WgpuFeatures,
     pub load_system_fonts: bool,
+    pub whip_whep_server_port: u16,
+    pub start_whip_whep: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -197,6 +199,18 @@ fn try_read_config() -> Result<Config, String> {
         Err(_) => true,
     };
 
+    let whip_whep_server_port = match env::var("LIVE_COMPOSITOR_WHIP_WHEP_SERVER_PORT") {
+        Ok(whip_whep_port) => whip_whep_port
+            .parse::<u16>()
+            .map_err(|_| "LIVE_COMPOSITOR_WHIP_WHEP_SERVER_PORT has to be valid port number")?,
+        Err(_) => 9000,
+    };
+
+    let start_whip_whep = match env::var("LIVE_COMPOSITOR_START_WHIP_WHEP_SERVER") {
+        Ok(enable) => bool_env_from_str(&enable).unwrap_or(true),
+        Err(_) => true,
+    };
+
     let log_file = match env::var("LIVE_COMPOSITOR_LOG_FILE") {
         Ok(path) => Some(Arc::from(PathBuf::from(path))),
         Err(_) => None,
@@ -243,6 +257,8 @@ fn try_read_config() -> Result<Config, String> {
         stun_servers,
         required_wgpu_features,
         load_system_fonts,
+        whip_whep_server_port,
+        start_whip_whep,
     };
     Ok(config)
 }

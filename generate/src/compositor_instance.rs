@@ -34,6 +34,7 @@ impl CompositorInstance {
         config.api_port = api_port;
         config.queue_options.ahead_of_time_processing = true;
         config.queue_options.never_drop_output_frames = true;
+        config.start_whip_whep = false;
 
         info!("Starting LiveCompositor Integration Test with config:\n{config:#?}",);
 

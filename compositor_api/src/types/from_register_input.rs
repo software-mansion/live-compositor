@@ -4,7 +4,7 @@ use bytes::Bytes;
 use compositor_pipeline::{
     pipeline::{
         self, decoder,
-        input::{self, rtp::InputAudioStream},
+        input::{self, rtp, whip},
     },
     queue,
 };
@@ -37,7 +37,7 @@ fn parse_hexadecimal_octet_string(s: &str) -> Result<Bytes, TypeError> {
         .collect()
 }
 
-impl TryFrom<InputRtpAudioOptions> for InputAudioStream {
+impl TryFrom<InputRtpAudioOptions> for rtp::InputAudioStream {
     type Error = TypeError;
 
     fn try_from(audio: InputRtpAudioOptions) -> Result<Self, Self::Error> {
@@ -136,6 +136,82 @@ impl TryFrom<RtpInput> for pipeline::RegisterInputOptions {
             stream: rtp_stream,
             transport_protocol: transport_protocol.unwrap_or(TransportProtocol::Udp).into(),
         });
+
+        let queue_options = queue::QueueInputOptions {
+            required: required.unwrap_or(false),
+            offset: offset_ms.map(|offset_ms| Duration::from_secs_f64(offset_ms / 1000.0)),
+            buffer_duration: None,
+        };
+
+        Ok(pipeline::RegisterInputOptions {
+            input_options,
+            queue_options,
+        })
+    }
+}
+
+impl TryFrom<InputWhipAudioOptions> for whip::InputAudioStream {
+    type Error = TypeError;
+
+    fn try_from(audio: InputWhipAudioOptions) -> Result<Self, Self::Error> {
+        match audio {
+            InputWhipAudioOptions::Opus {
+                forward_error_correction,
+            } => {
+                let forward_error_correction = forward_error_correction.unwrap_or(false);
+                Ok(input::whip::InputAudioStream {
+                    options: decoder::OpusDecoderOptions {
+                        forward_error_correction,
+                    },
+                })
+            }
+        }
+    }
+}
+
+impl TryFrom<WhipInput> for pipeline::RegisterInputOptions {
+    type Error = TypeError;
+
+    fn try_from(value: WhipInput) -> Result<Self, Self::Error> {
+        let WhipInput {
+            video,
+            audio,
+            required,
+            offset_ms,
+        } = value;
+
+        const NO_VIDEO_AUDIO_SPEC: &str =
+            "At least one of `video` and `audio` has to be specified in `register_input` request.";
+
+        if video.is_none() && audio.is_none() {
+            return Err(TypeError::new(NO_VIDEO_AUDIO_SPEC));
+        }
+
+        let whip_receiver_options = input::whip::WhipReceiverOptions {
+            video: video
+                .as_ref()
+                .map(|video| {
+                    Ok(input::whip::InputVideoStream {
+                        options: match video.decoder {
+                            VideoDecoder::FfmpegH264 => decoder::VideoDecoderOptions {
+                                decoder: pipeline::VideoDecoder::FFmpegH264,
+                            },
+                            #[cfg(feature = "vk-video")]
+                            VideoDecoder::VulkanVideo => decoder::VideoDecoderOptions {
+                                decoder: pipeline::VideoDecoder::VulkanVideoH264,
+                            },
+                            #[cfg(not(feature = "vk-video"))]
+                            VideoDecoder::VulkanVideo => {
+                                return Err(TypeError::new(NO_VULKAN_VIDEO))
+                            }
+                        },
+                    })
+                })
+                .transpose()?,
+            audio: audio.map(TryFrom::try_from).transpose()?,
+        };
+
+        let input_options = input::InputOptions::Whip(whip_receiver_options);
 
         let queue_options = queue::QueueInputOptions {
             required: required.unwrap_or(false),

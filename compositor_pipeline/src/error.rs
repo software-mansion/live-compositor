@@ -23,6 +23,9 @@ pub enum InitPipelineError {
 
     #[error("Failed to create tokio::Runtime.")]
     CreateTokioRuntime(#[source] std::io::Error),
+
+    #[error("Failed to initialize WHIP WHEP server.")]
+    WhipWhepServerInitError,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -126,6 +129,9 @@ pub enum InputInitError {
 
     #[error(transparent)]
     Mp4(#[from] crate::pipeline::input::mp4::Mp4Error),
+
+    #[error(transparent)]
+    Whip(#[from] crate::pipeline::input::whip::WhipReceiverError),
 
     #[cfg(feature = "decklink")]
     #[error(transparent)]

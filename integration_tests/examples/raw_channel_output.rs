@@ -68,6 +68,8 @@ fn main() {
         wgpu_features: config.required_wgpu_features,
         load_system_fonts: Some(true),
         wgpu_ctx: Some(ctx),
+        whip_whep_server_port: Some(config.whip_whep_server_port),
+        start_whip_whep: config.start_whip_whep,
         tokio_rt: Some(Arc::new(Runtime::new().unwrap())),
     })
     .unwrap_or_else(|err| {
