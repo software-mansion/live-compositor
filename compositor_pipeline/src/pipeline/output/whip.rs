@@ -72,12 +72,6 @@ pub enum WhipError {
     #[error("Invalid endpoint URL: {1}")]
     InvalidEndpointUrl(#[source] ParseError, String),
 
-    #[error("Missing Host in endpoint URL")]
-    MissingHost,
-
-    #[error("Missing port in endpoint URL")]
-    MissingPort,
-
     #[error("Failed to create RTC session description: {0}")]
     RTCSessionDescriptionError(webrtc::Error),
 

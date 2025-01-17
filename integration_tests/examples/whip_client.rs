@@ -28,16 +28,16 @@ fn client_code() -> Result<()> {
         }),
     )?;
 
-    //let token = env::var("LIVE_COMPOSITOR_WHIP_CLIENT_EXAMPLE_TOKEN").map_err(|err| anyhow!("Couldn't read LIVE_COMPOSITOR_WHIP_CLIENT_EXAMPLE_TOKEN environmental variable. You must provide it in order to run `whip_client` example. Read env error: {}", err))?;
+    let token = env::var("LIVE_COMPOSITOR_WHIP_CLIENT_EXAMPLE_TOKEN").map_err(|err| anyhow!("Couldn't read LIVE_COMPOSITOR_WHIP_CLIENT_EXAMPLE_TOKEN environmental variable. You must provide it in order to run `whip_client` example. Read env error: {}", err))?;
 
     examples::post(
         "output/output_1/register",
         &json!({
             "type": "whip",
-            //"endpoint_url": "https://g.webrtc.live-video.net:4443/v2/offer", // Twitch WHIP endpoint URL
-            //"bearer_token": token,
-            "endpoint_url": "https://whip.vdo.ninja", // Twitch WHIP endpoint URL
-            "bearer_token": "test-token",
+            "endpoint_url": "https://g.webrtc.live-video.net:4443/v2/offer", // Twitch WHIP endpoint URL
+            "bearer_token": token,
+            //"endpoint_url": "https://whip.vdo.ninja", // Twitch WHIP endpoint URL
+            //"bearer_token": "test-token",
             "video": {
                 "resolution": {
                     "width": VIDEO_RESOLUTION.width,
