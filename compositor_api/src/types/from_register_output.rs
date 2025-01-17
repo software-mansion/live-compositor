@@ -131,8 +131,12 @@ impl TryFrom<Mp4Output> for pipeline::RegisterOutputOptions<output::OutputOption
             },
         });
         let mp4_audio = audio.as_ref().map(|a| match &a.encoder {
-            Mp4AudioEncoderOptions::Aac { channels } => Mp4AudioTrack {
+            Mp4AudioEncoderOptions::Aac {
+                channels,
+                sample_rate,
+            } => Mp4AudioTrack {
                 channels: channels.clone().into(),
+                sample_rate: sample_rate.unwrap_or(44100),
             },
         });
 
@@ -198,6 +202,7 @@ impl TryFrom<WhipOutput> for pipeline::RegisterOutputOptions<output::OutputOptio
             WhipAudioEncoderOptions::Opus {
                 channels,
                 preset: _,
+                sample_rate: _,
             } => WhipAudioOptions {
                 codec: pipeline::AudioCodec::Opus,
                 channels: match channels {
@@ -292,11 +297,13 @@ fn maybe_video_options(
 impl From<Mp4AudioEncoderOptions> for pipeline::encoder::AudioEncoderOptions {
     fn from(value: Mp4AudioEncoderOptions) -> Self {
         match value {
-            Mp4AudioEncoderOptions::Aac { channels } => {
-                AudioEncoderOptions::Aac(AacEncoderOptions {
-                    channels: channels.into(),
-                })
-            }
+            Mp4AudioEncoderOptions::Aac {
+                channels,
+                sample_rate,
+            } => AudioEncoderOptions::Aac(AacEncoderOptions {
+                channels: channels.into(),
+                sample_rate: sample_rate.unwrap_or(44100),
+            }),
         }
     }
 }
@@ -304,12 +311,15 @@ impl From<Mp4AudioEncoderOptions> for pipeline::encoder::AudioEncoderOptions {
 impl From<RtpAudioEncoderOptions> for pipeline::encoder::AudioEncoderOptions {
     fn from(value: RtpAudioEncoderOptions) -> Self {
         match value {
-            RtpAudioEncoderOptions::Opus { channels, preset } => {
-                AudioEncoderOptions::Opus(encoder::opus::OpusEncoderOptions {
-                    channels: channels.into(),
-                    preset: preset.unwrap_or(OpusEncoderPreset::Voip).into(),
-                })
-            }
+            RtpAudioEncoderOptions::Opus {
+                channels,
+                preset,
+                sample_rate,
+            } => AudioEncoderOptions::Opus(encoder::opus::OpusEncoderOptions {
+                channels: channels.into(),
+                preset: preset.unwrap_or(OpusEncoderPreset::Voip).into(),
+                sample_rate: sample_rate.unwrap_or(48000),
+            }),
         }
     }
 }
@@ -317,12 +327,15 @@ impl From<RtpAudioEncoderOptions> for pipeline::encoder::AudioEncoderOptions {
 impl From<WhipAudioEncoderOptions> for pipeline::encoder::AudioEncoderOptions {
     fn from(value: WhipAudioEncoderOptions) -> Self {
         match value {
-            WhipAudioEncoderOptions::Opus { channels, preset } => {
-                AudioEncoderOptions::Opus(encoder::opus::OpusEncoderOptions {
-                    channels: channels.into(),
-                    preset: preset.unwrap_or(OpusEncoderPreset::Voip).into(),
-                })
-            }
+            WhipAudioEncoderOptions::Opus {
+                channels,
+                preset,
+                sample_rate,
+            } => AudioEncoderOptions::Opus(encoder::opus::OpusEncoderOptions {
+                channels: channels.into(),
+                preset: preset.unwrap_or(OpusEncoderPreset::Voip).into(),
+                sample_rate: sample_rate.unwrap_or(48000),
+            }),
         }
     }
 }

@@ -120,6 +120,9 @@ pub enum EncoderInitError {
 
     #[error("Internal FDK AAC encoder error: {0}")]
     AacError(fdk::AACENC_ERROR),
+
+    #[error(transparent)]
+    ResamplerError(#[from] rubato::ResamplerConstructionError),
 }
 
 #[derive(Debug, thiserror::Error)]

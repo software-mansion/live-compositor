@@ -15,7 +15,7 @@ pub(super) fn expected_samples_count(start: Duration, end: Duration, sample_rate
 }
 pub(super) fn prepare_input_samples(
     input_samples_set: InputSamplesSet,
-    output_sample_rate: u32,
+    mixing_sample_rate: u32,
 ) -> HashMap<InputId, Vec<(i16, i16)>> {
     input_samples_set
         .samples
@@ -25,7 +25,7 @@ pub(super) fn prepare_input_samples(
                 input_samples_set.start_pts,
                 input_samples_set.end_pts,
                 input_batch,
-                output_sample_rate,
+                mixing_sample_rate,
             );
 
             (input_id, samples)

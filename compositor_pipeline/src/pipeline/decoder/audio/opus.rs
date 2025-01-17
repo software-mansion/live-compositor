@@ -18,10 +18,10 @@ pub(super) struct OpusDecoder {
 }
 
 impl OpusDecoder {
-    pub fn new(opts: OpusDecoderOptions, output_sample_rate: u32) -> Result<Self, InputInitError> {
+    pub fn new(opts: OpusDecoderOptions, mixing_sample_rate: u32) -> Result<Self, InputInitError> {
         const OPUS_SAMPLE_RATES: [u32; 5] = [8_000, 12_000, 16_000, 24_000, 48_000];
-        let decoded_sample_rate = if OPUS_SAMPLE_RATES.contains(&output_sample_rate) {
-            output_sample_rate
+        let decoded_sample_rate = if OPUS_SAMPLE_RATES.contains(&mixing_sample_rate) {
+            mixing_sample_rate
         } else {
             48_000
         };

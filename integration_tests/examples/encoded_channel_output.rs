@@ -66,6 +66,7 @@ fn main() {
                 encoder::opus::OpusEncoderOptions {
                     channels: AudioChannels::Stereo,
                     preset: AudioEncoderPreset::Voip,
+                    sample_rate: 48000,
                 },
             )),
         },

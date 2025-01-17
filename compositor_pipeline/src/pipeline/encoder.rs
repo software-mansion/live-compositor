@@ -2,6 +2,7 @@ use compositor_render::{Frame, OutputId, Resolution};
 use crossbeam_channel::{bounded, Receiver, Sender};
 use fdk_aac::AacEncoder;
 use log::error;
+use resampler::OutputResampler;
 
 use crate::{
     audio_mixer::{AudioChannels, OutputSamples},
@@ -16,6 +17,7 @@ use super::types::EncoderOutputEvent;
 pub mod fdk_aac;
 pub mod ffmpeg_h264;
 pub mod opus;
+mod resampler;
 
 pub struct EncoderOptions {
     pub video: Option<VideoEncoderOptions>,
@@ -159,15 +161,24 @@ impl AudioEncoder {
     fn new(
         output_id: &OutputId,
         options: AudioEncoderOptions,
-        sample_rate: u32,
+        mixing_sample_rate: u32,
         sender: Sender<EncoderOutputEvent>,
     ) -> Result<Self, EncoderInitError> {
+        let resampler = if options.sample_rate() != mixing_sample_rate {
+            Some(OutputResampler::new(
+                mixing_sample_rate,
+                options.sample_rate(),
+            )?)
+        } else {
+            None
+        };
+
         match options {
             AudioEncoderOptions::Opus(options) => {
-                OpusEncoder::new(options, sample_rate, sender).map(AudioEncoder::Opus)
+                OpusEncoder::new(options, sender, resampler).map(AudioEncoder::Opus)
             }
             AudioEncoderOptions::Aac(options) => {
-                AacEncoder::new(output_id, options, sample_rate, sender).map(AudioEncoder::Aac)
+                AacEncoder::new(output_id, options, sender, resampler).map(AudioEncoder::Aac)
             }
         }
     }
@@ -185,6 +196,13 @@ impl AudioEncoderOptions {
         match self {
             AudioEncoderOptions::Opus(options) => options.channels,
             AudioEncoderOptions::Aac(options) => options.channels,
+        }
+    }
+
+    fn sample_rate(&self) -> u32 {
+        match self {
+            AudioEncoderOptions::Opus(options) => options.sample_rate,
+            AudioEncoderOptions::Aac(options) => options.sample_rate,
         }
     }
 }

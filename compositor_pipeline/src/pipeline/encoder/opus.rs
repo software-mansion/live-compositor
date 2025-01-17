@@ -12,12 +12,13 @@ use crate::{
     queue::PipelineEvent,
 };
 
-use super::AudioEncoderPreset;
+use super::{resampler::OutputResampler, AudioEncoderPreset};
 
 #[derive(Debug, Clone)]
 pub struct OpusEncoderOptions {
     pub channels: AudioChannels,
     pub preset: AudioEncoderPreset,
+    pub sample_rate: u32,
 }
 
 pub struct OpusEncoder {
@@ -27,19 +28,22 @@ pub struct OpusEncoder {
 impl OpusEncoder {
     pub fn new(
         options: OpusEncoderOptions,
-        sample_rate: u32,
         packets_sender: Sender<EncoderOutputEvent>,
+        resampler: Option<OutputResampler>,
     ) -> Result<Self, EncoderInitError> {
         let (samples_batch_sender, samples_batch_receiver) = bounded(2);
 
-        let encoder =
-            opus::Encoder::new(sample_rate, options.channels.into(), options.preset.into())?;
+        let encoder = opus::Encoder::new(
+            options.sample_rate,
+            options.channels.into(),
+            options.preset.into(),
+        )?;
 
         std::thread::Builder::new()
             .name("Opus encoder thread".to_string())
             .spawn(move || {
                 let _span = span!(Level::INFO, "Opus encoder thread").entered();
-                run_encoder_thread(encoder, samples_batch_receiver, packets_sender)
+                run_encoder_thread(encoder, resampler, samples_batch_receiver, packets_sender)
             })
             .unwrap();
 
@@ -55,10 +59,11 @@ impl OpusEncoder {
 
 fn run_encoder_thread(
     mut encoder: opus::Encoder,
+    mut resampler: Option<OutputResampler>,
     samples_batch_receiver: Receiver<PipelineEvent<OutputSamples>>,
     packets_sender: Sender<EncoderOutputEvent>,
 ) {
-    let mut output_buffer = [0u8; 1024 * 1024];
+    let mut output_buffer = vec![0u8; 1024 * 1024];
 
     let mut encode = |samples: &[i16]| match encoder.encode(samples, &mut output_buffer) {
         Ok(len) => Some(bytes::Bytes::copy_from_slice(&output_buffer[..len])),
@@ -69,39 +74,46 @@ fn run_encoder_thread(
     };
 
     for msg in samples_batch_receiver {
-        let batch = match msg {
+        let received_samples = match msg {
             PipelineEvent::Data(batch) => batch,
             PipelineEvent::EOS => break,
         };
 
-        let data = match batch.samples {
-            AudioSamples::Mono(mono_samples) => {
-                let Some(data) = encode(&mono_samples) else {
-                    continue;
-                };
-                data
-            }
-            AudioSamples::Stereo(stereo_samples) => {
-                let flatten_samples: Vec<i16> =
-                    stereo_samples.iter().flat_map(|(l, r)| [*l, *r]).collect();
-                let Some(data) = encode(&flatten_samples) else {
-                    continue;
-                };
-                data
-            }
-        };
-        let chunk = EncodedChunk {
-            data,
-            pts: batch.start_pts,
-            dts: None,
-            is_keyframe: IsKeyframe::NoKeyframes,
-            kind: EncodedChunkKind::Audio(AudioCodec::Opus),
+        let samples = match resampler.as_mut() {
+            Some(resampler) => resampler.resample(received_samples),
+            None => vec![received_samples],
         };
 
-        trace!(pts=?chunk.pts, "OPUS encoder produced an encoded chunk.");
-        if let Err(_err) = packets_sender.send(EncoderOutputEvent::Data(chunk)) {
-            warn!("Failed to send encoded audio from OPUS encoder. Channel closed.");
-            return;
+        for batch in samples {
+            let data = match batch.samples {
+                AudioSamples::Mono(mono_samples) => {
+                    let Some(data) = encode(&mono_samples) else {
+                        continue;
+                    };
+                    data
+                }
+                AudioSamples::Stereo(stereo_samples) => {
+                    let flatten_samples: Vec<i16> =
+                        stereo_samples.iter().flat_map(|(l, r)| [*l, *r]).collect();
+                    let Some(data) = encode(&flatten_samples) else {
+                        continue;
+                    };
+                    data
+                }
+            };
+            let chunk = EncodedChunk {
+                data,
+                pts: batch.start_pts,
+                dts: None,
+                is_keyframe: IsKeyframe::NoKeyframes,
+                kind: EncodedChunkKind::Audio(AudioCodec::Opus),
+            };
+
+            trace!(pts=?chunk.pts, "OPUS encoder produced an encoded chunk.");
+            if let Err(_err) = packets_sender.send(EncoderOutputEvent::Data(chunk)) {
+                warn!("Failed to send encoded audio from OPUS encoder. Channel closed.");
+                return;
+            }
         }
     }
     if let Err(_err) = packets_sender.send(EncoderOutputEvent::AudioEOS) {

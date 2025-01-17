@@ -18,6 +18,8 @@ use crate::{
     queue::PipelineEvent,
 };
 
+use super::resampler::OutputResampler;
+
 /// FDK-AAC encoder.
 /// Implementation is based on the fdk-aac encoder documentation:
 /// https://github.com/mstorsjo/fdk-aac/blob/master/documentation/aacEncoder.pdf
@@ -28,14 +30,15 @@ pub struct AacEncoder {
 #[derive(Debug, Clone)]
 pub struct AacEncoderOptions {
     pub channels: AudioChannels,
+    pub sample_rate: u32,
 }
 
 impl AacEncoder {
     pub fn new(
         output_id: &OutputId,
         options: AacEncoderOptions,
-        sample_rate: u32,
         packets_sender: Sender<EncoderOutputEvent>,
+        resampler: Option<OutputResampler>,
     ) -> Result<Self, EncoderInitError> {
         let (samples_batch_sender, samples_batch_receiver) = bounded(5);
         // Since AAC encoder holds ref to internal structure (handler), it's unsafe to send it between threads.
@@ -50,9 +53,9 @@ impl AacEncoder {
                 run_encoder_thread(
                     init_result_sender,
                     options,
-                    sample_rate,
                     samples_batch_receiver,
                     packets_sender,
+                    resampler,
                 );
                 debug!("Closing AAC encoder thread.");
             })
@@ -84,7 +87,7 @@ struct AacEncoderInner {
 }
 
 impl AacEncoderInner {
-    fn new(options: AacEncoderOptions, sample_rate: u32) -> Result<Self, fdk::AACENC_ERROR> {
+    fn new(options: AacEncoderOptions) -> Result<Self, fdk::AACENC_ERROR> {
         // Section 2.3 of the fdk-aac Encoder documentation - encoder initialization.
         let mut encoder = ptr::null_mut();
         // For mono and stereo audio, those values are the same, but it's not the case for other channel modes.
@@ -112,7 +115,7 @@ impl AacEncoderInner {
             check(fdk::aacEncoder_SetParam(
                 encoder,
                 fdk::AACENC_PARAM_AACENC_SAMPLERATE,
-                sample_rate,
+                options.sample_rate,
             ))?;
             check(fdk::aacEncoder_SetParam(
                 encoder,
@@ -153,7 +156,7 @@ impl AacEncoderInner {
             encoder,
             input_buffer: Vec::new(),
             output_buffer: vec![0; info.maxOutBufBytes as usize],
-            sample_rate,
+            sample_rate: options.sample_rate,
             start_pts: None,
             sent_samples: 0,
             channels,
@@ -302,11 +305,11 @@ impl Drop for AacEncoderInner {
 fn run_encoder_thread(
     init_result_sender: Sender<Result<(), fdk::AACENC_ERROR>>,
     options: AacEncoderOptions,
-    sample_rate: u32,
     samples_batch_receiver: Receiver<PipelineEvent<OutputSamples>>,
     packets_sender: Sender<EncoderOutputEvent>,
+    mut resampler: Option<OutputResampler>,
 ) {
-    let mut encoder = match AacEncoderInner::new(options, sample_rate) {
+    let mut encoder = match AacEncoderInner::new(options) {
         Ok(encoder) => {
             init_result_sender.send(Ok(())).unwrap();
             encoder
@@ -318,22 +321,30 @@ fn run_encoder_thread(
     };
 
     for event in samples_batch_receiver {
-        let samples = match event {
+        let received_samples = match event {
             PipelineEvent::Data(samples) => samples,
             PipelineEvent::EOS => break,
         };
 
-        match encoder.encode(samples) {
-            Ok(Some(encoded_samples)) => {
-                let send_result = packets_sender.send(EncoderOutputEvent::Data(encoded_samples));
-                if send_result.is_err() {
-                    debug!("Failed to send AAC encoded samples.");
-                    break;
-                };
-            }
-            Ok(None) => {}
-            Err(err) => {
-                error!("Error encoding audio samples: {:?}", err);
+        let output_samples = match resampler.as_mut() {
+            Some(resampler) => resampler.resample(received_samples),
+            None => vec![received_samples],
+        };
+
+        for samples in output_samples {
+            match encoder.encode(samples) {
+                Ok(Some(encoded_samples)) => {
+                    let send_result =
+                        packets_sender.send(EncoderOutputEvent::Data(encoded_samples));
+                    if send_result.is_err() {
+                        debug!("Failed to send AAC encoded samples.");
+                        break;
+                    };
+                }
+                Ok(None) => {}
+                Err(err) => {
+                    error!("Error encoding audio samples: {:?}", err);
+                }
             }
         }
     }

@@ -33,7 +33,7 @@ fn main() {
         web_renderer: config.web_renderer,
         force_gpu: config.force_gpu,
         download_root: config.download_root,
-        output_sample_rate: config.output_sample_rate,
+        mixing_sample_rate: config.mixing_sample_rate,
         stun_servers: config.stun_servers,
         wgpu_features: config.required_wgpu_features,
         load_system_fonts: Some(true),

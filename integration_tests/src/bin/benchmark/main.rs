@@ -218,7 +218,7 @@ fn run_single_test(ctx: GraphicsContext, bench_config: SingleBenchConfig) -> boo
         wgpu_features: wgpu::Features::UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING
             | wgpu::Features::SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING,
         load_system_fonts: Some(false),
-        output_sample_rate: 48_000,
+        mixing_sample_rate: 48_000,
         stream_fallback_timeout: Duration::from_millis(500),
         tokio_rt: None,
         stun_servers: Vec::new().into(),

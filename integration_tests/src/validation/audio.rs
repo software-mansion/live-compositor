@@ -1,6 +1,5 @@
 use anyhow::{Context, Result};
 use bytes::Bytes;
-use live_compositor::config::read_config;
 use pitch_detection::detector::{mcleod::McLeodDetector, PitchDetector};
 use std::{ops::Range, time::Duration};
 
@@ -15,13 +14,12 @@ pub fn validate(
     sampling_intervals: &[Range<Duration>],
     allowed_error: f32,
     channels: AudioChannels,
+    sample_rate: u32,
 ) -> Result<()> {
     let expected_packets = unmarshal_packets(expected)?;
     let actual_packets = unmarshal_packets(actual)?;
     let expected_audio_packets = find_packets_for_payload_type(&expected_packets, 97);
     let actual_audio_packets = find_packets_for_payload_type(&actual_packets, 97);
-
-    let sample_rate = read_config().output_sample_rate;
 
     let mut expected_audio_decoder = AudioDecoder::new(sample_rate, channels)?;
     let mut actual_audio_decoder = AudioDecoder::new(sample_rate, channels)?;
