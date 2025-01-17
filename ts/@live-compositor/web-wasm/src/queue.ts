@@ -1,7 +1,9 @@
 import type { FrameSet, InputId, OutputId, Renderer } from '@live-compositor/browser-render';
 import type { Framerate } from './compositor';
-import type { Input, InputFrame } from './input/input';
+import type { Input } from './input/input';
 import type { Output } from './output/output';
+import { framerateToDurationMs } from './utils';
+import type { FrameRef } from './input/frame';
 
 export type StopQueueFn = () => void;
 
@@ -19,7 +21,7 @@ export class Queue {
   }
 
   public start(): StopQueueFn {
-    const tickDuration = (1000 * this.framerate.den) / this.framerate.num;
+    const tickDuration = framerateToDurationMs(this.framerate);
     const queueInterval = setInterval(async () => {
       await this.onTick();
       this.currentPts += tickDuration;
@@ -59,24 +61,42 @@ export class Queue {
   }
 
   private async onTick() {
-    const inputs = await this.getInputFrames();
+    await this.tickInputs();
+    await this.produceOutputs();
+  }
+
+  private async tickInputs(): Promise<void> {
+    const pending = Object.values(this.inputs).map(
+      async input => await input.onQueueTick(this.currentPts)
+    );
+    await Promise.all(pending);
+  }
+
+  private async produceOutputs(): Promise<void> {
+    const inputs = this.getInputFrames();
+    const pendingFrames = Object.entries(inputs).map(async ([inputId, input]) => [
+      inputId,
+      await input.getFrame(),
+    ]);
+    const frames = Object.fromEntries(await Promise.all(pendingFrames));
+
     const outputs = this.renderer.render({
       ptsMs: this.currentPts,
-      frames: inputs,
+      frames: frames,
     });
     this.sendOutputs(outputs);
 
     for (const input of Object.values(inputs)) {
-      input.free();
+      input.decrementRefCount();
     }
   }
 
-  private async getInputFrames(): Promise<Record<InputId, InputFrame>> {
-    const pendingFrames = Object.entries(this.inputs).map(async ([inputId, input]) => [
+  private getInputFrames(): Record<InputId, FrameRef> {
+    const frames = Object.entries(this.inputs).map(([inputId, input]) => [
       inputId,
-      await input.getFrame(),
+      input.getFrameRef(this.currentPts),
     ]);
-    const frames = await Promise.all(pendingFrames);
+
     return Object.fromEntries(frames.filter(([_inputId, frame]) => !!frame));
   }
 

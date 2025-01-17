@@ -91,7 +91,7 @@ fn scene(text: &str, rgba_color: &str, pts: Duration) -> serde_json::Value {
     json!({
         "root": {
             "type": "view",
-            "background_color_rgba": rgba_color,
+            "background_color": rgba_color,
             "direction": "column",
             "children": [
                 { "type": "view" },

@@ -126,7 +126,7 @@ impl RtpReceiver {
             }),
             video,
             audio,
-            init_info: InputInitInfo { port: Some(port) },
+            init_info: InputInitInfo::Rtp { port: Some(port) },
         })
     }
 

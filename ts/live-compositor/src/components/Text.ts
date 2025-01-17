@@ -1,15 +1,8 @@
 import type * as Api from '../api.js';
-import type { SceneComponent } from '../component.js';
-import { createCompositorComponent } from '../component.js';
-import { intoApiRgbaColor } from './common.js';
+import type { ComponentBaseProps, SceneComponent } from '../component.js';
+import { createCompositorComponent, DEFAULT_FONT_SIZE } from '../component.js';
 
-export type TextProps = {
-  children?: (string | number)[] | string | number;
-
-  /**
-   * Id of a component.
-   */
-  id?: Api.ComponentId;
+export type TextStyleProps = {
   /**
    * Width of a texture that text will be rendered on. If not provided, the resulting texture
    * will be sized based on the defined text but limited to `max_width` value.
@@ -40,11 +33,11 @@ export type TextProps = {
    */
   lineHeight?: number;
   /**
-   * (**default=`"#FFFFFFFF"`**) Font color in `#RRGGBBAA` or `#RRGGBB` format.
+   * (**default=`"#FFFFFFFF"`**) Font color in `RGB` or `RGBA` format.
    */
   color?: string;
   /**
-   * (**default=`"#00000000"`**) Background color in `#RRGGBBAA` or `#RRGGBB` format.
+   * (**default=`"#00000000"`**) Background color in `RGB` or `RGBA` format.
    */
   backgroundColor?: string;
   /**
@@ -55,7 +48,7 @@ export type TextProps = {
   /**
    * (**default=`"normal"`**) Font style. The selected font needs to support the specified style.
    */
-  style?: Api.TextStyle;
+  fontStyle?: Api.TextStyle;
   /**
    * (**default=`"left"`**) Text align.
    */
@@ -67,29 +60,42 @@ export type TextProps = {
   /**
    * (**default=`"normal"`**) Font weight. The selected font needs to support the specified weight.
    */
-  weight?: Api.TextWeight;
+  fontWeight?: Api.TextWeight;
+};
+
+export type TextProps = ComponentBaseProps & {
+  /**
+   * Text content.
+   */
+  children?: (string | number)[] | string | number;
+  /**
+   * Text styling properties
+   */
+  style?: TextStyleProps;
 };
 
 const Text = createCompositorComponent<TextProps>(sceneBuilder);
 
 function sceneBuilder(props: TextProps, children: SceneComponent[]): Api.Component {
+  const { id, style } = props;
+
   return {
     type: 'text',
-    id: props.id,
+    id: id,
     text: children.map(child => (typeof child === 'string' ? child : String(child))).join(''),
-    width: props.width,
-    height: props.height,
-    max_width: props.maxWidth,
-    max_height: props.maxHeight,
-    font_size: props.fontSize,
-    line_height: props.lineHeight,
-    color_rgba: props.color && intoApiRgbaColor(props.color),
-    background_color_rgba: props.backgroundColor && intoApiRgbaColor(props.backgroundColor),
-    font_family: props.fontFamily,
-    style: props.style,
-    align: props.align,
-    wrap: props.wrap,
-    weight: props.weight,
+    width: style?.width,
+    height: style?.height,
+    max_width: style?.maxWidth,
+    max_height: style?.maxHeight,
+    font_size: style?.fontSize ?? DEFAULT_FONT_SIZE,
+    line_height: style?.lineHeight,
+    color: style?.color,
+    background_color: style?.backgroundColor,
+    font_family: style?.fontFamily,
+    style: style?.fontStyle,
+    align: style?.align,
+    wrap: style?.wrap,
+    weight: style?.fontWeight,
   };
 }
 

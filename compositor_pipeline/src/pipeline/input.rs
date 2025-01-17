@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::{
     error::{InputInitError, RegisterInputError},
     queue::PipelineEvent,
@@ -6,6 +8,7 @@ use crate::{
 use compositor_render::{Frame, InputId};
 use crossbeam_channel::{bounded, Receiver};
 use rtp::{RtpReceiver, RtpReceiverOptions};
+use whip::{WhipReceiver, WhipReceiverOptions};
 
 use self::mp4::{Mp4, Mp4Options};
 
@@ -22,10 +25,12 @@ use super::{
 pub mod decklink;
 pub mod mp4;
 pub mod rtp;
+pub mod whip;
 
 pub enum Input {
     Rtp(RtpReceiver),
     Mp4(Mp4),
+    Whip(WhipReceiver),
     #[cfg(feature = "decklink")]
     DeckLink(decklink::DeckLink),
     RawDataInput,
@@ -35,6 +40,7 @@ pub enum Input {
 pub enum InputOptions {
     Rtp(RtpReceiverOptions),
     Mp4(Mp4Options),
+    Whip(WhipReceiverOptions),
     #[cfg(feature = "decklink")]
     DeckLink(decklink::DeckLinkOptions),
 }
@@ -45,8 +51,18 @@ pub struct RawDataInputOptions {
     pub audio: bool,
 }
 
-pub struct InputInitInfo {
-    pub port: Option<Port>,
+pub enum InputInitInfo {
+    Rtp {
+        port: Option<Port>,
+    },
+    Mp4 {
+        video_duration: Option<Duration>,
+        audio_duration: Option<Duration>,
+    },
+    Whip {
+        bearer_token: String,
+    },
+    Other,
 }
 
 struct InputInitResult {
@@ -56,6 +72,7 @@ struct InputInitResult {
     init_info: InputInitInfo,
 }
 
+#[derive(Debug)]
 pub(super) enum VideoInputReceiver {
     #[allow(dead_code)]
     Raw {
@@ -148,6 +165,7 @@ fn start_input_threads(
         InputOptions::Mp4(opts) => {
             Mp4::start_new_input(input_id, opts, &pipeline_ctx.download_dir)?
         }
+        InputOptions::Whip(opts) => WhipReceiver::start_new_input(input_id, opts, pipeline_ctx)?,
         #[cfg(feature = "decklink")]
         InputOptions::DeckLink(opts) => decklink::DeckLink::start_new_input(input_id, opts)?,
     };
@@ -183,7 +201,7 @@ fn start_input_threads(
                 let (sender, receiver) = bounded(10);
                 start_audio_resampler_only_thread(
                     sample_rate,
-                    pipeline_ctx.output_sample_rate,
+                    pipeline_ctx.mixing_sample_rate,
                     sample_receiver,
                     sender,
                     input_id.clone(),
@@ -197,7 +215,7 @@ fn start_input_threads(
                 let (sender, receiver) = bounded(10);
                 start_audio_decoder_thread(
                     decoder_options,
-                    pipeline_ctx.output_sample_rate,
+                    pipeline_ctx.mixing_sample_rate,
                     chunk_receiver,
                     sender,
                     input_id.clone(),

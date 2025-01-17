@@ -6,6 +6,8 @@ export type RendererOptions = {
    * A timeout that defines when the compositor should switch to fallback on the input stream that stopped sending frames.
    */
   streamFallbackTimeoutMs: number;
+
+  logger_level?: 'error' | 'warn' | 'info' | 'debug' | 'trace';
 };
 
 export type FrameSet = {
@@ -34,6 +36,7 @@ export class Renderer {
   public static async create(options: RendererOptions): Promise<Renderer> {
     const renderer = await wasm.create_renderer({
       stream_fallback_timeout_ms: options.streamFallbackTimeoutMs,
+      logger_level: options.logger_level ?? 'warn',
     });
     return new Renderer(renderer);
   }

@@ -7,7 +7,7 @@ use crate::{
     vulkan_decoder::{
         Device, VideoSessionParameters, VkPictureParameterSet, VkSequenceParameterSet,
     },
-    VulkanCtx, VulkanDecoderError,
+    VulkanDecoderError, VulkanDevice,
 };
 
 /// Since `VideoSessionParameters` can only add sps and pps values (inserting sps or pps with an
@@ -23,7 +23,7 @@ pub(crate) struct VideoSessionParametersManager {
 
 impl VideoSessionParametersManager {
     pub(crate) fn new(
-        vulkan_ctx: &VulkanCtx,
+        vulkan_ctx: &VulkanDevice,
         session: vk::VideoSessionKHR,
     ) -> Result<Self, VulkanDecoderError> {
         Ok(Self {

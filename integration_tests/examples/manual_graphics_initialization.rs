@@ -8,28 +8,21 @@ fn main() {
         Pipeline,
     };
     use live_compositor::config::read_config;
+    use std::sync::Arc;
+    use tokio::runtime::Runtime;
 
-    let graphics_context =
-        GraphicsContext::new(false, wgpu::Features::default(), wgpu::Limits::default()).unwrap();
+    let graphics_context = GraphicsContext::new(
+        false,
+        wgpu::Features::default(),
+        wgpu::Limits::default(),
+        None,
+    )
+    .unwrap();
 
     let _device = graphics_context.device.clone();
     let _queue = graphics_context.queue.clone();
-
-    let _adapter = graphics_context
-        .vulkan_ctx
-        .as_ref()
-        .unwrap()
-        .wgpu_ctx
-        .adapter
-        .clone();
-
-    let _instance = graphics_context
-        .vulkan_ctx
-        .as_ref()
-        .unwrap()
-        .wgpu_ctx
-        .instance
-        .clone();
+    let _adapter = graphics_context.adapter.clone();
+    let _instance = graphics_context.instance.clone();
 
     let config = read_config();
 
@@ -40,9 +33,13 @@ fn main() {
         web_renderer: config.web_renderer,
         force_gpu: config.force_gpu,
         download_root: config.download_root,
-        output_sample_rate: config.output_sample_rate,
+        mixing_sample_rate: config.mixing_sample_rate,
+        stun_servers: config.stun_servers,
         wgpu_features: config.required_wgpu_features,
         load_system_fonts: Some(true),
+        tokio_rt: Some(Arc::new(Runtime::new().unwrap())),
+        whip_whep_server_port: Some(config.whip_whep_server_port),
+        start_whip_whep: config.start_whip_whep,
     })
     .unwrap();
 }

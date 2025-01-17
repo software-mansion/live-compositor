@@ -1,8 +1,15 @@
-use std::{env, path::PathBuf, str::FromStr, time::Duration};
+use std::{
+    env,
+    path::{Path, PathBuf},
+    str::FromStr,
+    sync::Arc,
+    time::Duration,
+};
 
 use compositor_pipeline::queue::{self, QueueOptions};
 use compositor_render::{web_renderer::WebRendererInitOptions, Framerate, WgpuFeatures};
 use rand::Rng;
+use tracing::error;
 
 use crate::logger::FfmpegLogLevel;
 
@@ -16,8 +23,12 @@ pub struct Config {
     pub force_gpu: bool,
     pub download_root: PathBuf,
     pub queue_options: QueueOptions,
-    pub output_sample_rate: u32,
+    pub mixing_sample_rate: u32,
+    pub stun_servers: Arc<Vec<String>>,
     pub required_wgpu_features: WgpuFeatures,
+    pub load_system_fonts: bool,
+    pub whip_whep_server_port: u16,
+    pub start_whip_whep: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -25,6 +36,7 @@ pub struct LoggerConfig {
     pub ffmpeg_logger_level: FfmpegLogLevel,
     pub format: LoggerFormat,
     pub level: String,
+    pub log_file: Option<Arc<Path>>,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -72,20 +84,20 @@ fn try_read_config() -> Result<Config, String> {
 
     /// Valid Opus sample rates
     const SUPPORTED_SAMPLE_RATES: [u32; 5] = [8_000, 12_000, 16_000, 24_000, 48_000];
-    const DEFAULT_OUTPUT_SAMPLE_RATE: u32 = 48_000;
-    let output_sample_rate: u32 = match env::var("LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE") {
+    const DEFAULT_MIXING_SAMPLE_RATE: u32 = 48_000;
+    let mixing_sample_rate: u32 = match env::var("LIVE_COMPOSITOR_MIXING_SAMPLE_RATE") {
         Ok(sample_rate) => {
             let sample_rate = sample_rate
                 .parse()
-                .map_err(|_| "LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE has to be a valid number")?;
+                .map_err(|_| "LIVE_COMPOSITOR_MIXING_SAMPLE_RATE has to be a valid number")?;
 
             if SUPPORTED_SAMPLE_RATES.contains(&sample_rate) {
                 sample_rate
             } else {
-                return Err("LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE has to be a supported sample rate. Supported sample rates are: 8000, 12000, 16000, 24000, 48000".to_string());
+                return Err("LIVE_COMPOSITOR_MIXING_SAMPLE_RATE has to be a supported sample rate. Supported sample rates are: 8000, 12000, 16000, 24000, 48000".to_string());
             }
         }
-        Err(_) => DEFAULT_OUTPUT_SAMPLE_RATE,
+        Err(_) => DEFAULT_MIXING_SAMPLE_RATE,
     };
 
     let force_gpu = match env::var("LIVE_COMPOSITOR_FORCE_GPU") {
@@ -182,6 +194,42 @@ fn try_read_config() -> Result<Config, String> {
         Err(_) => queue::DEFAULT_BUFFER_DURATION,
     };
 
+    let load_system_fonts = match env::var("LIVE_COMPOSITOR_LOAD_SYSTEM_FONTS") {
+        Ok(enable) => bool_env_from_str(&enable).unwrap_or(true),
+        Err(_) => true,
+    };
+
+    let whip_whep_server_port = match env::var("LIVE_COMPOSITOR_WHIP_WHEP_SERVER_PORT") {
+        Ok(whip_whep_port) => whip_whep_port
+            .parse::<u16>()
+            .map_err(|_| "LIVE_COMPOSITOR_WHIP_WHEP_SERVER_PORT has to be valid port number")?,
+        Err(_) => 9000,
+    };
+
+    let start_whip_whep = match env::var("LIVE_COMPOSITOR_START_WHIP_WHEP_SERVER") {
+        Ok(enable) => bool_env_from_str(&enable).unwrap_or(true),
+        Err(_) => true,
+    };
+
+    let log_file = match env::var("LIVE_COMPOSITOR_LOG_FILE") {
+        Ok(path) => Some(Arc::from(PathBuf::from(path))),
+        Err(_) => None,
+    };
+
+    let default_stun_servers = Arc::new(vec!["stun:stun.l.google.com:19302".to_string()]);
+
+    let stun_servers = match env::var("LIVE_COMPOSITOR_STUN_SERVERS") {
+        Ok(var) => {
+            if var.is_empty() {
+                error!("empty stun servers env");
+                Arc::new(Vec::new())
+            } else {
+                Arc::new(var.split(',').map(String::from).collect())
+            }
+        }
+        Err(_) => default_stun_servers,
+    };
+
     let config = Config {
         instance_id,
         api_port,
@@ -189,6 +237,7 @@ fn try_read_config() -> Result<Config, String> {
             ffmpeg_logger_level,
             format: logger_format,
             level: logger_level,
+            log_file,
         },
         queue_options: QueueOptions {
             default_buffer_duration,
@@ -204,8 +253,12 @@ fn try_read_config() -> Result<Config, String> {
             enable_gpu: web_renderer_gpu_enable,
         },
         download_root,
-        output_sample_rate,
+        mixing_sample_rate,
+        stun_servers,
         required_wgpu_features,
+        load_system_fonts,
+        whip_whep_server_port,
+        start_whip_whep,
     };
     Ok(config)
 }

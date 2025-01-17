@@ -25,6 +25,10 @@ export type RegisterImage =
       serverPath?: string;
     };
 
+export type ImageAssetType = RegisterImage['assetType'];
+
+export const imageAssetTypes: ImageAssetType[] = ['png', 'jpeg', 'svg', 'gif'];
+
 export type RegisterWebRenderer = {
   url: string;
   resolution: Api.Resolution;

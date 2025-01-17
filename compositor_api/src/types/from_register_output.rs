@@ -1,3 +1,4 @@
+use axum::http::HeaderValue;
 use compositor_pipeline::pipeline::{
     self,
     encoder::{
@@ -9,7 +10,8 @@ use compositor_pipeline::pipeline::{
     output::{
         self,
         mp4::{Mp4AudioTrack, Mp4OutputOptions, Mp4VideoTrack},
-        rtmp::{RtmpAudioTrack, RtmpSenderOptions, RtmpVideoTrack},
+        rtmp::{RtmpAudioTrack, RtmpVideoTrack},
+        whip::WhipAudioOptions,
     },
 };
 
@@ -130,8 +132,12 @@ impl TryFrom<Mp4Output> for pipeline::RegisterOutputOptions<output::OutputOption
             },
         });
         let mp4_audio = audio.as_ref().map(|a| match &a.encoder {
-            Mp4AudioEncoderOptions::Aac { channels } => Mp4AudioTrack {
+            Mp4AudioEncoderOptions::Aac {
+                channels,
+                sample_rate,
+            } => Mp4AudioTrack {
                 channels: channels.clone().into(),
+                sample_rate: sample_rate.unwrap_or(44100),
             },
         });
 
@@ -174,33 +180,52 @@ impl TryFrom<Mp4Output> for pipeline::RegisterOutputOptions<output::OutputOption
     }
 }
 
-impl TryFrom<RtmpOutput> for pipeline::RegisterOutputOptions<output::OutputOptions> {
+impl TryFrom<WhipOutput> for pipeline::RegisterOutputOptions<output::OutputOptions> {
     type Error = TypeError;
 
-    fn try_from(value: RtmpOutput) -> Result<Self, Self::Error> {
-        let RtmpOutput { url, video, audio } = value;
+    fn try_from(request: WhipOutput) -> Result<Self, Self::Error> {
+        let WhipOutput {
+            endpoint_url,
+            bearer_token,
+            video,
+            audio,
+        } = request;
 
         if video.is_none() && audio.is_none() {
             return Err(TypeError::new(
                 "At least one of \"video\" and \"audio\" fields have to be specified.",
             ));
         }
+        let video_codec = video.as_ref().map(|v| match v.encoder {
+            VideoEncoderOptions::FfmpegH264 { .. } => pipeline::VideoCodec::H264,
+        });
+        let audio_options = audio.as_ref().map(|a| match &a.encoder {
+            WhipAudioEncoderOptions::Opus {
+                channels,
+                preset: _,
+                sample_rate: _,
+            } => WhipAudioOptions {
+                codec: pipeline::AudioCodec::Opus,
+                channels: match channels {
+                    audio::AudioChannels::Mono => {
+                        compositor_pipeline::audio_mixer::AudioChannels::Mono
+                    }
+                    audio::AudioChannels::Stereo => {
+                        compositor_pipeline::audio_mixer::AudioChannels::Stereo
+                    }
+                },
+            },
+        });
 
-        let rtmp_video = video.as_ref().map(|v| match v.encoder {
-            VideoEncoderOptions::FfmpegH264 { .. } => RtmpVideoTrack {
-                width: v.resolution.width as u32,
-                height: v.resolution.height as u32,
-            },
-        });
-        let rtmp_audio = audio.as_ref().map(|a| match &a.encoder {
-            Mp4AudioEncoderOptions::Aac { channels } => RtmpAudioTrack {
-                channels: channels.clone().into(),
-            },
-        });
+        if let Some(token) = &bearer_token {
+            if HeaderValue::from_str(format!("Bearer {token}").as_str()).is_err() {
+                return Err(TypeError::new("Bearer token string is not valid. It must contain only 32-127 ASCII characters"));
+            };
+        }
 
         let (video_encoder_options, output_video_options) = maybe_video_options(video)?;
         let (audio_encoder_options, output_audio_options) = match audio {
-            Some(OutputMp4AudioOptions {
+            Some(OutputWhipAudioOptions {
                 mixing_strategy,
                 send_eos_when,
                 encoder,
@@ -220,15 +245,75 @@ impl TryFrom<RtmpOutput> for pipeline::RegisterOutputOptions<output::OutputOptio
         };
 
         let output_options = output::OutputOptions {
-            output_protocol: output::OutputProtocolOptions::Rtmp(RtmpSenderOptions {
-                url,
-                video: rtmp_video,
-                audio: rtmp_audio,
+            output_protocol: output::OutputProtocolOptions::Whip(output::whip::WhipSenderOptions {
+                endpoint_url,
+                bearer_token,
+                video: video_codec,
+                audio: audio_options,
             }),
             video: video_encoder_options,
             audio: audio_encoder_options,
         };
 
+        Ok(Self {
+            output_options,
+            video: output_video_options,
+            audio: output_audio_options,
+        })
+    }
+}
+
+impl TryFrom<RtmpOutput> for pipeline::RegisterOutputOptions<output::OutputOptions> {
+    type Error = TypeError;
+
+    fn try_from(value: RtmpOutput) -> Result<Self, Self::Error> {
+        let RtmpOutput { url, video, audio } = value;
+        let video_track = video.as_ref().map(|v| match v.encoder {
+            VideoEncoderOptions::FfmpegH264 { .. } => RtmpVideoTrack {
+                width: v.resolution.width as u32,
+                height: v.resolution.height as u32,
+            },
+        });
+        let audio_track = audio.as_ref().map(|a| match &a.encoder {
+            RtmpAudioEncoderOptions::Aac {
+                channels,
+                sample_rate,
+            } => RtmpAudioTrack {
+                channels: channels.clone().into(),
+                sample_rate: sample_rate.unwrap_or(44100),
+            },
+        });
+
+        let (video_encoder_options, output_video_options) = maybe_video_options(video)?;
+        let (audio_encoder_options, output_audio_options) = match audio {
+            Some(OutputRtmpAudioOptions {
+                mixing_strategy,
+                send_eos_when,
+                encoder,
+                initial,
+            }) => {
+                let audio_encoder_options: AudioEncoderOptions = encoder.into();
+                let output_audio_options = pipeline::OutputAudioOptions {
+                    initial: initial.try_into()?,
+                    end_condition: send_eos_when.unwrap_or_default().try_into()?,
+                    mixing_strategy: mixing_strategy.unwrap_or(MixingStrategy::SumClip).into(),
+                    channels: audio_encoder_options.channels(),
+                };
+
+                (Some(audio_encoder_options), Some(output_audio_options))
+            }
+            None => (None, None),
+        };
+
+        let output_options = output::OutputOptions {
+            output_protocol: output::OutputProtocolOptions::Rtmp(output::rtmp::RtmpSenderOptions {
+                url,
+                video: video_track,
+                audio: audio_track,
+            }),
+            video: video_encoder_options,
+            audio: audio_encoder_options,
+        };
         Ok(Self {
             output_options,
             video: output_video_options,
@@ -272,11 +357,27 @@ fn maybe_video_options(
 impl From<Mp4AudioEncoderOptions> for pipeline::encoder::AudioEncoderOptions {
     fn from(value: Mp4AudioEncoderOptions) -> Self {
         match value {
-            Mp4AudioEncoderOptions::Aac { channels } => {
-                AudioEncoderOptions::Aac(AacEncoderOptions {
-                    channels: channels.into(),
-                })
-            }
+            Mp4AudioEncoderOptions::Aac {
+                channels,
+                sample_rate,
+            } => AudioEncoderOptions::Aac(AacEncoderOptions {
+                channels: channels.into(),
+                sample_rate: sample_rate.unwrap_or(44100),
+            }),
+        }
+    }
+}
+
+impl From<RtmpAudioEncoderOptions> for pipeline::encoder::AudioEncoderOptions {
+    fn from(value: RtmpAudioEncoderOptions) -> Self {
+        match value {
+            RtmpAudioEncoderOptions::Aac {
+                channels,
+                sample_rate,
+            } => AudioEncoderOptions::Aac(AacEncoderOptions {
+                channels: channels.into(),
+                sample_rate: sample_rate.unwrap_or(44100),
+            }),
         }
     }
 }
@@ -284,12 +385,31 @@ impl From<Mp4AudioEncoderOptions> for pipeline::encoder::AudioEncoderOptions {
 impl From<RtpAudioEncoderOptions> for pipeline::encoder::AudioEncoderOptions {
     fn from(value: RtpAudioEncoderOptions) -> Self {
         match value {
-            RtpAudioEncoderOptions::Opus { channels, preset } => {
-                AudioEncoderOptions::Opus(encoder::opus::OpusEncoderOptions {
-                    channels: channels.into(),
-                    preset: preset.unwrap_or(OpusEncoderPreset::Voip).into(),
-                })
-            }
+            RtpAudioEncoderOptions::Opus {
+                channels,
+                preset,
+                sample_rate,
+            } => AudioEncoderOptions::Opus(encoder::opus::OpusEncoderOptions {
+                channels: channels.into(),
+                preset: preset.unwrap_or(OpusEncoderPreset::Voip).into(),
+                sample_rate: sample_rate.unwrap_or(48000),
+            }),
+        }
+    }
+}
+
+impl From<WhipAudioEncoderOptions> for pipeline::encoder::AudioEncoderOptions {
+    fn from(value: WhipAudioEncoderOptions) -> Self {
+        match value {
+            WhipAudioEncoderOptions::Opus {
+                channels,
+                preset,
+                sample_rate,
+            } => AudioEncoderOptions::Opus(encoder::opus::OpusEncoderOptions {
+                channels: channels.into(),
+                preset: preset.unwrap_or(OpusEncoderPreset::Voip).into(),
+                sample_rate: sample_rate.unwrap_or(48000),
+            }),
         }
     }
 }

@@ -1,17 +1,28 @@
 import type { MP4ArrayBuffer, MP4File, MP4Info, Sample } from 'mp4box';
 import MP4Box, { DataStream } from 'mp4box';
+import type { SourcePayload } from '../source';
+import { assert } from '../../utils';
+import type { Framerate } from '../../compositor';
 
-export type OnConfig = (config: VideoDecoderConfig) => void;
+export type Mp4ReadyData = {
+  decoderConfig: VideoDecoderConfig;
+  framerate: Framerate;
+  videoDurationMs: number;
+};
 
-export type OnChunk = (chunk: EncodedVideoChunk) => void;
+export type MP4DemuxerCallbacks = {
+  onReady: (data: Mp4ReadyData) => void;
+  onPayload: (payload: SourcePayload) => void;
+};
 
 export class MP4Demuxer {
   private file: MP4File;
   private fileOffset: number;
-  private onConfig: OnConfig;
-  private onChunk: OnChunk;
+  private callbacks: MP4DemuxerCallbacks;
+  private samplesCount?: number;
+  private ptsOffset?: number;
 
-  public constructor(props: { onConfig: OnConfig; onChunk: OnChunk }) {
+  public constructor(callbacks: MP4DemuxerCallbacks) {
     this.file = MP4Box.createFile();
     this.file.onReady = info => this.onReady(info);
     this.file.onSamples = (_id, _user, samples) => this.onSamples(samples);
@@ -20,8 +31,7 @@ export class MP4Demuxer {
     };
     this.fileOffset = 0;
 
-    this.onConfig = props.onConfig;
-    this.onChunk = props.onChunk;
+    this.callbacks = callbacks;
   }
 
   public demux(data: ArrayBuffer) {
@@ -42,12 +52,25 @@ export class MP4Demuxer {
     }
 
     const videoTrack = info.videoTracks[0];
+    const videoDurationMs = (videoTrack.movie_duration / videoTrack.movie_timescale) * 1000;
     const codecDescription = this.getCodecDescription(videoTrack.id);
-    this.onConfig({
+    this.samplesCount = videoTrack.nb_samples;
+
+    const decoderConfig = {
       codec: videoTrack.codec,
       codedWidth: videoTrack.video.width,
       codedHeight: videoTrack.video.height,
       description: codecDescription,
+    };
+    const framerate = {
+      num: videoTrack.timescale,
+      den: 1000,
+    };
+
+    this.callbacks.onReady({
+      decoderConfig,
+      framerate,
+      videoDurationMs,
     });
 
     this.file.setExtractionOptions(videoTrack.id);
@@ -55,15 +78,26 @@ export class MP4Demuxer {
   }
 
   private onSamples(samples: Sample[]) {
+    assert(this.samplesCount !== undefined);
+
     for (const sample of samples) {
+      const pts = (sample.cts * 1_000_000) / sample.timescale;
+      if (this.ptsOffset === undefined) {
+        this.ptsOffset = -pts;
+      }
+
       const chunk = new EncodedVideoChunk({
         type: sample.is_sync ? 'key' : 'delta',
-        timestamp: (sample.cts * 1_000_000) / sample.timescale,
+        timestamp: pts + this.ptsOffset,
         duration: (sample.duration * 1_000_000) / sample.timescale,
         data: sample.data,
       });
 
-      this.onChunk(chunk);
+      this.callbacks.onPayload({ type: 'chunk', chunk: chunk });
+
+      if (sample.number === this.samplesCount - 1) {
+        this.callbacks.onPayload({ type: 'eos' });
+      }
     }
   }
 

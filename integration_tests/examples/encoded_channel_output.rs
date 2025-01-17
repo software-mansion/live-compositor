@@ -1,5 +1,5 @@
 use core::panic;
-use std::{fs::File, io::Write, path::PathBuf, time::Duration};
+use std::{fs::File, io::Write, path::PathBuf, sync::Arc, time::Duration};
 
 use compositor_pipeline::{
     audio_mixer::{AudioChannels, AudioMixingParams, InputParams, MixingStrategy},
@@ -23,11 +23,8 @@ use compositor_render::{
     InputId, OutputId, Resolution,
 };
 use integration_tests::examples::download_file;
-use live_compositor::{
-    config::{read_config, LoggerConfig, LoggerFormat},
-    logger::{self, FfmpegLogLevel},
-    state::ApiState,
-};
+use live_compositor::{config::read_config, logger, state::ApiState};
+use tokio::runtime::Runtime;
 
 const BUNNY_FILE_URL: &str =
     "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
@@ -38,16 +35,13 @@ const BUNNY_FILE_PATH: &str = "examples/assets/BigBuckBunny.mp4";
 // Data read from channels are dumped into files as it is without any timestamp data.
 fn main() {
     ffmpeg_next::format::network::init();
-    logger::init_logger(LoggerConfig {
-        ffmpeg_logger_level: FfmpegLogLevel::Info,
-        format: LoggerFormat::Compact,
-        level: "info,wgpu_hal=warn,wgpu_core=warn".to_string(),
-    });
-    let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let mut config = read_config();
+    logger::init_logger(config.logger.clone());
+    let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     config.queue_options.ahead_of_time_processing = true;
     // no chromium support, so we can ignore _event_loop
-    let (state, _event_loop) = ApiState::new(config).unwrap_or_else(|err| {
+    let runtime = Arc::new(Runtime::new().unwrap());
+    let (state, _event_loop) = ApiState::new(config, runtime).unwrap_or_else(|err| {
         panic!(
             "Failed to start compositor.\n{}",
             ErrorStack::new(&err).into_string()
@@ -72,6 +66,7 @@ fn main() {
                 encoder::opus::OpusEncoderOptions {
                     channels: AudioChannels::Stereo,
                     preset: AudioEncoderPreset::Voip,
+                    sample_rate: 48000,
                 },
             )),
         },
@@ -99,6 +94,7 @@ fn main() {
         input_options: InputOptions::Mp4(Mp4Options {
             source: Source::File(root_dir.join(BUNNY_FILE_PATH)),
             should_loop: false,
+            video_decoder: compositor_pipeline::pipeline::VideoDecoder::FFmpegH264,
         }),
         queue_options: QueueInputOptions {
             required: true,
@@ -109,12 +105,9 @@ fn main() {
 
     Pipeline::register_input(&state.pipeline, input_id.clone(), input_options).unwrap();
 
-    let output_receiver = state
-        .pipeline
-        .lock()
-        .unwrap()
-        .register_encoded_data_output(output_id.clone(), output_options)
-        .unwrap();
+    let output_receiver =
+        Pipeline::register_encoded_data_output(&state.pipeline, output_id.clone(), output_options)
+            .unwrap();
 
     Pipeline::start(&state.pipeline);
 

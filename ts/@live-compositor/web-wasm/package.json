@@ -22,7 +22,8 @@
     "@live-compositor/core": "workspace:0.1.0",
     "live-compositor": "workspace:^0.1.0",
     "mp4box": "^0.5.2",
-    "path-parser": "^6.1.0"
+    "path-parser": "^6.1.0",
+    "pino": "^9.5.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.3"

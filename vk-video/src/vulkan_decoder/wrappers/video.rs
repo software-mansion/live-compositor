@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ash::vk;
 
-use crate::{vulkan_decoder::VulkanDecoderError, VulkanCtx};
+use crate::{vulkan_decoder::VulkanDecoderError, VulkanDevice};
 
 use super::{Device, MemoryAllocation, VideoQueueExt};
 
@@ -96,7 +96,7 @@ pub(crate) struct VideoSession {
 
 impl VideoSession {
     pub(crate) fn new(
-        vulkan_ctx: &VulkanCtx,
+        vulkan_ctx: &VulkanDevice,
         profile_info: &vk::VideoProfileInfoKHR,
         max_coded_extent: vk::Extent2D,
         max_dpb_slots: u32,

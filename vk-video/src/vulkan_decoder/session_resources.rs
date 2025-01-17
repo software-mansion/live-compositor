@@ -10,7 +10,7 @@ use parameters::VideoSessionParametersManager;
 
 use super::{
     h264_level_idc_to_max_dpb_mbs, vk_to_h264_level_idc, CommandBuffer, DecodeQueryPool, Fence,
-    H264ProfileInfo, SeqParameterSetExt, VideoSession, VulkanCtx, VulkanDecoderError,
+    H264ProfileInfo, SeqParameterSetExt, VideoSession, VulkanDecoderError, VulkanDevice,
 };
 
 mod images;
@@ -55,7 +55,7 @@ fn calculate_max_num_reorder_frames(sps: &SeqParameterSet) -> Result<u64, Vulkan
 
 impl VideoSessionResources<'_> {
     pub(crate) fn new_from_sps(
-        vulkan_ctx: &VulkanCtx,
+        vulkan_ctx: &VulkanDevice,
         decode_buffer: &CommandBuffer,
         sps: SeqParameterSet,
         fence_memory_barrier_completed: &Fence,
@@ -71,9 +71,7 @@ impl VideoSessionResources<'_> {
             ));
         }
 
-        let width = sps.width()?;
-        let height = sps.height()?;
-        let max_coded_extent = vk::Extent2D { width, height };
+        let max_coded_extent = sps.size()?;
         // +1 for current frame
         let max_dpb_slots = sps.max_num_ref_frames + 1;
         let max_active_references = sps.max_num_ref_frames;
@@ -131,7 +129,7 @@ impl VideoSessionResources<'_> {
 
     pub(crate) fn process_sps(
         &mut self,
-        vulkan_ctx: &VulkanCtx,
+        vulkan_ctx: &VulkanDevice,
         decode_buffer: &CommandBuffer,
         sps: SeqParameterSet,
         fence_memory_barrier_completed: &Fence,
@@ -146,16 +144,13 @@ impl VideoSessionResources<'_> {
             return Err(VulkanDecoderError::LevelChangeUnsupported);
         }
 
-        let width = sps.width()?;
-        let height = sps.height()?;
-
-        let max_coded_extent = vk::Extent2D { width, height };
+        let max_coded_extent = sps.size()?;
         // +1 for current frame
         let max_dpb_slots = sps.max_num_ref_frames + 1;
         let max_active_references = sps.max_num_ref_frames;
 
-        if self.video_session.max_coded_extent.width >= width
-            && self.video_session.max_coded_extent.height >= height
+        if self.video_session.max_coded_extent.width >= max_coded_extent.width
+            && self.video_session.max_coded_extent.height >= max_coded_extent.height
             && self.video_session.max_dpb_slots >= max_dpb_slots
         {
             // no need to change the session
@@ -200,7 +195,7 @@ impl VideoSessionResources<'_> {
     }
 
     fn new_decoding_images<'a>(
-        vulkan_ctx: &VulkanCtx,
+        vulkan_ctx: &VulkanDevice,
         profile: &H264ProfileInfo,
         max_coded_extent: vk::Extent2D,
         max_dpb_slots: u32,

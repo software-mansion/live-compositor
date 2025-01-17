@@ -6,7 +6,7 @@ use compositor_render::{
     InputId, OutputId,
 };
 
-use crate::pipeline::{decoder::AacDecoderError, VideoCodec};
+use crate::pipeline::{decoder::AacDecoderError, output::whip, VideoCodec};
 use fdk_aac_sys as fdk;
 
 #[derive(Debug, thiserror::Error)]
@@ -20,6 +20,12 @@ pub enum InitPipelineError {
     #[cfg(feature = "vk-video")]
     #[error(transparent)]
     VulkanCtxError(#[from] vk_video::VulkanCtxError),
+
+    #[error("Failed to create tokio::Runtime.")]
+    CreateTokioRuntime(#[source] std::io::Error),
+
+    #[error("Failed to initialize WHIP WHEP server.")]
+    WhipWhepServerInitError,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -90,6 +96,15 @@ pub enum OutputInitError {
 
     #[error("Failed to register output. FFmpeg error: {0}.")]
     FfmpegMp4Error(ffmpeg_next::Error),
+
+    #[error("Unkown Whip output error.")]
+    UnknownWhipError,
+
+    #[error("Whip init timeout exceeded")]
+    WhipInitTimeout,
+
+    #[error("Failed to init whip output")]
+    WhipInitError(#[source] Box<whip::WhipError>),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -105,6 +120,9 @@ pub enum EncoderInitError {
 
     #[error("Internal FDK AAC encoder error: {0}")]
     AacError(fdk::AACENC_ERROR),
+
+    #[error(transparent)]
+    ResamplerError(#[from] rubato::ResamplerConstructionError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -114,6 +132,9 @@ pub enum InputInitError {
 
     #[error(transparent)]
     Mp4(#[from] crate::pipeline::input::mp4::Mp4Error),
+
+    #[error(transparent)]
+    Whip(#[from] crate::pipeline::input::whip::WhipReceiverError),
 
     #[cfg(feature = "decklink")]
     #[error(transparent)]

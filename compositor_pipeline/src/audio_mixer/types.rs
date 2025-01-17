@@ -65,10 +65,10 @@ impl InputSamples {
     pub fn new(
         samples: Arc<Vec<(i16, i16)>>,
         start_pts: Duration,
-        output_sample_rate: u32,
+        mixing_sample_rate: u32,
     ) -> Self {
         let end_pts =
-            start_pts + Duration::from_secs_f64(samples.len() as f64 / output_sample_rate as f64);
+            start_pts + Duration::from_secs_f64(samples.len() as f64 / mixing_sample_rate as f64);
 
         Self {
             samples,

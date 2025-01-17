@@ -81,7 +81,7 @@ fn client_code() -> Result<()> {
                                 "children": [
                                     { "type": "view" },
                                     {
-                                        "type": "text", 
+                                        "type": "text",
                                         "text": "LiveCompositor 😃😍",
                                         "font_size": 80,
                                         "color_rgba": "#40E0D0FF",

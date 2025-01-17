@@ -1,13 +1,11 @@
 use std::sync::{Arc, Mutex, MutexGuard};
 
 use axum::response::IntoResponse;
-use compositor_pipeline::{
-    error::InitPipelineError,
-    pipeline::{self},
-};
+use compositor_pipeline::{error::InitPipelineError, pipeline};
 use compositor_render::EventLoop;
 
 use serde::Serialize;
+use tokio::runtime::Runtime;
 
 use crate::config::Config;
 
@@ -17,7 +15,16 @@ pub type Pipeline = compositor_pipeline::Pipeline;
 #[serde(untagged)]
 pub enum Response {
     Ok {},
-    RegisteredPort { port: u16 },
+    RegisteredPort {
+        port: Option<u16>,
+    },
+    RegisteredMp4 {
+        video_duration_ms: Option<u64>,
+        audio_duration_ms: Option<u64>,
+    },
+    BearerToken {
+        bearer_token: String,
+    },
 }
 
 impl IntoResponse for Response {
@@ -33,15 +40,22 @@ pub struct ApiState {
 }
 
 impl ApiState {
-    pub fn new(config: Config) -> Result<(ApiState, Arc<dyn EventLoop>), InitPipelineError> {
+    pub fn new(
+        config: Config,
+        runtime: Arc<Runtime>,
+    ) -> Result<(ApiState, Arc<dyn EventLoop>), InitPipelineError> {
         let Config {
             queue_options,
             stream_fallback_timeout,
             web_renderer,
             force_gpu,
             download_root,
-            output_sample_rate,
+            mixing_sample_rate,
+            stun_servers,
             required_wgpu_features,
+            load_system_fonts,
+            start_whip_whep,
+            whip_whep_server_port,
             ..
         } = config.clone();
         let (pipeline, event_loop) = Pipeline::new(pipeline::Options {
@@ -50,10 +64,14 @@ impl ApiState {
             web_renderer,
             force_gpu,
             download_root,
-            output_sample_rate,
+            mixing_sample_rate,
+            stun_servers,
             wgpu_features: required_wgpu_features,
             wgpu_ctx: None,
-            load_system_fonts: Some(true),
+            load_system_fonts: Some(load_system_fonts),
+            start_whip_whep,
+            whip_whep_server_port: Some(whip_whep_server_port),
+            tokio_rt: Some(runtime),
         })?;
         Ok((
             ApiState {

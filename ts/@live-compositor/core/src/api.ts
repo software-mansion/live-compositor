@@ -1,7 +1,8 @@
 import { Api } from 'live-compositor';
 import type { CompositorManager } from './compositorManager.js';
 import type { RegisterOutputRequest } from './api/output.js';
-import type { RegisterInputRequest } from './api/input.js';
+import { inputRefIntoRawId, type InputRef, type RegisterInputRequest } from './api/input.js';
+import { imageRefIntoRawId, type ImageRef } from './api/image.js';
 
 export { Api };
 
@@ -9,6 +10,11 @@ export type ApiRequest = {
   method: 'GET' | 'POST';
   route: string;
   body?: object;
+};
+
+export type RegisterInputResponse = {
+  video_duration_ms?: number;
+  audio_duration_ms?: number;
 };
 
 export class ApiClient {
@@ -26,35 +32,44 @@ export class ApiClient {
     });
   }
 
-  public async registerOutput(outptuId: string, request: RegisterOutputRequest): Promise<object> {
+  public async registerOutput(outputId: string, request: RegisterOutputRequest): Promise<object> {
     return this.serverManager.sendRequest({
       method: 'POST',
-      route: `/api/output/${encodeURIComponent(outptuId)}/register`,
+      route: `/api/output/${encodeURIComponent(outputId)}/register`,
       body: request,
     });
   }
 
-  public async unregisterOutput(outptuId: string): Promise<object> {
+  public async unregisterOutput(
+    outputId: string,
+    body: { schedule_time_ms?: number }
+  ): Promise<object> {
     return this.serverManager.sendRequest({
       method: 'POST',
-      route: `/api/output/${encodeURIComponent(outptuId)}/unregister`,
-      body: {},
+      route: `/api/output/${encodeURIComponent(outputId)}/unregister`,
+      body,
     });
   }
 
-  public async registerInput(inputId: string, request: RegisterInputRequest): Promise<object> {
+  public async registerInput(
+    inputId: InputRef,
+    request: RegisterInputRequest
+  ): Promise<RegisterInputResponse> {
     return this.serverManager.sendRequest({
       method: 'POST',
-      route: `/api/input/${encodeURIComponent(inputId)}/register`,
+      route: `/api/input/${encodeURIComponent(inputRefIntoRawId(inputId))}/register`,
       body: request,
     });
   }
 
-  public async unregisterInput(inputId: string): Promise<object> {
+  public async unregisterInput(
+    inputId: InputRef,
+    body: { schedule_time_ms?: number }
+  ): Promise<object> {
     return this.serverManager.sendRequest({
       method: 'POST',
-      route: `/api/input/${encodeURIComponent(inputId)}/unregister`,
-      body: {},
+      route: `/api/input/${encodeURIComponent(inputRefIntoRawId(inputId))}/unregister`,
+      body,
     });
   }
 
@@ -74,18 +89,18 @@ export class ApiClient {
     });
   }
 
-  public async registerImage(imageId: string, request: Api.ImageSpec): Promise<object> {
+  public async registerImage(imageRef: ImageRef, request: Api.ImageSpec): Promise<object> {
     return this.serverManager.sendRequest({
       method: 'POST',
-      route: `/api/image/${encodeURIComponent(imageId)}/register`,
+      route: `/api/image/${encodeURIComponent(imageRefIntoRawId(imageRef))}/register`,
       body: request,
     });
   }
 
-  public async unregisterImage(imageId: string): Promise<object> {
+  public async unregisterImage(imageRef: ImageRef): Promise<object> {
     return this.serverManager.sendRequest({
       method: 'POST',
-      route: `/api/image/${encodeURIComponent(imageId)}/unregister`,
+      route: `/api/image/${encodeURIComponent(imageRefIntoRawId(imageRef))}/unregister`,
       body: {},
     });
   }

@@ -1,21 +1,17 @@
 use anyhow::{anyhow, Result};
 use crossbeam_channel::Sender;
-use live_compositor::{
-    config::{read_config, LoggerConfig, LoggerFormat},
-    logger::{self, FfmpegLogLevel},
-    server::run_api,
-    state::ApiState,
-};
+use live_compositor::{config::read_config, logger, server::run_api, state::ApiState};
 use reqwest::StatusCode;
 use std::{
     env,
     sync::{
         atomic::{AtomicU16, Ordering},
-        OnceLock,
+        Arc, OnceLock,
     },
     thread,
     time::{Duration, Instant},
 };
+use tokio::runtime::Runtime;
 use tracing::info;
 
 pub struct CompositorInstance {
@@ -38,16 +34,18 @@ impl CompositorInstance {
         config.api_port = api_port;
         config.queue_options.ahead_of_time_processing = true;
         config.queue_options.never_drop_output_frames = true;
+        config.start_whip_whep = false;
 
         info!("Starting LiveCompositor Integration Test with config:\n{config:#?}",);
 
         let (should_close_sender, should_close_receiver) = crossbeam_channel::bounded(1);
-        let (state, _event_loop) = ApiState::new(config).unwrap();
+        let runtime = Arc::new(Runtime::new().unwrap());
+        let (state, _event_loop) = ApiState::new(config, runtime.clone()).unwrap();
 
         thread::Builder::new()
             .name("HTTP server startup thread".to_string())
             .spawn(move || {
-                run_api(state, should_close_receiver).unwrap();
+                run_api(state, runtime.clone(), should_close_receiver).unwrap();
             })
             .unwrap();
 
@@ -113,10 +111,6 @@ fn init_compositor_prerequisites() {
     GLOBAL_PREREQUISITES_INITIALIZED.get_or_init(|| {
         env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
         ffmpeg_next::format::network::init();
-        logger::init_logger(LoggerConfig {
-            ffmpeg_logger_level: FfmpegLogLevel::Info,
-            format: LoggerFormat::Compact,
-            level: "warn,wgpu_hal=warn,wgpu_core=warn".to_string(),
-        });
+        logger::init_logger(read_config().logger);
     });
 }

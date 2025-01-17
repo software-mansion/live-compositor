@@ -19,8 +19,8 @@ import { View, Text, InputStream, Rescaler } from 'live-compositor';
 
 function ExampleApp() {
   return (
-    <View direction="column">
-      <Rescaler mode="fill">
+    <View style={{ direction: 'column' }}>
+      <Rescaler style={{ rescaleMode: 'fill' }}>
         <InputStream inputId="example_input_1" />
       </Rescaler>
       <Text fontSize={20}>Example label</Text>

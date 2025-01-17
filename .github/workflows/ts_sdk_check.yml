@@ -1,14 +1,11 @@
 name: TS SDK check
 
 on:
+    workflow_dispatch: {}
     push:
         branches: [master]
-        paths:
-            - "ts/**"
     pull_request:
         types: [opened, synchronize]
-        paths:
-            - "ts/**"
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
@@ -21,6 +18,11 @@ jobs:
         steps:
             - name: Checkout repo
               uses: actions/checkout@v2
+
+            - name: 🔧 Install the rust toolchain
+              uses: dtolnay/rust-toolchain@stable
+              with:
+                  toolchain: 1.81.0
 
             - name: Install pnpm
               uses: pnpm/action-setup@v4

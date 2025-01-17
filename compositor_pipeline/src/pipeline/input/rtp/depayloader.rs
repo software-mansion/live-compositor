@@ -10,7 +10,7 @@ use rtp::{
 use crate::pipeline::{
     decoder::{self, AacDecoderOptions},
     rtp::{AUDIO_PAYLOAD_TYPE, VIDEO_PAYLOAD_TYPE},
-    types::{AudioCodec, EncodedChunk, EncodedChunkKind, VideoCodec},
+    types::{AudioCodec, EncodedChunk, EncodedChunkKind, IsKeyframe, VideoCodec},
     VideoDecoder,
 };
 
@@ -126,6 +126,7 @@ impl VideoDepayloader {
                     data: mem::take(buffer).concat().into(),
                     pts: Duration::from_secs_f64(timestamp as f64 / 90000.0),
                     dts: None,
+                    is_keyframe: IsKeyframe::Unknown,
                     kind,
                 };
 
@@ -194,6 +195,7 @@ impl AudioDepayloader {
                     data: opus_packet,
                     pts: Duration::from_secs_f64(timestamp as f64 / 48000.0),
                     dts: None,
+                    is_keyframe: IsKeyframe::NoKeyframes,
                     kind,
                 }])
             }

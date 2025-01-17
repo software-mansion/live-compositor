@@ -64,9 +64,6 @@ pub enum Framerate {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema, PartialEq)]
-pub struct RGBColor(pub String);
-
-#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema, PartialEq)]
 pub struct RGBAColor(pub String);
 
 #[derive(Debug, PartialEq)]

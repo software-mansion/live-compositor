@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf, ptr, time::Duration};
+use std::{fs, path::PathBuf, ptr, sync::Arc, time::Duration};
 
 use compositor_render::OutputId;
 use crossbeam_channel::Receiver;
@@ -10,7 +10,10 @@ use crate::{
     audio_mixer::AudioChannels,
     error::OutputInitError,
     event::Event,
-    pipeline::{EncodedChunk, EncodedChunkKind, EncoderOutputEvent, PipelineCtx, VideoCodec},
+    pipeline::{
+        types::IsKeyframe, EncodedChunk, EncodedChunkKind, EncoderOutputEvent, PipelineCtx,
+        VideoCodec,
+    },
 };
 
 #[derive(Debug, Clone)]
@@ -30,6 +33,7 @@ pub struct Mp4VideoTrack {
 #[derive(Debug, Clone)]
 pub struct Mp4AudioTrack {
     pub channels: AudioChannels,
+    pub sample_rate: u32,
 }
 
 pub struct Mp4FileWriter;
@@ -39,7 +43,7 @@ impl Mp4FileWriter {
         output_id: OutputId,
         options: Mp4OutputOptions,
         packets_receiver: Receiver<EncoderOutputEvent>,
-        pipeline_ctx: &PipelineCtx,
+        pipeline_ctx: Arc<PipelineCtx>,
     ) -> Result<Self, OutputInitError> {
         if options.output_path.exists() {
             let mut old_index = 0;
@@ -66,8 +70,7 @@ impl Mp4FileWriter {
             };
         }
 
-        let (output_ctx, video_stream, audio_stream) =
-            init_ffmpeg_output(options, pipeline_ctx.output_sample_rate)?;
+        let (output_ctx, video_stream, audio_stream) = init_ffmpeg_output(options)?;
 
         let event_emitter = pipeline_ctx.event_emitter.clone();
         std::thread::Builder::new()
@@ -88,7 +91,6 @@ impl Mp4FileWriter {
 
 fn init_ffmpeg_output(
     options: Mp4OutputOptions,
-    sample_rate: u32,
 ) -> Result<
     (
         ffmpeg::format::context::Output,
@@ -138,18 +140,19 @@ fn init_ffmpeg_output(
                 AudioChannels::Mono => 1,
                 AudioChannels::Stereo => 2,
             };
+            let sample_rate = a.sample_rate as i32;
 
             let mut stream = output_ctx
                 .add_stream(codec)
                 .map_err(OutputInitError::FfmpegMp4Error)?;
 
             // If audio time base doesn't match sample rate, ffmpeg muxer produces incorrect timestamps.
-            stream.set_time_base(ffmpeg::Rational::new(1, sample_rate as i32));
+            stream.set_time_base(ffmpeg::Rational::new(1, sample_rate));
 
             let codecpar = unsafe { &mut *(*stream.as_mut_ptr()).codecpar };
             codecpar.codec_id = codec.into();
             codecpar.codec_type = ffmpeg::ffi::AVMediaType::AVMEDIA_TYPE_AUDIO;
-            codecpar.sample_rate = sample_rate as i32;
+            codecpar.sample_rate = sample_rate;
             codecpar.ch_layout = ffmpeg::ffi::AVChannelLayout {
                 nb_channels: channels,
                 order: ffmpeg::ffi::AVChannelOrder::AV_CHANNEL_ORDER_UNSPEC,
@@ -170,8 +173,10 @@ fn init_ffmpeg_output(
         })
         .transpose()?;
 
+    let ffmpeg_options = ffmpeg::Dictionary::from_iter(&[("movflags", "faststart")]);
+
     output_ctx
-        .write_header()
+        .write_header_with(ffmpeg_options)
         .map_err(OutputInitError::FfmpegMp4Error)?;
 
     Ok((output_ctx, video_stream, audio_stream))
@@ -273,6 +278,12 @@ fn create_packet(
     packet.set_dts(Some((dts.as_secs_f64() * stream_state.time_base) as i64));
     packet.set_time_base(ffmpeg::Rational::new(1, stream_state.time_base as i32));
     packet.set_stream(stream_state.id);
+
+    match chunk.is_keyframe {
+        IsKeyframe::Yes => packet.set_flags(ffmpeg::packet::Flags::KEY),
+        IsKeyframe::Unknown => warn!("The MP4 output received an encoded chunk with is_keyframe set to Unknown. This output needs this information to produce correct mp4s."),
+        IsKeyframe::NoKeyframes | IsKeyframe::No => {},
+    }
 
     Some(packet)
 }

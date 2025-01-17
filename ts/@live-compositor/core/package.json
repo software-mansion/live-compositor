@@ -32,10 +32,11 @@
     "@types/react-reconciler": "0.28.8"
   },
   "dependencies": {
+    "pino": "^9.5.0",
     "react-reconciler": "0.29.2"
   },
   "peerDependencies": {
-    "react": "*",
-    "live-compositor": "workspace:^0.1.0"
+    "live-compositor": "workspace:^0.1.0",
+    "react": "*"
   }
 }

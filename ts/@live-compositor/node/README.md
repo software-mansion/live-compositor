@@ -20,7 +20,7 @@ function ExampleApp() {
 
 async function run() {
   const compositor = new LiveCompositor();
-  await compositor.init()
+  await compositor.init();
 
   // register input/outputs/images/shaders/...
 
@@ -39,7 +39,7 @@ async function run() {
         type: 'opus',
         channels: 'stereo',
       },
-    }
+    },
   });
 
   await compositor.start();

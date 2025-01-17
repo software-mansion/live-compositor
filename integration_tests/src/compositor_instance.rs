@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Result};
 use crossbeam_channel::Sender;
 use live_compositor::{
-    config::{read_config, Config, LoggerConfig, LoggerFormat},
-    logger::{self, FfmpegLogLevel},
+    config::{read_config, Config},
+    logger::{self},
     server::run_api,
     state::ApiState,
 };
@@ -11,11 +11,12 @@ use std::{
     env,
     sync::{
         atomic::{AtomicU16, Ordering},
-        OnceLock,
+        Arc, OnceLock,
     },
     thread,
     time::{Duration, Instant},
 };
+use tokio::runtime::Runtime;
 use tracing::info;
 
 pub struct CompositorInstance {
@@ -31,22 +32,24 @@ impl Drop for CompositorInstance {
 }
 
 impl CompositorInstance {
-    /// api port in config is overwritten
+    /// api port and  start_whip_whep  are overwritten in config
     pub fn start(config: Option<Config>) -> Self {
         init_compositor_prerequisites();
         let api_port = get_free_port();
         let mut config = config.unwrap_or(read_config());
         config.api_port = api_port;
+        config.start_whip_whep = false;
 
         info!("Starting LiveCompositor Integration Test with config:\n{config:#?}",);
 
         let (should_close_sender, should_close_receiver) = crossbeam_channel::bounded(1);
-        let (state, _event_loop) = ApiState::new(config).unwrap();
+        let runtime = Arc::new(Runtime::new().unwrap());
+        let (state, _event_loop) = ApiState::new(config, runtime.clone()).unwrap();
 
         thread::Builder::new()
             .name("HTTP server startup thread".to_string())
             .spawn(move || {
-                run_api(state, should_close_receiver).unwrap();
+                run_api(state, runtime.clone(), should_close_receiver).unwrap();
             })
             .unwrap();
 
@@ -112,10 +115,7 @@ fn init_compositor_prerequisites() {
     GLOBAL_PREREQUISITES_INITIALIZED.get_or_init(|| {
         env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
         ffmpeg_next::format::network::init();
-        logger::init_logger(LoggerConfig {
-            ffmpeg_logger_level: FfmpegLogLevel::Info,
-            format: LoggerFormat::Compact,
-            level: "info,wgpu_hal=warn,wgpu_core=warn".to_string(),
-        });
+        let config = read_config();
+        logger::init_logger(config.logger);
     });
 }

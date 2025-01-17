@@ -2,7 +2,7 @@
   "video": {
     "root": {
       "type": "view",
-      "background_color_rgba": "#FFFF00FF",
+      "background_color": "#FFFF00FF",
       "children": [
         {
           "type": "view",
@@ -12,19 +12,19 @@
           "height": 200,
           "border_radius": 50,
           "border_width": 10,
-          "border_color_rgba": "#FF0000FF",
+          "border_color": "#FF0000FF",
           "children": [
             {
               "type": "view",
               "border_radius": 40,
               "border_width": 10,
-              "border_color_rgba": "#00FF00FF",
+              "border_color": "#00FF00FF",
               "children": [
                 {
                   "type": "view",
                   "border_radius": 30,
                   "border_width": 10,
-                  "border_color_rgba": "#0000FFFF",
+                  "border_color": "#0000FFFF",
                   "children": [
                     {
                       "type": "input_stream",
@@ -38,13 +38,13 @@
               "type": "view",
               "border_radius": 40,
               "border_width": 10,
-              "border_color_rgba": "#00FF00FF",
+              "border_color": "#00FF00FF",
               "children": [
                 {
                   "type": "view",
                   "border_radius": 30,
                   "border_width": 10,
-                  "border_color_rgba": "#0000FFFF",
+                  "border_color": "#0000FFFF",
                   "children": [
                     {
                       "type": "input_stream",
@@ -56,7 +56,7 @@
                   "type": "view",
                   "border_radius": 30,
                   "border_width": 10,
-                  "border_color_rgba": "#0000FFFF",
+                  "border_color": "#0000FFFF",
                   "children": [
                     {
                       "type": "input_stream",

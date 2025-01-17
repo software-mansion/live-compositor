@@ -4,7 +4,7 @@ use bytes::Bytes;
 use compositor_pipeline::{
     pipeline::{
         self, decoder,
-        input::{self, rtp::InputAudioStream},
+        input::{self, rtp, whip},
     },
     queue,
 };
@@ -37,7 +37,7 @@ fn parse_hexadecimal_octet_string(s: &str) -> Result<Bytes, TypeError> {
         .collect()
 }
 
-impl TryFrom<InputRtpAudioOptions> for InputAudioStream {
+impl TryFrom<InputRtpAudioOptions> for rtp::InputAudioStream {
     type Error = TypeError;
 
     fn try_from(audio: InputRtpAudioOptions) -> Result<Self, Self::Error> {
@@ -81,6 +81,10 @@ impl TryFrom<InputRtpAudioOptions> for InputAudioStream {
     }
 }
 
+#[cfg(not(feature = "vk-video"))]
+const NO_VULKAN_VIDEO: &str =
+    "Requested `vulkan_video` decoder, but this binary was compiled without the `vk-video` feature.";
+
 impl TryFrom<RtpInput> for pipeline::RegisterInputOptions {
     type Error = TypeError;
 
@@ -106,10 +110,20 @@ impl TryFrom<RtpInput> for pipeline::RegisterInputOptions {
                 .as_ref()
                 .map(|video| {
                     Ok(input::rtp::InputVideoStream {
-                        options: match video {
-                            InputRtpVideoOptions::FfmepgH264 => decoder::VideoDecoderOptions {
+                        options: match video.decoder {
+                            VideoDecoder::FfmpegH264 => decoder::VideoDecoderOptions {
                                 decoder: pipeline::VideoDecoder::FFmpegH264,
                             },
+
+                            #[cfg(feature = "vk-video")]
+                            VideoDecoder::VulkanVideo => decoder::VideoDecoderOptions {
+                                decoder: pipeline::VideoDecoder::VulkanVideoH264,
+                            },
+
+                            #[cfg(not(feature = "vk-video"))]
+                            VideoDecoder::VulkanVideo => {
+                                return Err(TypeError::new(NO_VULKAN_VIDEO))
+                            }
                         },
                     })
                 })
@@ -136,6 +150,82 @@ impl TryFrom<RtpInput> for pipeline::RegisterInputOptions {
     }
 }
 
+impl TryFrom<InputWhipAudioOptions> for whip::InputAudioStream {
+    type Error = TypeError;
+
+    fn try_from(audio: InputWhipAudioOptions) -> Result<Self, Self::Error> {
+        match audio {
+            InputWhipAudioOptions::Opus {
+                forward_error_correction,
+            } => {
+                let forward_error_correction = forward_error_correction.unwrap_or(false);
+                Ok(input::whip::InputAudioStream {
+                    options: decoder::OpusDecoderOptions {
+                        forward_error_correction,
+                    },
+                })
+            }
+        }
+    }
+}
+
+impl TryFrom<WhipInput> for pipeline::RegisterInputOptions {
+    type Error = TypeError;
+
+    fn try_from(value: WhipInput) -> Result<Self, Self::Error> {
+        let WhipInput {
+            video,
+            audio,
+            required,
+            offset_ms,
+        } = value;
+
+        const NO_VIDEO_AUDIO_SPEC: &str =
+            "At least one of `video` and `audio` has to be specified in `register_input` request.";
+
+        if video.is_none() && audio.is_none() {
+            return Err(TypeError::new(NO_VIDEO_AUDIO_SPEC));
+        }
+
+        let whip_receiver_options = input::whip::WhipReceiverOptions {
+            video: video
+                .as_ref()
+                .map(|video| {
+                    Ok(input::whip::InputVideoStream {
+                        options: match video.decoder {
+                            VideoDecoder::FfmpegH264 => decoder::VideoDecoderOptions {
+                                decoder: pipeline::VideoDecoder::FFmpegH264,
+                            },
+                            #[cfg(feature = "vk-video")]
+                            VideoDecoder::VulkanVideo => decoder::VideoDecoderOptions {
+                                decoder: pipeline::VideoDecoder::VulkanVideoH264,
+                            },
+                            #[cfg(not(feature = "vk-video"))]
+                            VideoDecoder::VulkanVideo => {
+                                return Err(TypeError::new(NO_VULKAN_VIDEO))
+                            }
+                        },
+                    })
+                })
+                .transpose()?,
+            audio: audio.map(TryFrom::try_from).transpose()?,
+        };
+
+        let input_options = input::InputOptions::Whip(whip_receiver_options);
+
+        let queue_options = queue::QueueInputOptions {
+            required: required.unwrap_or(false),
+            offset: offset_ms.map(|offset_ms| Duration::from_secs_f64(offset_ms / 1000.0)),
+            buffer_duration: None,
+        };
+
+        Ok(pipeline::RegisterInputOptions {
+            input_options,
+            queue_options,
+        })
+    }
+}
+
 impl TryFrom<Mp4Input> for pipeline::RegisterInputOptions {
     type Error = TypeError;
 
@@ -146,6 +236,7 @@ impl TryFrom<Mp4Input> for pipeline::RegisterInputOptions {
             required,
             offset_ms,
             should_loop,
+            video_decoder,
         } = value;
 
         const BAD_URL_PATH_SPEC: &str =
@@ -165,10 +256,21 @@ impl TryFrom<Mp4Input> for pipeline::RegisterInputOptions {
             buffer_duration: None,
         };
 
+        let video_decoder = match video_decoder.unwrap_or(VideoDecoder::FfmpegH264) {
+            VideoDecoder::FfmpegH264 => pipeline::VideoDecoder::FFmpegH264,
+
+            #[cfg(feature = "vk-video")]
+            VideoDecoder::VulkanVideo => pipeline::VideoDecoder::VulkanVideoH264,
+
+            #[cfg(not(feature = "vk-video"))]
+            VideoDecoder::VulkanVideo => return Err(TypeError::new(NO_VULKAN_VIDEO)),
+        };
+
         Ok(pipeline::RegisterInputOptions {
             input_options: input::InputOptions::Mp4(input::mp4::Mp4Options {
                 source,
                 should_loop: should_loop.unwrap_or(false),
+                video_decoder,
             }),
             queue_options,
         })

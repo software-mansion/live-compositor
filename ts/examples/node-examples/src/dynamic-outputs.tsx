@@ -21,8 +21,9 @@ function InputTile({ inputId }: { inputId: string }) {
       <Rescaler>
         <InputStream inputId={inputId} />
       </Rescaler>
-      <View bottom={10} left={10} height={50}>
-        <Text fontSize={40} color="#FF0000" lineHeight={50} backgroundColor="#FFFFFF88">
+      <View style={{ bottom: 10, left: 10, height: 50 }}>
+        <Text
+          style={{ fontSize: 40, color: '#FF0000', lineHeight: 50, backgroundColor: '#FFFFFF88' }}>
           Input ID: {inputId}
         </Text>
       </View>
@@ -45,14 +46,13 @@ async function run() {
     preset: 'ultrafast',
   } as const;
 
-  await compositor.registerOutput('output_stream', {
+  await compositor.registerOutput('output_stream', <ExampleApp />, {
     type: 'rtp_stream',
     port: 8001,
     transportProtocol: 'tcp_server',
     video: {
       encoder: VIDEO_ENCODER_OPTS,
       resolution: RESOLUTION,
-      root: <ExampleApp />,
     },
     audio: {
       encoder: {
@@ -62,13 +62,12 @@ async function run() {
     },
   });
   void gstReceiveTcpStream('127.0.0.1', 8001);
-  await compositor.registerOutput('output_recording', {
+  await compositor.registerOutput('output_recording', <ExampleApp />, {
     type: 'mp4',
     serverPath: path.join(__dirname, '../.workingdir/dynamic_outputs_recording.mp4'),
     video: {
       encoder: VIDEO_ENCODER_OPTS,
       resolution: RESOLUTION,
-      root: <ExampleApp />,
     },
     audio: {
       encoder: {
@@ -93,13 +92,12 @@ async function run() {
     type: 'mp4',
     serverPath: path.join(__dirname, '../.assets/ElephantsDream.mp4'),
   });
-  await compositor.registerOutput('output_recording_part2', {
+  await compositor.registerOutput('output_recording_part2', <ExampleApp />, {
     type: 'mp4',
     serverPath: path.join(__dirname, '../.workingdir/dynamic_outputs_recording_10s.mp4'),
     video: {
       encoder: VIDEO_ENCODER_OPTS,
       resolution: RESOLUTION,
-      root: <ExampleApp />,
     },
     audio: {
       encoder: {
@@ -117,5 +115,6 @@ async function run() {
   console.log('Stop all remaining outputs.');
   await compositor.unregisterOutput('output_recording_part2');
   await compositor.unregisterOutput('output_stream');
+  await compositor.terminate();
 }
 void run();

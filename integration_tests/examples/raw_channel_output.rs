@@ -31,9 +31,10 @@ use crossbeam_channel::bounded;
 use image::{codecs::png::PngEncoder, ColorType, ImageEncoder};
 use integration_tests::{examples::download_file, read_rgba_texture};
 use live_compositor::{
-    config::{read_config, LoggerConfig, LoggerFormat},
-    logger::{self, FfmpegLogLevel},
+    config::read_config,
+    logger::{self},
 };
+use tokio::runtime::Runtime;
 
 const BUNNY_FILE_URL: &str =
     "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
@@ -50,14 +51,10 @@ fn root_dir() -> PathBuf {
 // - read audio samples and write raw value using debug formatting
 fn main() {
     ffmpeg_next::format::network::init();
-    logger::init_logger(LoggerConfig {
-        ffmpeg_logger_level: FfmpegLogLevel::Info,
-        format: LoggerFormat::Compact,
-        level: "info,wgpu_hal=warn,wgpu_core=warn".to_string(),
-    });
+    logger::init_logger(read_config().logger);
     let mut config = read_config();
     config.queue_options.ahead_of_time_processing = true;
-    let ctx = GraphicsContext::new(false, Default::default(), Default::default()).unwrap();
+    let ctx = GraphicsContext::new(false, Default::default(), Default::default(), None).unwrap();
     let (wgpu_device, wgpu_queue) = (ctx.device.clone(), ctx.queue.clone());
     // no chromium support, so we can ignore _event_loop
     let (pipeline, _event_loop) = Pipeline::new(Options {
@@ -66,10 +63,14 @@ fn main() {
         web_renderer: config.web_renderer,
         force_gpu: config.force_gpu,
         download_root: config.download_root,
-        output_sample_rate: config.output_sample_rate,
+        mixing_sample_rate: config.mixing_sample_rate,
+        stun_servers: config.stun_servers,
         wgpu_features: config.required_wgpu_features,
         load_system_fonts: Some(true),
         wgpu_ctx: Some(ctx),
+        whip_whep_server_port: Some(config.whip_whep_server_port),
+        start_whip_whep: config.start_whip_whep,
+        tokio_rt: Some(Arc::new(Runtime::new().unwrap())),
     })
     .unwrap_or_else(|err| {
         panic!(
@@ -117,6 +118,7 @@ fn main() {
         input_options: InputOptions::Mp4(Mp4Options {
             source: Source::File(root_dir().join(BUNNY_FILE_PATH)),
             should_loop: false,
+            video_decoder: compositor_pipeline::pipeline::VideoDecoder::FFmpegH264,
         }),
         queue_options: QueueInputOptions {
             required: true,
@@ -127,11 +129,8 @@ fn main() {
 
     Pipeline::register_input(&pipeline, input_id.clone(), input_options).unwrap();
 
-    let RawDataReceiver { video, audio } = pipeline
-        .lock()
-        .unwrap()
-        .register_raw_data_output(output_id.clone(), output_options)
-        .unwrap();
+    let RawDataReceiver { video, audio } =
+        Pipeline::register_raw_data_output(&pipeline, output_id.clone(), output_options).unwrap();
 
     Pipeline::start(&pipeline);
 

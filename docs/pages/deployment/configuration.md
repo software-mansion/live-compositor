@@ -14,9 +14,9 @@ ID that will be returned in `GET /status` request. Can be used to identify if we
 
 Output framerate for all output streams. This value can be a number or string in the `NUM/DEN` format, where both `NUM` and `DEN` are unsigned integers. Defaults to `30`
 
-### `LIVE_COMPOSITOR_OUTPUT_SAMPLE_RATE`
+### `LIVE_COMPOSITOR_MIXING_SAMPLE_RATE`
 
-Output sample rate for all output streams. This value has to be a number or string representing supported sample rate. Defaults to 48000.
+Sample rate used for mixing audio. This value has to be a number or string representing supported sample rate. Defaults to 48000.
 
 Supported sample rates are: 8000, 12000, 16000, 24000, 48000
 
@@ -128,3 +128,7 @@ Increasing this value always increases the latency of the stream by the same amo
 :::
 
 Defaults to `80ms` (about 5 frames in 60 fps).
+
+### `LIVE_COMPOSITOR_LOG_FILE`
+
+Path to the file were Live Compositor logs should be written. Setting this option does not disable logging to the standard output.

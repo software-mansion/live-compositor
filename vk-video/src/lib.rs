@@ -6,9 +6,7 @@ use parser::Parser;
 use vulkan_decoder::{FrameSorter, VulkanDecoder};
 
 pub use parser::ParserError;
-pub use vulkan_decoder::{VulkanCtx, VulkanCtxError, VulkanDecoderError};
-
-pub use vulkan_decoder::WgpuCtx;
+pub use vulkan_decoder::{VulkanCtxError, VulkanDecoderError, VulkanDevice, VulkanInstance};
 
 #[derive(Debug, thiserror::Error)]
 pub enum DecoderError {
@@ -24,25 +22,13 @@ pub struct Frame<T> {
     pub pts: Option<u64>,
 }
 
-pub struct WgpuTexturesDeocder<'a> {
+pub struct WgpuTexturesDecoder<'a> {
     vulkan_decoder: VulkanDecoder<'a>,
     parser: Parser,
     frame_sorter: FrameSorter<wgpu::Texture>,
 }
 
-impl WgpuTexturesDeocder<'_> {
-    pub fn new(vulkan_ctx: std::sync::Arc<VulkanCtx>) -> Result<Self, DecoderError> {
-        let parser = Parser::default();
-        let vulkan_decoder = VulkanDecoder::new(vulkan_ctx)?;
-        let frame_sorter = FrameSorter::<wgpu::Texture>::new();
-
-        Ok(Self {
-            parser,
-            vulkan_decoder,
-            frame_sorter,
-        })
-    }
-
+impl WgpuTexturesDecoder<'_> {
     // TODO: the below hasn't been verified.
     /// The produced textures have the [`wgpu::TextureFormat::NV12`] format and can be used as a copy source or a texture binding.
     pub fn decode(
@@ -72,18 +58,6 @@ pub struct BytesDecoder<'a> {
 }
 
 impl BytesDecoder<'_> {
-    pub fn new(vulkan_ctx: std::sync::Arc<VulkanCtx>) -> Result<Self, DecoderError> {
-        let parser = Parser::default();
-        let vulkan_decoder = VulkanDecoder::new(vulkan_ctx)?;
-        let frame_sorter = FrameSorter::<Vec<u8>>::new();
-
-        Ok(Self {
-            parser,
-            vulkan_decoder,
-            frame_sorter,
-        })
-    }
-
     /// The result is a sequence of frames. Te payload of each [`Frame`] struct is a [`Vec<u8>`]. Each [`Vec<u8>`] contains a single
     /// decoded frame in the [NV12 format](https://en.wikipedia.org/wiki/YCbCr#4:2:0).
     pub fn decode(

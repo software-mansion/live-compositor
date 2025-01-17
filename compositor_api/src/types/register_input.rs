@@ -27,6 +27,24 @@ pub struct RtpInput {
     pub offset_ms: Option<f64>,
 }
 
+/// Parameters for an input stream for WHIP server.
+/// At least one of `video` and `audio` has to be defined.
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct WhipInput {
+    /// Parameters of a video source included in the RTP stream.
+    pub video: Option<InputWhipVideoOptions>,
+    /// Parameters of an audio source included in the RTP stream.
+    pub audio: Option<InputWhipAudioOptions>,
+    /// (**default=`false`**) If input is required and the stream is not delivered
+    /// on time, then LiveCompositor will delay producing output frames.
+    pub required: Option<bool>,
+    /// Offset in milliseconds relative to the pipeline start (start request). If the offset is
+    /// not defined then the stream will be synchronized based on the delivery time of the initial
+    /// frames.
+    pub offset_ms: Option<f64>,
+}
+
 /// Input stream from MP4 file.
 /// Exactly one of `url` and `path` has to be defined.
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
@@ -45,6 +63,8 @@ pub struct Mp4Input {
     /// Offset in milliseconds relative to the pipeline start (start request). If offset is
     /// not defined then stream is synchronized based on the first frames delivery time.
     pub offset_ms: Option<f64>,
+    /// (**default=`ffmpeg_h264`**) The decoder to use for decoding video.
+    pub video_decoder: Option<VideoDecoder>,
 }
 
 /// Capture streams from devices connected to Blackmagic DeckLink card.
@@ -123,7 +143,40 @@ pub enum InputRtpAudioOptions {
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
 #[serde(tag = "decoder", rename_all = "snake_case", deny_unknown_fields)]
-pub enum InputRtpVideoOptions {
-    #[serde(rename = "ffmpeg_h264")]
-    FfmepgH264,
+pub enum InputWhipAudioOptions {
+    Opus {
+        /// (**default=`false`**) Specifies whether the stream uses forward error correction.
+        /// It's specific for Opus codec.
+        /// For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
+        forward_error_correction: Option<bool>,
+    },
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
+pub struct InputRtpVideoOptions {
+    pub decoder: VideoDecoder,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
+pub struct InputWhipVideoOptions {
+    pub decoder: VideoDecoder,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]
+#[serde(rename_all = "snake_case", deny_unknown_fields)]
+pub enum VideoDecoder {
+    /// Use the software decoder based on ffmpeg.
+    FfmpegH264,
+
+    /// Use hardware decoder based on Vulkan Video.
+    ///
+    /// This should be faster and more scalable than teh ffmpeg decoder, if the hardware and OS
+    /// support it.
+    ///
+    /// This requires hardware that supports Vulkan Video. Another requirement is this program has
+    /// to be compiled with the `vk-video` feature enabled (enabled by default on platforms which
+    /// support Vulkan, i.e. non-Apple operating systems and not the web).
+    VulkanVideo,
 }

@@ -1,7 +1,12 @@
 import type { Api } from '../api.js';
 import type { RegisterMp4Input, RegisterRtpInput, Inputs } from 'live-compositor';
+import { _liveCompositorInternals } from 'live-compositor';
 
 export type RegisterInputRequest = Api.RegisterInput;
+
+export type InputRef = _liveCompositorInternals.InputRef;
+export const inputRefIntoRawId = _liveCompositorInternals.inputRefIntoRawId;
+export const parseInputRef = _liveCompositorInternals.parseInputRef;
 
 export type RegisterInput =
   | ({ type: 'rtp_stream' } & RegisterRtpInput)
@@ -25,6 +30,7 @@ function intoMp4RegisterInput(input: Inputs.RegisterMp4Input): RegisterInputRequ
     loop: input.loop,
     required: input.required,
     offset_ms: input.offsetMs,
+    video_decoder: input.videoDecoder,
   };
 }
 

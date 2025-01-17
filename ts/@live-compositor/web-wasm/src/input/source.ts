@@ -1,20 +1,31 @@
-import type { RegisterInputRequest } from '@live-compositor/core';
-import type { InputFrame } from './input';
-import MP4Source from './mp4/source';
+import type { Framerate } from '../compositor';
 
+export type SourcePayload = { type: 'chunk'; chunk: EncodedVideoChunk } | { type: 'eos' };
+
+export type SourceMetadata = {
+  framerate?: Framerate;
+  videoDurationMs?: number;
+};
+
+export type InputSourceCallbacks = {
+  onDecoderConfig: (config: VideoDecoderConfig) => void;
+};
+
+/**
+ * `InputSource` produces encoded video chunks required for decoding.
+ */
 export default interface InputSource {
   init(): Promise<void>;
   /**
-   * Starts input processing. `init()` has to be called beforehand.
+   * Starts producing chunks. `init()` has to be called beforehand.
    */
-  start(): void;
-  getFrame(): Promise<InputFrame | undefined>;
-}
-
-export function sourceFromRequest(request: RegisterInputRequest): InputSource {
-  if (request.type === 'mp4') {
-    return new MP4Source(request.url!);
-  } else {
-    throw new Error(`Unknown input type ${(request as any).type}`);
-  }
+  start(): Promise<void>;
+  registerCallbacks(callbacks: InputSourceCallbacks): void;
+  /**
+   * if `true` InputSource won't produce more chunks anymore.
+   */
+  isFinished(): boolean;
+  getMetadata(): SourceMetadata;
+  nextChunk(): EncodedVideoChunk | undefined;
+  peekChunk(): EncodedVideoChunk | undefined;
 }

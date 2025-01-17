@@ -18,7 +18,7 @@ pub(crate) use frame_sorter::FrameSorter;
 pub use vulkan_ctx::*;
 
 pub struct VulkanDecoder<'a> {
-    vulkan_ctx: Arc<VulkanCtx>,
+    vulkan_device: Arc<VulkanDevice>,
     video_session_resources: Option<VideoSessionResources<'a>>,
     command_buffers: CommandBuffers,
     _command_pools: CommandPools,
@@ -94,12 +94,15 @@ pub enum VulkanDecoderError {
     #[error("Level changed during the stream")]
     LevelChangeUnsupported,
 
+    #[error("Monochrome video is not supported")]
+    MonochromeChromaFormatUnsupported,
+
     #[error(transparent)]
     VulkanCtxError(#[from] VulkanCtxError),
 }
 
-impl<'a> VulkanDecoder<'a> {
-    pub fn new(vulkan_ctx: Arc<VulkanCtx>) -> Result<Self, VulkanDecoderError> {
+impl VulkanDecoder<'_> {
+    pub fn new(vulkan_ctx: Arc<VulkanDevice>) -> Result<Self, VulkanDecoderError> {
         let decode_pool = Arc::new(CommandPool::new(
             vulkan_ctx.device.clone(),
             vulkan_ctx.queues.h264_decode.idx,
@@ -128,7 +131,7 @@ impl<'a> VulkanDecoder<'a> {
         };
 
         Ok(Self {
-            vulkan_ctx,
+            vulkan_device: vulkan_ctx,
             video_session_resources: None,
             _command_pools: command_pools,
             command_buffers: CommandBuffers {
@@ -237,14 +240,14 @@ impl VulkanDecoder<'_> {
     fn process_sps(&mut self, sps: &SeqParameterSet) -> Result<(), VulkanDecoderError> {
         match self.video_session_resources.as_mut() {
             Some(session) => session.process_sps(
-                &self.vulkan_ctx,
+                &self.vulkan_device,
                 &self.command_buffers.decode_buffer,
                 sps.clone(),
                 &self.sync_structures.fence_memory_barrier_completed,
             )?,
             None => {
                 self.video_session_resources = Some(VideoSessionResources::new_from_sps(
-                    &self.vulkan_ctx,
+                    &self.vulkan_device,
                     &self.command_buffers.decode_buffer,
                     sps.clone(),
                     &self.sync_structures.fence_memory_barrier_completed,
@@ -298,7 +301,7 @@ impl VulkanDecoder<'_> {
         // upload data to a buffer
         let size = Self::pad_size_to_alignment(
             decode_information.rbsp_bytes.len() as u64,
-            self.vulkan_ctx
+            self.vulkan_device
                 .video_capabilities
                 .min_bitstream_buffer_offset_alignment,
         );
@@ -310,7 +313,7 @@ impl VulkanDecoder<'_> {
             .ok_or(VulkanDecoderError::NoSession)?;
 
         let decode_buffer = Buffer::new_with_decode_data(
-            self.vulkan_ctx.allocator.clone(),
+            self.vulkan_device.allocator.clone(),
             &decode_information.rbsp_bytes,
             size,
             &video_session_resources.profile_info,
@@ -337,7 +340,7 @@ impl VulkanDecoder<'_> {
             );
 
         unsafe {
-            self.vulkan_ctx.device.cmd_pipeline_barrier2(
+            self.vulkan_device.device.cmd_pipeline_barrier2(
                 *self.command_buffers.decode_buffer,
                 &vk::DependencyInfo::default().memory_barriers(&[memory_barrier]),
             )
@@ -357,7 +360,7 @@ impl VulkanDecoder<'_> {
             .reference_slots(&reference_slots);
 
         unsafe {
-            self.vulkan_ctx
+            self.vulkan_device
                 .device
                 .video_queue_ext
                 .cmd_begin_video_coding_khr(*self.command_buffers.decode_buffer, &begin_info)
@@ -369,7 +372,7 @@ impl VulkanDecoder<'_> {
                 .flags(vk::VideoCodingControlFlagsKHR::RESET);
 
             unsafe {
-                self.vulkan_ctx
+                self.vulkan_device
                     .device
                     .video_queue_ext
                     .cmd_control_video_coding_khr(
@@ -481,7 +484,7 @@ impl VulkanDecoder<'_> {
         }
 
         unsafe {
-            self.vulkan_ctx
+            self.vulkan_device
                 .device
                 .video_decode_queue_ext
                 .cmd_decode_video_khr(*self.command_buffers.decode_buffer, &decode_info)
@@ -492,7 +495,7 @@ impl VulkanDecoder<'_> {
         }
 
         unsafe {
-            self.vulkan_ctx
+            self.vulkan_device
                 .device
                 .video_queue_ext
                 .cmd_end_video_coding_khr(
@@ -503,7 +506,7 @@ impl VulkanDecoder<'_> {
 
         self.command_buffers.decode_buffer.end()?;
 
-        self.vulkan_ctx.queues.h264_decode.submit(
+        self.vulkan_device.queues.h264_decode.submit(
             &self.command_buffers.decode_buffer,
             &[],
             &[(
@@ -522,10 +525,7 @@ impl VulkanDecoder<'_> {
             .get(&decode_information.sps_id)
             .ok_or(VulkanDecoderError::NoSession)?;
 
-        let dimensions = vk::Extent2D {
-            width: sps.width()?,
-            height: sps.height()?,
-        };
+        let dimensions = sps.size()?;
 
         Ok(DecodeSubmission {
             image: target_image,
@@ -552,8 +552,8 @@ impl VulkanDecoder<'_> {
         };
 
         let queue_indices = [
-            self.vulkan_ctx.queues.transfer.idx as u32,
-            self.vulkan_ctx.queues.wgpu.idx as u32,
+            self.vulkan_device.queues.transfer.idx as u32,
+            self.vulkan_device.queues.wgpu.idx as u32,
         ];
 
         let create_info = vk::ImageCreateInfo::default()
@@ -574,7 +574,10 @@ impl VulkanDecoder<'_> {
             .queue_family_indices(&queue_indices)
             .initial_layout(vk::ImageLayout::UNDEFINED);
 
-        let image = Arc::new(Image::new(self.vulkan_ctx.allocator.clone(), &create_info)?);
+        let image = Arc::new(Image::new(
+            self.vulkan_device.allocator.clone(),
+            &create_info,
+        )?);
 
         self.command_buffers
             .vulkan_to_wgpu_transfer_buffer
@@ -617,7 +620,7 @@ impl VulkanDecoder<'_> {
             });
 
         unsafe {
-            self.vulkan_ctx.device.cmd_pipeline_barrier2(
+            self.vulkan_device.device.cmd_pipeline_barrier2(
                 *self.command_buffers.vulkan_to_wgpu_transfer_buffer,
                 &vk::DependencyInfo::default()
                     .image_memory_barriers(&[memory_barrier_src, memory_barrier_dst]),
@@ -664,7 +667,7 @@ impl VulkanDecoder<'_> {
         ];
 
         unsafe {
-            self.vulkan_ctx.device.cmd_copy_image(
+            self.vulkan_device.device.cmd_copy_image(
                 *self.command_buffers.vulkan_to_wgpu_transfer_buffer,
                 decode_output.image,
                 vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
@@ -691,7 +694,7 @@ impl VulkanDecoder<'_> {
             .new_layout(vk::ImageLayout::GENERAL);
 
         unsafe {
-            self.vulkan_ctx.device.cmd_pipeline_barrier2(
+            self.vulkan_device.device.cmd_pipeline_barrier2(
                 *self.command_buffers.vulkan_to_wgpu_transfer_buffer,
                 &vk::DependencyInfo::default()
                     .image_memory_barriers(&[memory_barrier_src, memory_barrier_dst]),
@@ -700,7 +703,7 @@ impl VulkanDecoder<'_> {
 
         self.command_buffers.vulkan_to_wgpu_transfer_buffer.end()?;
 
-        self.vulkan_ctx.queues.transfer.submit(
+        self.vulkan_device.queues.transfer.submit(
             &self.command_buffers.vulkan_to_wgpu_transfer_buffer,
             &[(
                 decode_output.wait_semaphore,
@@ -752,9 +755,8 @@ impl VulkanDecoder<'_> {
         };
 
         let wgpu_texture = unsafe {
-            self.vulkan_ctx
-                .wgpu_ctx
-                .device
+            self.vulkan_device
+                .wgpu_device
                 .create_texture_from_hal::<wgpu::hal::vulkan::Api>(
                     hal_texture,
                     &wgpu::TextureDescriptor {
@@ -899,7 +901,7 @@ impl VulkanDecoder<'_> {
             });
 
         unsafe {
-            self.vulkan_ctx.device.cmd_pipeline_barrier2(
+            self.vulkan_device.device.cmd_pipeline_barrier2(
                 *self.command_buffers.gpu_to_mem_transfer_buffer,
                 &vk::DependencyInfo::default().image_memory_barriers(&[memory_barrier]),
             )
@@ -908,7 +910,7 @@ impl VulkanDecoder<'_> {
         let y_plane_size = dimensions.width as u64 * dimensions.height as u64;
 
         let dst_buffer = Buffer::new_transfer(
-            self.vulkan_ctx.allocator.clone(),
+            self.vulkan_device.allocator.clone(),
             y_plane_size * 3 / 2,
             TransferDirection::GpuToMem,
         )?;
@@ -949,7 +951,7 @@ impl VulkanDecoder<'_> {
         ];
 
         unsafe {
-            self.vulkan_ctx.device.cmd_copy_image_to_buffer(
+            self.vulkan_device.device.cmd_copy_image_to_buffer(
                 *self.command_buffers.gpu_to_mem_transfer_buffer,
                 image,
                 vk::ImageLayout::TRANSFER_SRC_OPTIMAL,
@@ -967,7 +969,7 @@ impl VulkanDecoder<'_> {
             .new_layout(current_image_layout);
 
         unsafe {
-            self.vulkan_ctx.device.cmd_pipeline_barrier2(
+            self.vulkan_device.device.cmd_pipeline_barrier2(
                 *self.command_buffers.gpu_to_mem_transfer_buffer,
                 &vk::DependencyInfo::default().image_memory_barriers(&[memory_barrier]),
             )
@@ -975,7 +977,7 @@ impl VulkanDecoder<'_> {
 
         self.command_buffers.gpu_to_mem_transfer_buffer.end()?;
 
-        self.vulkan_ctx.queues.transfer.submit(
+        self.vulkan_device.queues.transfer.submit(
             &self.command_buffers.gpu_to_mem_transfer_buffer,
             wait_semaphores,
             signal_semaphores,

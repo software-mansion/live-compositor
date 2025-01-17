@@ -1,32 +1,64 @@
 use ash::vk;
-use h264_reader::nal::sps::SeqParameterSet;
+use h264_reader::nal::sps::{FrameMbsFlags, SeqParameterSet};
 
 use crate::VulkanDecoderError;
 
 const MACROBLOCK_SIZE: u32 = 16;
 
 pub(crate) trait SeqParameterSetExt {
-    fn width(&self) -> Result<u32, VulkanDecoderError>;
-    fn height(&self) -> Result<u32, VulkanDecoderError>;
+    fn size(&self) -> Result<vk::Extent2D, VulkanDecoderError>;
 }
 
 impl SeqParameterSetExt for SeqParameterSet {
-    fn width(&self) -> Result<u32, VulkanDecoderError> {
-        match self.frame_cropping {
-            None => Ok((self.pic_width_in_mbs_minus1 + 1) * MACROBLOCK_SIZE),
-            Some(_) => Err(VulkanDecoderError::FrameCroppingNotSupported),
-        }
-    }
+    #[allow(non_snake_case)]
+    fn size(&self) -> Result<vk::Extent2D, VulkanDecoderError> {
+        let chroma_array_type = if self.chroma_info.separate_colour_plane_flag {
+            0
+        } else {
+            self.chroma_info.chroma_format.to_chroma_format_idc()
+        };
 
-    fn height(&self) -> Result<u32, VulkanDecoderError> {
-        match self.frame_mbs_flags {
-            h264_reader::nal::sps::FrameMbsFlags::Frames => {
-                Ok((self.pic_height_in_map_units_minus1 + 1) * MACROBLOCK_SIZE)
+        let (SubWidthC, SubHeightC) = match self.chroma_info.chroma_format {
+            h264_reader::nal::sps::ChromaFormat::Monochrome => {
+                return Err(VulkanDecoderError::MonochromeChromaFormatUnsupported)
             }
-            h264_reader::nal::sps::FrameMbsFlags::Fields { .. } => {
-                Err(VulkanDecoderError::FieldsNotSupported)
+            h264_reader::nal::sps::ChromaFormat::YUV420 => (2, 2),
+            h264_reader::nal::sps::ChromaFormat::YUV422 => (2, 1),
+            h264_reader::nal::sps::ChromaFormat::YUV444 => (1, 1),
+            h264_reader::nal::sps::ChromaFormat::Invalid(x) => {
+                return Err(VulkanDecoderError::InvalidInputData(format!(
+                    "Invalid chroma_format_idc: {x}"
+                )))
             }
-        }
+        };
+
+        let (CropUnitX, CropUnitY) = match chroma_array_type {
+            0 => (
+                1,
+                2 - (self.frame_mbs_flags == FrameMbsFlags::Frames) as u32,
+            ),
+
+            _ => (
+                SubWidthC,
+                SubHeightC * (2 - (self.frame_mbs_flags == FrameMbsFlags::Frames) as u32),
+            ),
+        };
+
+        let (width_offset, height_offset) = match &self.frame_cropping {
+            None => (0, 0),
+            Some(frame_cropping) => (
+                (frame_cropping.left_offset + frame_cropping.right_offset) * CropUnitX,
+                (frame_cropping.top_offset + frame_cropping.bottom_offset) * CropUnitY,
+            ),
+        };
+
+        let width = (self.pic_width_in_mbs_minus1 + 1) * MACROBLOCK_SIZE - width_offset;
+        let height = (self.pic_height_in_map_units_minus1 + 1)
+            * (2 - (self.frame_mbs_flags == FrameMbsFlags::Frames) as u32)
+            * MACROBLOCK_SIZE
+            - height_offset;
+
+        Ok(vk::Extent2D { width, height })
     }
 }
 
@@ -395,7 +427,7 @@ impl H264ProfileInfo<'_> {
     }
 }
 
-impl<'a> Drop for H264ProfileInfo<'a> {
+impl Drop for H264ProfileInfo<'_> {
     fn drop(&mut self) {
         unsafe {
             let _ = Box::from_raw(self.h264_info_ptr);

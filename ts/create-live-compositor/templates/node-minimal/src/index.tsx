@@ -4,11 +4,11 @@ import { ffplayStartPlayerAsync } from './liveCompositorFfplayHelper';
 
 function App() {
   return (
-    <View direction="column">
+    <View style={{ direction: 'column' }}>
       <View />
-      <Text fontSize={50}>Open index.ts and get started</Text>
-      <View height={20} />
-      <Text width={1000} fontSize={30} wrap="word">
+      <Text style={{ fontSize: 50 }}>Open index.ts and get started</Text>
+      <View style={{ height: 20 }} />
+      <Text style={{ width: 1000, fontSize: 30, wrap: 'word' }}>
         This example renders static text and sends the output stream via RTP to local port 8001.
         Generated code includes helpers in liveCompositorFfplayHelper.ts that display the output
         stream using ffplay, make sure to remove them for any real production use.
@@ -25,7 +25,7 @@ async function run() {
   // Display output with `ffplay`.
   await ffplayStartPlayerAsync('127.0.0.0', 8001);
 
-  await compositor.registerOutput('output_1', {
+  await compositor.registerOutput('output_1', <App />, {
     type: 'rtp_stream',
     port: 8001,
     ip: '127.0.0.1',
@@ -39,7 +39,6 @@ async function run() {
         width: 1920,
         height: 1080,
       },
-      root: <App />,
     },
   });
 

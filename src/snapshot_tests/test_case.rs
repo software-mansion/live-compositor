@@ -25,6 +25,7 @@ pub(super) struct TestCase {
     pub only: bool,
     pub allowed_error: f32,
     pub resolution: Resolution,
+    pub output_format: OutputFrameFormat,
 }
 
 impl Default for TestCase {
@@ -41,6 +42,7 @@ impl Default for TestCase {
                 width: 640,
                 height: 360,
             },
+            output_format: OutputFrameFormat::PlanarYuv420Bytes,
         }
     }
 }
@@ -51,8 +53,8 @@ pub(super) enum TestResult {
 }
 
 impl TestCase {
-    fn renderer(&self) -> Renderer {
-        let renderer = create_renderer();
+    pub(super) fn renderer(&self) -> Renderer {
+        let mut renderer = create_renderer();
         for (id, spec) in self.renderers.iter() {
             renderer
                 .register_renderer(id.clone(), spec.clone())
@@ -61,6 +63,17 @@ impl TestCase {
 
         for (index, _) in self.inputs.iter().enumerate() {
             renderer.register_input(InputId(format!("input_{}", index + 1).into()))
+        }
+
+        for update in &self.scene_updates {
+            renderer
+                .update_scene(
+                    OutputId(OUTPUT_ID.into()),
+                    self.resolution,
+                    self.output_format,
+                    update.clone(),
+                )
+                .unwrap();
         }
 
         renderer
@@ -72,17 +85,6 @@ impl TestCase {
         }
         let mut renderer = self.renderer();
         let mut result = TestResult::Success;
-
-        for update in &self.scene_updates {
-            renderer
-                .update_scene(
-                    OutputId(OUTPUT_ID.into()),
-                    self.resolution,
-                    OutputFrameFormat::PlanarYuv420Bytes,
-                    update.clone(),
-                )
-                .unwrap();
-        }
 
         for pts in self.timestamps.iter().copied() {
             if let TestResult::Failure = self.test_snapshots_for_pts(&mut renderer, pts) {
@@ -122,7 +124,11 @@ impl TestCase {
             .collect()
     }
 
-    fn snapshot_for_pts(&self, renderer: &mut Renderer, pts: Duration) -> Result<Snapshot> {
+    pub(super) fn snapshot_for_pts(
+        &self,
+        renderer: &mut Renderer,
+        pts: Duration,
+    ) -> Result<Snapshot> {
         let mut frame_set = FrameSet::new(pts);
         for input in self.inputs.iter() {
             let input_id = InputId::from(Arc::from(input.name.clone()));
