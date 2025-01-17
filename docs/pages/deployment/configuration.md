@@ -18,7 +18,7 @@ Output framerate for all output streams. This value can be a number or string in
 
 Sample rate used for mixing audio. This value has to be a number or string representing supported sample rate. Defaults to 48000.
 
-Supported sample rates are: 8000, 12000, 16000, 24000, 44100, 48000
+Supported sample rates are: 8000, 12000, 16000, 24000, 48000
 
 ### `LIVE_COMPOSITOR_FORCE_GPU`
 
