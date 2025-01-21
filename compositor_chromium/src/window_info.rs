@@ -18,6 +18,7 @@ impl WindowInfo {
             shared_texture_enabled: false as c_int,
             external_begin_frame_enabled: false as c_int,
             view: std::ptr::null_mut(),
+            runtime_style: chromium_sys::cef_runtime_style_t_CEF_RUNTIME_STYLE_ALLOY,
         }
     }
 
@@ -33,6 +34,7 @@ impl WindowInfo {
             shared_texture_enabled: false as c_int,
             external_begin_frame_enabled: false as c_int,
             window: 0 as c_ulong,
+            runtime_style: chromium_sys::cef_runtime_style_t_CEF_RUNTIME_STYLE_ALLOY,
         }
     }
 }
