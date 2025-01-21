@@ -8,7 +8,6 @@ jobs:
         steps:
             - name: 🛠 Install system dependencies
               run: |
-                  sudo add-apt-repository ppa:ubuntuhandbook1/ffmpeg6
                   sudo apt-get update -y -qq
                   sudo apt-get install -y libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev libopus-dev
             - name: 🔧 Install the rust toolchain
@@ -31,52 +30,26 @@ jobs:
                 path: smelter_with_web_renderer_linux_x86_64.tar.gz
 
     linux-aarch64:
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-24.04-arm
         steps:
-            - uses: actions/checkout@v4
-              with:
-                path: "repo"
-            - uses: uraimo/run-on-arch-action@v2
-              name: Build artifact
-              id: build
-              with:
-                arch: aarch64
-                distro: ubuntu22.04
+            - name: 🛠 Install system dependencies
+              run: |
+                  sudo apt-get update -y -qq
+                  sudo apt-get install -y libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev libopus-dev curl git build-essential libssl-dev pkg-config libclang-dev
+                  sudo rm -rf /var/lib/apt/lists/*
+            - name: 🔧 Install the rust toolchain
+              uses: dtolnay/rust-toolchain@stable
 
-                  # Not required, but speeds up builds
-                githubToken: ${{ github.token }}
+            - name: 📥 Checkout repo
+              uses: actions/checkout@v4
 
-                  # Create an artifacts directory
-                setup: |
-                  mkdir -p "${PWD}/artifacts"
+            - name: 📦 Package
+              run: cargo run --bin package_for_release
 
-                  # Mount the artifacts directory as /artifacts in the container
-                dockerRunArgs: |
-                  --volume "${PWD}/artifacts:/artifacts"
-                  --volume "${PWD}/repo:/repo"
-
-                  # The shell to run commands with in the container
-                shell: /bin/sh
-
-                install: |
-                  apt update -y -qq
-                  apt install software-properties-common -y
-                  add-apt-repository ppa:ubuntuhandbook1/ffmpeg6
-                  apt-get update -y -qq
-                  apt-get install -y libegl1-mesa-dev libgl1-mesa-dri libxcb-xfixes0-dev ffmpeg libavcodec-dev libavformat-dev libavfilter-dev libavdevice-dev libopus-dev curl git build-essential libssl-dev pkg-config libclang-dev
-                  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-                  rm -rf /var/lib/apt/lists/*
-
-                  # Produce a binary artifact and place it in the mounted volume
-                run: |
-                  . "$HOME/.cargo/env"
-                  cd "/repo"
-                  cargo run --bin package_for_release
-                  cp *.tar.gz /artifacts
             - uses: actions/upload-artifact@v4
               with:
                 name: smelter_linux_aarch64.tar.gz
-                path: artifacts/smelter_linux_aarch64.tar.gz
+                path: smelter_linux_aarch64.tar.gz
 
     macos_x86_64:
         runs-on: macos-12
@@ -147,14 +120,13 @@ jobs:
 
     docker-arm64:
       needs: docker-amd64
-      runs-on: ubuntu-latest
+      runs-on: ubuntu-24.04-arm
       steps:
           - name: 📥 Checkout repo
             uses: actions/checkout@v4
 
           - name: 🛠️ Setup Docker
             run: |
-              docker run --privileged --rm tonistiigi/binfmt --install all
               echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
           - name: 🎣 Pull Smleter AMD64 image
@@ -199,14 +171,13 @@ jobs:
 
     docker-with-web-renderer-arm64:
       needs: docker-with-web-renderer-amd64
-      runs-on: ubuntu-latest
+      runs-on: ubuntu-24.04-arm
       steps:
           - name: 📥 Checkout repo
             uses: actions/checkout@v4
 
           - name: 🛠️ Setup Docker
             run: |
-              docker run --privileged --rm tonistiigi/binfmt --install all
               echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
           - name: 🎣 Pull Smleter AMD64 image
