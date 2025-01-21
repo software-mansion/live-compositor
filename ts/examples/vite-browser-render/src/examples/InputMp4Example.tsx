@@ -6,7 +6,7 @@ import CompositorCanvas from '../components/CompositorCanvas';
 const MP4_URL =
   'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4';
 
-function SimpleMp4Example() {
+function InputMp4Example() {
   const onCanvasCreate = useCallback(async (compositor: LiveCompositor) => {
     await compositor.registerFont(
       'https://fonts.gstatic.com/s/notosans/v36/o-0mIpQlx3QUlC5A4PNB6Ryti20_6n1iPHjcz6L1SoM-jCpoiyD9A-9a6Vc.ttf'
@@ -57,4 +57,4 @@ function Scene() {
   );
 }
 
-export default SimpleMp4Example;
+export default InputMp4Example;

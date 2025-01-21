@@ -1,11 +1,14 @@
 import type { Frame } from '@live-compositor/browser-render';
 import type { OutputSink } from './sink';
+import { assert } from '../../utils';
 
 export default class CanvasSink implements OutputSink {
-  private ctx: CanvasRenderingContext2D;
+  private ctx: OffscreenCanvasRenderingContext2D;
 
-  public constructor(canvas: HTMLCanvasElement) {
-    this.ctx = canvas.getContext('2d')!;
+  public constructor(canvas: OffscreenCanvas) {
+    const ctx = canvas.getContext('2d', { desynchronized: false });
+    assert(ctx, 'Failed to instantiate a context.');
+    this.ctx = ctx;
   }
 
   public async send(frame: Frame): Promise<void> {

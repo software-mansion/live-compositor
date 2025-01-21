@@ -88,6 +88,8 @@ export class OfflineCompositor {
     const inputRef = { type: 'global', id: inputId } as const;
     const result = await this.api.registerInput(inputRef, intoRegisterInput(request));
 
+    const offsetMs = 'offsetMs' in request && request.offsetMs ? request.offsetMs : 0;
+
     if (request.type === 'mp4' && request.loop) {
       this.store.addInput({
         inputId,
@@ -98,18 +100,18 @@ export class OfflineCompositor {
     } else {
       this.store.addInput({
         inputId,
-        offsetMs: request.offsetMs ?? 0,
+        offsetMs: offsetMs ?? 0,
         videoDurationMs: result.video_duration_ms,
         audioDurationMs: result.audio_duration_ms,
       });
-      if (request.offsetMs) {
-        this.inputTimestamps.push(request.offsetMs);
+      if (offsetMs) {
+        this.inputTimestamps.push(offsetMs);
       }
       if (result.video_duration_ms) {
-        this.inputTimestamps.push((request.offsetMs ?? 0) + result.video_duration_ms);
+        this.inputTimestamps.push((offsetMs ?? 0) + result.video_duration_ms);
       }
       if (result.audio_duration_ms) {
-        this.inputTimestamps.push((request.offsetMs ?? 0) + result.audio_duration_ms);
+        this.inputTimestamps.push((offsetMs ?? 0) + result.audio_duration_ms);
       }
     }
     return result;

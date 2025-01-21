@@ -1,15 +1,14 @@
-import { loadWasmModule, Renderer } from '@live-compositor/browser-render';
 import { LiveCompositor as CoreLiveCompositor } from '@live-compositor/core';
-import WasmInstance from './manager/wasmInstance';
-import type { RegisterOutput } from './output/registerOutput';
-import { intoRegisterOutput } from './output/registerOutput';
-import type { RegisterInput } from './input/registerInput';
-import { intoRegisterInput } from './input/registerInput';
-import type { RegisterImage } from './renderers';
 import type { ReactElement } from 'react';
 import type { Logger } from 'pino';
 import { pino } from 'pino';
-import { assert } from './utils';
+import { assert } from '../utils';
+import type { RegisterOutput } from './output';
+import { intoRegisterOutput } from './output';
+import type { RegisterInput } from './input';
+import { intoRegisterInput } from './input';
+import WasmInstance from '../wasmInstance';
+import type { RegisterImage } from './renderers';
 
 export type LiveCompositorOptions = {
   framerate?: Framerate;
@@ -34,7 +33,6 @@ export function setWasmBundleUrl(url: string) {
 export default class LiveCompositor {
   private coreCompositor?: CoreLiveCompositor;
   private instance?: WasmInstance;
-  private renderer?: Renderer;
   private options: LiveCompositorOptions;
   private logger: Logger = pino({ level: 'warn' });
 
@@ -47,13 +45,11 @@ export default class LiveCompositor {
    * Outputs won't produce any results until `start()` is called.
    */
   public async init(): Promise<void> {
-    await ensureWasmModuleLoaded();
-    this.renderer = await Renderer.create({
-      streamFallbackTimeoutMs: this.options.streamFallbackTimeoutMs ?? 500,
-    });
+    assert(wasmBundleUrl, 'Location of WASM bundle is not defined, call setWasmBundleUrl() first.');
     this.instance = new WasmInstance({
-      renderer: this.renderer!,
       framerate: this.options.framerate ?? { num: 30, den: 1 },
+      wasmBundleUrl,
+      logger: this.logger.child({ element: 'wasmInstance' }),
     });
     this.coreCompositor = new CoreLiveCompositor(this.instance, this.logger);
 
@@ -95,8 +91,8 @@ export default class LiveCompositor {
   }
 
   public async registerFont(fontUrl: string): Promise<void> {
-    assert(this.renderer);
-    await this.renderer.registerFont(fontUrl);
+    assert(this.instance);
+    await this.instance.registerFont(fontUrl);
   }
 
   /**
@@ -114,14 +110,3 @@ export default class LiveCompositor {
     await this.instance?.terminate();
   }
 }
-
-const ensureWasmModuleLoaded = (() => {
-  let loadedState: Promise<void> | undefined = undefined;
-  return async () => {
-    assert(wasmBundleUrl, 'Location of WASM bundle is not defined, call setWasmBundleUrl() first.');
-    if (!loadedState) {
-      loadedState = loadWasmModule(wasmBundleUrl);
-    }
-    await loadedState;
-  };
-})();
