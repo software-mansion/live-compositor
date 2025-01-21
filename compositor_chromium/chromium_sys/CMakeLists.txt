@@ -4,7 +4,6 @@ set(PROJECT_NAME rustium_cef_wrapper)
 
 project(${PROJECT_NAME})
 
-
 set(_CEF_ROOT_EXPLICIT 1)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CEF_ROOT}/cmake)
 

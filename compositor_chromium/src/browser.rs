@@ -96,7 +96,7 @@ impl BrowserSettings {
             databases: chromium_sys::cef_state_t_STATE_DEFAULT,
             webgl: chromium_sys::cef_state_t_STATE_DEFAULT,
             background_color: self.background_color,
-            accept_language_list: CefString::empty_raw(),
+            chrome_zoom_bubble: chromium_sys::cef_state_t_STATE_DISABLED,
             chrome_status_bubble: chromium_sys::cef_state_t_STATE_DEFAULT,
         }
     }

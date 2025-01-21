@@ -129,15 +129,15 @@ impl ParseCallbacks for RemoveCommentsCallback {
 fn cef_url() -> &'static str {
     if cfg!(target_os = "macos") {
         if cfg!(target_arch = "aarch64") {
-            return "https://cef-builds.spotifycdn.com/cef_binary_117.1.4%2Bga26f38b%2Bchromium-117.0.5938.92_macosarm64_minimal.tar.bz2";
+            return "https://cef-builds.spotifycdn.com/cef_binary_132.3.1%2Bg144febe%2Bchromium-132.0.6834.83_macosarm64_minimal.tar.bz2";
         } else if cfg!(target_arch = "x86_64") {
-            return "https://cef-builds.spotifycdn.com/cef_binary_115.3.11%2Bga61da9b%2Bchromium-115.0.5790.114_macosx64_minimal.tar.bz2";
+            return "https://cef-builds.spotifycdn.com/cef_binary_132.3.1%2Bg144febe%2Bchromium-132.0.6834.83_macosx64_minimal.tar.bz2";
         }
     } else if cfg!(target_os = "linux") {
         if cfg!(target_arch = "aarch64") {
-            return "https://cef-builds.spotifycdn.com/cef_binary_117.1.4%2Bga26f38b%2Bchromium-117.0.5938.92_linuxarm64_minimal.tar.bz2";
+            return "https://cef-builds.spotifycdn.com/cef_binary_132.3.1%2Bg144febe%2Bchromium-132.0.6834.83_linuxarm64_minimal.tar.bz2";
         } else if cfg!(target_arch = "x86_64") {
-            return "https://cef-builds.spotifycdn.com/cef_binary_117.1.4%2Bga26f38b%2Bchromium-117.0.5938.92_linux64_minimal.tar.bz2";
+            return "https://cef-builds.spotifycdn.com/cef_binary_132.3.1%2Bg144febe%2Bchromium-132.0.6834.83_linux64_minimal.tar.bz2";
         }
     };
     panic!("Unsupported platform");
