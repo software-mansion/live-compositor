@@ -117,3 +117,30 @@ where
         }
     }
 }
+
+pub(super) struct Multipart(pub axum::extract::Multipart);
+
+#[async_trait]
+impl<S> FromRequest<S> for Multipart
+where
+    S: Send + Sync,
+{
+    type Rejection = (StatusCode, axum::Json<Value>);
+
+    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
+        let (parts, body) = req.into_parts();
+        let req = Request::from_parts(parts, body);
+
+        match axum::extract::Multipart::from_request(req, state).await {
+            Ok(multipart) => Ok(Multipart(multipart)),
+            Err(rejection) => {
+                let payload = json!({
+                    "error_code": "MALFORMED_MULTIPART",
+                    "message": rejection.body_text(),
+                });
+
+                Err((StatusCode::BAD_REQUEST, axum::Json(payload)))
+            }
+        }
+    }
+}

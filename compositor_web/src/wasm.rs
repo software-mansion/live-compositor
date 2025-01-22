@@ -8,6 +8,7 @@ use compositor_render::{
 };
 use glyphon::fontdb::Source;
 use input_uploader::InputUploader;
+use js_sys::{ArrayBuffer, Uint8Array};
 use output_downloader::OutputDownloader;
 use types::to_js_error;
 use wasm_bindgen::prelude::*;
@@ -125,10 +126,9 @@ impl LiveCompositorRenderer {
             .map_err(to_js_error)
     }
 
-    pub async fn register_font(&mut self, font_url: String) -> Result<(), JsValue> {
-        let bytes = download(&font_url).await?;
+    pub async fn register_font(&mut self, bytes: ArrayBuffer) -> Result<(), JsValue> {
         self.renderer
-            .register_font(Source::Binary(Arc::new(bytes.to_vec())));
+            .register_font(Source::Binary(Arc::new(Uint8Array::new(&bytes).to_vec())));
         Ok(())
     }
 

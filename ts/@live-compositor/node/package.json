@@ -21,10 +21,12 @@
     "@types/node": "^20.14.10",
     "@types/node-fetch": "^2.6.11",
     "@types/uuid": "^10.0.0",
-    "@types/ws": "^8.5.12"
+    "@types/ws": "^8.5.12",
+    "@types/react": "^18.3.3"
   },
   "dependencies": {
     "@live-compositor/core": "workspace:^0.1.0",
+    "live-compositor": "workspace:^0.1.0",
     "fs-extra": "^11.2.0",
     "node-fetch": "^2.6.7",
     "pino": "^9.5.0",

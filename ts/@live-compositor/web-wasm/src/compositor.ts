@@ -95,8 +95,17 @@ export default class LiveCompositor {
   }
 
   public async registerFont(fontUrl: string): Promise<void> {
+    const response = await fetch(fontUrl);
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch the font file from ${fontUrl}`);
+    }
+    const fontBlob = await response.blob();
+    const fontFile = new File([fontBlob], 'fontFile.ttf', { type: 'font/ttf' });
+    let arrayBuffer = await fontFile.arrayBuffer();
+
     assert(this.renderer);
-    await this.renderer.registerFont(fontUrl);
+    await this.renderer.registerFont(arrayBuffer);
   }
 
   /**

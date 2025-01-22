@@ -63,8 +63,8 @@ export class Renderer {
     await this.renderer.register_image(rendererId, imageSpec);
   }
 
-  public async registerFont(fontUrl: string) {
-    await this.renderer.register_font(fontUrl);
+  public async registerFont(arrayBuffer: ArrayBuffer) {
+    await this.renderer.register_font(arrayBuffer);
   }
 
   public unregisterInput(inputId: Api.InputId) {
