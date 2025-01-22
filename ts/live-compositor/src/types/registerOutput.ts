@@ -34,10 +34,6 @@ export type RegisterMp4Output = {
   audio?: Mp4AudioOptions;
 };
 
-export type RegisterCanvasOutput = {
-  video: OutputCanvasVideoOptions;
-};
-
 export type RegisterWhipOutput = {
   /**
    * WHIP server endpoint.
@@ -100,17 +96,6 @@ export type WhipVideoOptions = {
    * Video encoder options.
    */
   encoder: WhipVideoEncoderOptions;
-};
-
-export type OutputCanvasVideoOptions = {
-  /**
-   * Output resolution in pixels.
-   */
-  resolution: Api.Resolution;
-  /**
-   * HTMLCanvasElement
-   */
-  canvas: any;
 };
 
 export type RtpVideoEncoderOptions = {
