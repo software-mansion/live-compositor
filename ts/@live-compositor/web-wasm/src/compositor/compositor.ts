@@ -3,12 +3,8 @@ import type { ReactElement } from 'react';
 import type { Logger } from 'pino';
 import { pino } from 'pino';
 import { assert } from '../utils';
-import type { RegisterOutput } from './output';
-import { intoRegisterOutput } from './output';
-import type { RegisterInput } from './input';
-import { intoRegisterInput } from './input';
+import type { RegisterOutput, RegisterInput, RegisterImage } from './types';
 import WasmInstance from '../wasmInstance';
-import type { RegisterImage } from './renderers';
 
 export type LiveCompositorOptions = {
   framerate?: Framerate;
@@ -62,7 +58,7 @@ export default class LiveCompositor {
     request: RegisterOutput
   ): Promise<void> {
     assert(this.coreCompositor);
-    await this.coreCompositor.registerOutput(outputId, root, intoRegisterOutput(request));
+    await this.coreCompositor.registerOutput(outputId, root, request);
   }
 
   public async unregisterOutput(outputId: string): Promise<void> {
@@ -72,7 +68,7 @@ export default class LiveCompositor {
 
   public async registerInput(inputId: string, request: RegisterInput): Promise<void> {
     assert(this.coreCompositor);
-    await this.coreCompositor.registerInput(inputId, intoRegisterInput(request));
+    await this.coreCompositor.registerInput(inputId, request);
   }
 
   public async unregisterInput(inputId: string): Promise<void> {
