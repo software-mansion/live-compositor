@@ -21,6 +21,7 @@ export default function CompositorCanvas(props: CompositorCanvasProps) {
       if (!canvas) {
         return;
       }
+
       const compositor = new LiveCompositor({});
 
       await compositor.init();
@@ -31,10 +32,12 @@ export default function CompositorCanvas(props: CompositorCanvasProps) {
 
       await compositor.registerOutput('output', children, {
         type: 'canvas',
-        canvas: canvas,
-        resolution: {
-          width: Number(canvasProps.width ?? canvas.width),
-          height: Number(canvasProps.height ?? canvas.height),
+        video: {
+          canvas: canvas as any,
+          resolution: {
+            width: Number(canvasProps.width ?? canvas.width),
+            height: Number(canvasProps.height ?? canvas.height),
+          },
         },
       });
 

@@ -1,4 +1,7 @@
-import type { Framerate } from './compositor';
+import type { Framerate } from './compositor/compositor';
+
+export type Interval = ReturnType<typeof setInterval>;
+export type Timeout = ReturnType<typeof setTimeout>;
 
 export function assert<T>(value: T, msg?: string): asserts value {
   if (!value) {
@@ -8,6 +11,14 @@ export function assert<T>(value: T, msg?: string): asserts value {
       throw new Error('Assertion failed');
     }
   }
+}
+
+export async function sleep(timeoutMs: number): Promise<void> {
+  await new Promise<void>(res => {
+    setTimeout(() => {
+      res();
+    }, timeoutMs);
+  });
 }
 
 export function framerateToDurationMs(framerate: Framerate): number {

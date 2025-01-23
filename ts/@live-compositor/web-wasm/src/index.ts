@@ -1,4 +1,3 @@
-import WasmInstance from './manager/wasmInstance';
-import LiveCompositor, { setWasmBundleUrl } from './compositor';
+import LiveCompositor, { setWasmBundleUrl } from './compositor/compositor';
 
-export { WasmInstance, LiveCompositor, setWasmBundleUrl };
+export { LiveCompositor, setWasmBundleUrl };

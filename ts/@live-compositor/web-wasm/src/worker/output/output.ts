@@ -1,13 +1,13 @@
 import type { Frame, Resolution } from '@live-compositor/browser-render';
 import type { OutputSink } from './sink';
 import CanvasSink from './canvas';
-import type { RegisterOutputRequest } from '@live-compositor/core';
+import type { RegisterOutput } from '../../workerApi';
 
 export class Output {
   private sink: OutputSink;
   public readonly resolution: Resolution;
 
-  public constructor(request: RegisterOutputRequest) {
+  public constructor(request: RegisterOutput) {
     if (request.type === 'canvas') {
       this.sink = new CanvasSink(request.video.canvas);
     } else {
