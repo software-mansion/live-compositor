@@ -75,6 +75,8 @@ export class NonCopyableFrameRef extends InputVideoFrameRef {
 async function downloadFrame(inputFrame: InputVideoFrame): Promise<Frame> {
   // Safari does not support conversion to RGBA
   // Chrome does not support conversion to YUV
+
+  // TODO: Add support back from safari
   // const isSafari = !!(window as any).safari;
   const isSafari = false;
   const options = {
