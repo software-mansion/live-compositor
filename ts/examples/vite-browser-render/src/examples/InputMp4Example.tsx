@@ -7,7 +7,7 @@ import comicSans from '../../dist/assets/Comic Sans MS.ttf';
 const MP4_URL =
   'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4';
 
-function SimpleMp4Example() {
+function InputMp4Example() {
   const onCanvasCreate = useCallback(async (compositor: LiveCompositor) => {
     await compositor.registerFont(comicSans);
 
@@ -58,4 +58,4 @@ function Scene() {
   );
 }
 
-export default SimpleMp4Example;
+export default InputMp4Example;

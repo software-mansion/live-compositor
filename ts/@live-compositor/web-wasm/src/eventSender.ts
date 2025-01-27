@@ -1,26 +1,31 @@
 import { _liveCompositorInternals } from 'live-compositor';
+import type { WorkerEvent } from './workerApi';
 
 export const CompositorEventType = _liveCompositorInternals.CompositorEventType;
 export const inputRefIntoRawId = _liveCompositorInternals.inputRefIntoRawId;
 
 export class EventSender {
-  private eventCallback?: (event: object) => void;
+  private eventCallbacks: Set<(event: object) => void> = new Set();
 
-  public setEventCallback(eventCallback: (event: object) => void) {
-    this.eventCallback = eventCallback;
+  /**
+   * Check if this is event that should be passed to core
+   */
+  public static isExternalEvent(event: WorkerEvent): event is ExternalWorkerEvent {
+    return Object.values(CompositorEventType).includes(event?.type);
   }
 
-  public sendEvent(event: WasmCompositorEvent) {
-    if (!this.eventCallback) {
-      console.warn(`Failed to send event: ${event}`);
-      return;
-    }
+  public registerEventCallback(eventCallback: (event: object) => void) {
+    this.eventCallbacks?.add(eventCallback);
+  }
 
-    this.eventCallback!(toWebSocketMessage(event));
+  public sendEvent(event: ExternalWorkerEvent) {
+    for (const cb of this.eventCallbacks) {
+      cb(toWebSocketMessage(event));
+    }
   }
 }
 
-function toWebSocketMessage(event: WasmCompositorEvent): WebSocketMessage {
+function toWebSocketMessage(event: ExternalWorkerEvent): WebSocketMessage {
   if (event.type == CompositorEventType.OUTPUT_DONE) {
     return {
       type: event.type,
@@ -34,7 +39,10 @@ function toWebSocketMessage(event: WasmCompositorEvent): WebSocketMessage {
   };
 }
 
-export type WasmCompositorEvent =
+/**
+ * Subset of WorkerEvents that should be passed outside (to the core code)
+ */
+export type ExternalWorkerEvent =
   | {
       type:
         | _liveCompositorInternals.CompositorEventType.AUDIO_INPUT_DELIVERED
@@ -49,6 +57,11 @@ export type WasmCompositorEvent =
       type: _liveCompositorInternals.CompositorEventType.OUTPUT_DONE;
       outputId: string;
     };
+
+/**
+ * Actual format that in non-WASM compositor would be sent via WebSocket. Here it's only used to match the format
+ * so the core package can handle both WASM and non-WASM instances.
+ */
 export type WebSocketMessage =
   | {
       type:
