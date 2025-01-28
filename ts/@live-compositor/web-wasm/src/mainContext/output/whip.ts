@@ -73,6 +73,7 @@ export class WhipOutput implements Output {
   }
 
   public async terminate(): Promise<void> {
+    this.options.logger.debug('terminate WHIP connection');
     try {
       await fetch(this.location ?? this.options.endpointUrl, {
         method: 'DELETE',

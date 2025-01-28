@@ -32,7 +32,6 @@ export class Pipeline {
   }
 
   public async terminate(): Promise<void> {
-    // TODO(noituri): Clean all remaining `InputFrame`s & stop input processing
     this.queue.stop();
   }
 

@@ -48,7 +48,7 @@ export default class LiveCompositor {
   public async init(): Promise<void> {
     assert(wasmBundleUrl, 'Location of WASM bundle is not defined, call setWasmBundleUrl() first.');
     this.instance = new WasmInstance({
-      framerate: this.options.framerate ?? { num: 60, den: 1 },
+      framerate: this.options.framerate ?? { num: 30, den: 1 },
       wasmBundleUrl,
       logger: this.logger.child({ element: 'wasmInstance' }),
     });
@@ -108,6 +108,5 @@ export default class LiveCompositor {
    */
   public async terminate(): Promise<void> {
     await this.coreCompositor?.terminate();
-    await this.instance?.terminate();
   }
 }

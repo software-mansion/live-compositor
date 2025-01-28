@@ -42,7 +42,7 @@ function WhipExample() {
         bearerToken: streamKey,
         video: {
           resolution: { width: 1920, height: 1080 },
-          maxBitrate: 1_000_000,
+          maxBitrate: 2_000_000,
         },
       });
 

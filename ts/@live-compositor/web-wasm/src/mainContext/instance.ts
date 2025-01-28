@@ -70,6 +70,7 @@ class WasmInstance implements CompositorManager {
   }
 
   public async terminate(): Promise<void> {
+    this.logger.debug('Terminate WASM instance.');
     await Promise.all(Object.values(this.outputs).map(output => output.terminate()));
     await Promise.all(Object.values(this.inputs).map(input => input.terminate()));
     await this.worker.postMessage({ type: 'terminate' });
@@ -136,7 +137,7 @@ class WasmInstance implements CompositorManager {
         this.outputs[route.id] = output;
         return result;
       } else if (route.operation === 'unregister') {
-        const output = this.inputs[route.id];
+        const output = this.outputs[route.id];
         if (output) {
           delete this.outputs[route.id];
           await output.terminate();
