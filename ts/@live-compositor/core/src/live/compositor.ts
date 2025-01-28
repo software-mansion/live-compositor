@@ -15,7 +15,7 @@ import type { ImageRef } from '../api/image.js';
 import type { RegisterInput } from '../index.js';
 
 export class LiveCompositor {
-  private manager: CompositorManager;
+  public readonly manager: CompositorManager;
   private api: ApiClient;
   private store: _liveCompositorInternals.LiveInputStreamStore<string>;
   private outputs: Record<string, Output> = {};

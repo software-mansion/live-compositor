@@ -20,7 +20,7 @@ import type { ImageRef } from '../api/image.js';
 export const OFFLINE_OUTPUT_ID = 'offline_output';
 
 export class OfflineCompositor {
-  private manager: CompositorManager;
+  public readonly manager: CompositorManager;
   private api: ApiClient;
   private store: _liveCompositorInternals.OfflineInputStreamStore<string>;
   private renderStarted: boolean = false;

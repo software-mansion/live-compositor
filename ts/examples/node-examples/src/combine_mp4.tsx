@@ -40,7 +40,13 @@ function InputTile({ inputId }: { inputId: string }) {
       </Rescaler>
       <View style={{ bottom, left: 10, height: 50 }} transition={{ durationMs: 1000 }}>
         <Text
-          style={{ fontSize: 40, color: '#FF0000', lineHeight: 50, backgroundColor: '#FFFFFF88' }}>
+          style={{
+            fontSize: 40,
+            fontFamily: 'Noto Sans',
+            color: '#FF0000',
+            lineHeight: 50,
+            backgroundColor: '#FFFFFF88',
+          }}>
           Input ID: {inputId}
         </Text>
       </View>
@@ -53,6 +59,9 @@ async function run() {
   const compositor = new OfflineCompositor();
   await compositor.init();
 
+  await compositor.registerFont(
+    'https://fonts.gstatic.com/s/notosans/v36/o-0mIpQlx3QUlC5A4PNB6Ryti20_6n1iPHjcz6L1SoM-jCpoiyD9A-9a6Vc.ttf'
+  );
   await compositor.registerInput('input_1', {
     type: 'mp4',
     serverPath: path.join(__dirname, '../.assets/BigBuckBunny.mp4'),

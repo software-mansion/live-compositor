@@ -1,6 +1,6 @@
 import type { ApiRequest, CompositorManager, SetupInstanceOptions } from '@live-compositor/core';
 
-import { sendRequest } from '../fetch';
+import { sendRequest, sendMultipartRequest } from '../fetch';
 import { retry, sleep } from '../utils';
 import { WebSocketConnection } from '../ws';
 
@@ -42,6 +42,10 @@ class ExistingInstance implements CompositorManager {
 
   public async sendRequest(request: ApiRequest): Promise<object> {
     return await sendRequest(`${this.protocol}://${this.ip}:${this.port}`, request);
+  }
+
+  async sendMultipartRequest(request: ApiRequest): Promise<object> {
+    return await sendMultipartRequest(`${this.protocol}://${this.ip}:${this.port}`, request);
   }
 
   public registerEventListener(cb: (event: object) => void): void {
