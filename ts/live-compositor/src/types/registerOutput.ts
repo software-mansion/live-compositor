@@ -186,11 +186,19 @@ export type RtpAudioEncoderOptions = {
    * (**default="voip"**) Specifies preset for audio output encoder.
    */
   preset?: Api.OpusEncoderPreset;
+  /**
+   * (**default=`48000`**) Sample rate. Allowed values: [8000, 16000, 24000, 48000].
+   */
+  sampleRate?: number;
 };
 
 export type Mp4AudioEncoderOptions = {
   type: 'aac';
   channels: Api.AudioChannels;
+  /**
+   * (**default=`44100`**) Sample rate. Allowed values: [8000, 16000, 24000, 44100, 48000].
+   */
+  sampleRate?: number;
 };
 
 export type WhipAudioEncoderOptions = {
@@ -200,6 +208,10 @@ export type WhipAudioEncoderOptions = {
    * (**default="voip"**) Specifies preset for audio output encoder.
    */
   preset?: Api.OpusEncoderPreset;
+  /**
+   * (**default=`48000`**) Sample rate. Allowed values: [8000, 16000, 24000, 48000].
+   */
+  sampleRate?: number;
 };
 
 export type OutputEndCondition =

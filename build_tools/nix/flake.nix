@@ -39,6 +39,7 @@
           ] ++ (
             pkgs.lib.optionals pkgs.stdenv.isLinux [
               libdrm
+              udev
               alsa-lib
             ]
           );
@@ -72,7 +73,7 @@
           devShells = {
             default = if pkgs.stdenv.isLinux then self'.devShells.linux else self'.devShells.macos;
             linux = pkgs.mkShell {
-              packages = devDependencies ++ [ pkgs.mesa.drivers pkgs.blackmagic-desktop-video];
+              packages = devDependencies ++ [ pkgs.mesa.drivers pkgs.blackmagic-desktop-video ];
 
               # Fixes "ffplay" used in examples on Linux (not needed on NixOS)
               env.LIBGL_DRIVERS_PATH = "${pkgs.mesa.drivers}/lib/dri";
