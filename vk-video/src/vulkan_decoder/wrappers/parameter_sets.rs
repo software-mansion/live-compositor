@@ -1,3 +1,5 @@
+use std::ptr::NonNull;
+
 use ash::vk;
 use h264_reader::nal::sps::{FrameMbsFlags, SeqParameterSet};
 
@@ -64,15 +66,14 @@ impl SeqParameterSetExt for SeqParameterSet {
 
 pub(crate) struct VkSequenceParameterSet {
     pub(crate) sps: vk::native::StdVideoH264SequenceParameterSet,
+    scaling_lists_ptr: Option<NonNull<H264ScalingLists>>,
     // in the future, heap-allocated VUI and HRD parameters can be put here to have everything
     // together
 }
 
-impl TryFrom<&'_ SeqParameterSet> for VkSequenceParameterSet {
-    type Error = VulkanDecoderError;
-
+impl From<&'_ SeqParameterSet> for VkSequenceParameterSet {
     #[allow(non_snake_case)]
-    fn try_from(sps: &SeqParameterSet) -> Result<VkSequenceParameterSet, VulkanDecoderError> {
+    fn from(sps: &SeqParameterSet) -> VkSequenceParameterSet {
         let flags = vk::native::StdVideoH264SpsFlags {
             _bitfield_1: vk::native::StdVideoH264SpsFlags::new_bitfield_1(
                 sps.constraint_flags.flag0().into(),
@@ -172,16 +173,24 @@ impl TryFrom<&'_ SeqParameterSet> for VkSequenceParameterSet {
             | h264_reader::nal::sps::PicOrderCntType::TypeTwo => std::ptr::null(),
         };
 
-        let pScalingLists = match sps.chroma_info.scaling_matrix {
-            Some(_) => return Err(VulkanDecoderError::ScalingListsNotSupported),
+        let scaling_lists: Option<&mut H264ScalingLists> = sps
+            .chroma_info
+            .scaling_matrix
+            .as_ref()
+            .map(|matrix| Box::leak(Box::new(matrix.into())));
+
+        let pScalingLists = match scaling_lists.as_ref() {
+            Some(l) => &l.list,
             None => std::ptr::null(),
         };
+
+        let scaling_lists_ptr = scaling_lists.map(NonNull::from);
 
         // TODO: this is not necessary to reconstruct samples. I don't know why the decoder would
         // need this. Maybe we can do this in the future.
         let pSequenceParameterSetVui = std::ptr::null();
 
-        Ok(Self {
+        Self {
             sps: vk::native::StdVideoH264SequenceParameterSet {
                 flags,
                 profile_idc: profile_idc as u32,
@@ -209,7 +218,91 @@ impl TryFrom<&'_ SeqParameterSet> for VkSequenceParameterSet {
                 pScalingLists,
                 pSequenceParameterSetVui,
             },
-        })
+            scaling_lists_ptr,
+        }
+    }
+}
+
+impl Drop for VkSequenceParameterSet {
+    fn drop(&mut self) {
+        self.scaling_lists_ptr
+            .map(|p| unsafe { Box::from_raw(p.as_ptr()) });
+    }
+}
+
+pub(crate) struct H264ScalingLists {
+    pub(crate) list: vk::native::StdVideoH264ScalingLists,
+}
+
+impl Default for H264ScalingLists {
+    fn default() -> Self {
+        Self {
+            list: vk::native::StdVideoH264ScalingLists {
+                scaling_list_present_mask: !0,
+                use_default_scaling_matrix_mask: 0,
+                ScalingList4x4: [[0; 16]; 6],
+                ScalingList8x8: [[0; 64]; 6],
+            },
+        }
+    }
+}
+
+impl H264ScalingLists {
+    fn insert_4x4(&mut self, list: &[h264_reader::nal::sps::ScalingList<16>]) {
+        for (i, list) in list.iter().enumerate() {
+            match list {
+                h264_reader::nal::sps::ScalingList::NotPresent => {
+                    self.list.scaling_list_present_mask &= !(1 << i)
+                }
+                h264_reader::nal::sps::ScalingList::UseDefault => {
+                    self.list.use_default_scaling_matrix_mask |= 1 << i
+                }
+                h264_reader::nal::sps::ScalingList::List(l) => {
+                    self.list.ScalingList4x4[i] = l.map(|n| n.get())
+                }
+            }
+        }
+    }
+
+    fn insert_8x8(&mut self, list: &[h264_reader::nal::sps::ScalingList<64>]) {
+        for (i, list) in list.iter().enumerate() {
+            match list {
+                h264_reader::nal::sps::ScalingList::NotPresent => {
+                    self.list.scaling_list_present_mask &= !(1 << (i + 6))
+                }
+                h264_reader::nal::sps::ScalingList::UseDefault => {
+                    self.list.use_default_scaling_matrix_mask |= 1 << (i + 6)
+                }
+                h264_reader::nal::sps::ScalingList::List(l) => {
+                    self.list.ScalingList8x8[i] = l.map(|n| n.get())
+                }
+            }
+        }
+    }
+}
+
+impl From<&h264_reader::nal::sps::SeqScalingMatrix> for H264ScalingLists {
+    fn from(value: &h264_reader::nal::sps::SeqScalingMatrix) -> Self {
+        let mut result = H264ScalingLists::default();
+
+        result.insert_4x4(&value.scaling_list4x4);
+        result.insert_8x8(&value.scaling_list8x8);
+
+        result
+    }
+}
+
+impl From<&h264_reader::nal::pps::PicScalingMatrix> for H264ScalingLists {
+    fn from(value: &h264_reader::nal::pps::PicScalingMatrix) -> Self {
+        let mut result = H264ScalingLists::default();
+
+        result.insert_4x4(&value.scaling_list4x4);
+
+        if let Some(v) = &value.scaling_list8x8 {
+            result.insert_8x8(v);
+        }
+
+        result
     }
 }
 
@@ -346,7 +439,7 @@ fn h264_profile_idc_to_vk(
 
 pub(crate) struct H264ProfileInfo<'a> {
     pub(crate) profile_info: vk::VideoProfileInfoKHR<'a>,
-    h264_info_ptr: *mut vk::VideoDecodeH264ProfileInfoKHR<'a>,
+    h264_info_ptr: NonNull<vk::VideoDecodeH264ProfileInfoKHR<'a>>,
 }
 
 impl PartialEq for H264ProfileInfo<'_> {
@@ -355,8 +448,10 @@ impl PartialEq for H264ProfileInfo<'_> {
             other.profile_info.chroma_subsampling == self.profile_info.chroma_subsampling
                 && other.profile_info.luma_bit_depth == self.profile_info.luma_bit_depth
                 && other.profile_info.chroma_bit_depth == self.profile_info.chroma_bit_depth
-                && (*other.h264_info_ptr).std_profile_idc == (*self.h264_info_ptr).std_profile_idc
-                && (*other.h264_info_ptr).picture_layout == (*self.h264_info_ptr).picture_layout
+                && (*other.h264_info_ptr.as_ptr()).std_profile_idc
+                    == (*self.h264_info_ptr.as_ptr()).std_profile_idc
+                && (*other.h264_info_ptr.as_ptr()).picture_layout
+                    == (*self.h264_info_ptr.as_ptr()).picture_layout
         }
     }
 }
@@ -412,7 +507,7 @@ impl H264ProfileInfo<'_> {
             )));
         };
 
-        let h264_info_ptr = h264_profile_info as *mut _;
+        let h264_info_ptr = NonNull::from(&mut *h264_profile_info);
         let profile_info = vk::VideoProfileInfoKHR::default()
             .video_codec_operation(vk::VideoCodecOperationFlagsKHR::DECODE_H264)
             .chroma_subsampling(chroma_subsampling)
@@ -430,20 +525,19 @@ impl H264ProfileInfo<'_> {
 impl Drop for H264ProfileInfo<'_> {
     fn drop(&mut self) {
         unsafe {
-            let _ = Box::from_raw(self.h264_info_ptr);
+            let _ = Box::from_raw(self.h264_info_ptr.as_ptr());
         }
     }
 }
 
 pub(crate) struct VkPictureParameterSet {
     pub(crate) pps: vk::native::StdVideoH264PictureParameterSet,
+    scaling_list_ptr: Option<NonNull<H264ScalingLists>>,
 }
 
-impl TryFrom<&'_ h264_reader::nal::pps::PicParameterSet> for VkPictureParameterSet {
-    type Error = VulkanDecoderError;
-
+impl From<&'_ h264_reader::nal::pps::PicParameterSet> for VkPictureParameterSet {
     #[allow(non_snake_case)]
-    fn try_from(pps: &h264_reader::nal::pps::PicParameterSet) -> Result<Self, Self::Error> {
+    fn from(pps: &h264_reader::nal::pps::PicParameterSet) -> Self {
         let flags = vk::native::StdVideoH264PpsFlags {
             _bitfield_align_1: [],
             __bindgen_padding_0: [0; 3],
@@ -473,15 +567,20 @@ impl TryFrom<&'_ h264_reader::nal::pps::PicParameterSet> for VkPictureParameterS
             .map(|ext| ext.second_chroma_qp_index_offset as i8)
             .unwrap_or(chroma_qp_index_offset);
 
-        let pScalingLists = match pps.extension {
-            Some(h264_reader::nal::pps::PicParameterSetExtra {
-                pic_scaling_matrix: Some(_),
-                ..
-            }) => return Err(VulkanDecoderError::ScalingListsNotSupported),
-            _ => std::ptr::null(),
+        let scaling_list: Option<&mut H264ScalingLists> = pps
+            .extension
+            .as_ref()
+            .and_then(|e| e.pic_scaling_matrix.as_ref())
+            .map(|matrix| Box::leak(Box::new(matrix.into())));
+
+        let pScalingLists = match scaling_list.as_ref() {
+            Some(l) => &l.list,
+            None => std::ptr::null(),
         };
 
-        Ok(Self {
+        let scaling_list_ptr = scaling_list.map(NonNull::from);
+
+        Self {
             pps: vk::native::StdVideoH264PictureParameterSet {
                 flags,
                 seq_parameter_set_id: pps.seq_parameter_set_id.id(),
@@ -497,6 +596,14 @@ impl TryFrom<&'_ h264_reader::nal::pps::PicParameterSet> for VkPictureParameterS
                 second_chroma_qp_index_offset,
                 pScalingLists,
             },
-        })
+            scaling_list_ptr,
+        }
+    }
+}
+
+impl Drop for VkPictureParameterSet {
+    fn drop(&mut self) {
+        self.scaling_list_ptr
+            .map(|p| unsafe { Box::from_raw(p.as_ptr()) });
     }
 }

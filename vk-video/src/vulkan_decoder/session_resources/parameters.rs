@@ -69,7 +69,7 @@ impl VideoSessionParametersManager {
         let key = sps.seq_parameter_set_id.id();
         match self.sps.entry(key) {
             std::collections::hash_map::Entry::Occupied(mut e) => {
-                e.insert(sps.try_into()?);
+                e.insert(sps.into());
 
                 self.parameters = VideoSessionParameters::new(
                     self.device.clone(),
@@ -80,7 +80,7 @@ impl VideoSessionParametersManager {
                 )?
             }
             std::collections::hash_map::Entry::Vacant(e) => {
-                e.insert(sps.try_into()?);
+                e.insert(sps.into());
 
                 self.parameters.add(&[self.sps[&key].sps], &[])?;
             }
@@ -93,7 +93,7 @@ impl VideoSessionParametersManager {
         let key = (pps.seq_parameter_set_id.id(), pps.pic_parameter_set_id.id());
         match self.pps.entry(key) {
             std::collections::hash_map::Entry::Occupied(mut e) => {
-                e.insert(pps.try_into()?);
+                e.insert(pps.into());
 
                 self.parameters = VideoSessionParameters::new(
                     self.device.clone(),
@@ -105,7 +105,7 @@ impl VideoSessionParametersManager {
             }
 
             std::collections::hash_map::Entry::Vacant(e) => {
-                e.insert(pps.try_into()?);
+                e.insert(pps.into());
 
                 self.parameters.add(&[], &[self.pps[&key].pps])?;
             }
