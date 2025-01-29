@@ -6,6 +6,7 @@ import * as fs from 'fs-extra';
 import * as tar from 'tar';
 import type {
   ApiRequest,
+  MultipartRequest,
   NodeCompositorManager,
   SetupInstanceOptions,
 } from '@live-compositor/core';
@@ -98,7 +99,7 @@ class LocallySpawnedInstance implements NodeCompositorManager {
     return await sendRequest(`http://127.0.0.1:${this.port}`, request);
   }
 
-  async sendMultipartRequest(request: ApiRequest): Promise<object> {
+  async sendMultipartRequest(request: MultipartRequest): Promise<object> {
     return await sendMultipartRequest(`http://127.0.0.1:${this.port}`, request);
   }
   public registerEventListener(cb: (event: object) => void): void {

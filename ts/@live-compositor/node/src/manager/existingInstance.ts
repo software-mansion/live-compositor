@@ -1,5 +1,6 @@
 import type {
   ApiRequest,
+  MultipartRequest,
   NodeCompositorManager,
   SetupInstanceOptions,
 } from '@live-compositor/core';
@@ -48,7 +49,7 @@ class ExistingInstance implements NodeCompositorManager {
     return await sendRequest(`${this.protocol}://${this.ip}:${this.port}`, request);
   }
 
-  async sendMultipartRequest(request: ApiRequest): Promise<object> {
+  async sendMultipartRequest(request: MultipartRequest): Promise<object> {
     return await sendMultipartRequest(`${this.protocol}://${this.ip}:${this.port}`, request);
   }
 

@@ -12,6 +12,12 @@ export type ApiRequest = {
   body?: object;
 };
 
+export type MultipartRequest = {
+  method: 'POST';
+  route: string;
+  body: any;
+};
+
 export type RegisterInputResponse = {
   video_duration_ms?: number;
   audio_duration_ms?: number;

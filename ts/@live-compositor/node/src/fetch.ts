@@ -6,7 +6,7 @@ import { promisify } from 'util';
 
 import fetch from 'node-fetch';
 import type FormData from 'form-data';
-import type { ApiRequest } from '@live-compositor/core';
+import type { ApiRequest, MultipartRequest } from '@live-compositor/core';
 
 const pipeline = promisify(Stream.pipeline);
 const httpAgent = new http.Agent({ keepAlive: true });
@@ -34,7 +34,10 @@ export async function sendRequest(baseUrl: string, request: ApiRequest): Promise
   return (await response.json()) as object;
 }
 
-export async function sendMultipartRequest(baseUrl: string, request: ApiRequest): Promise<object> {
+export async function sendMultipartRequest(
+  baseUrl: string,
+  request: MultipartRequest
+): Promise<object> {
   const response = await fetch(new URL(request.route, baseUrl), {
     method: request.method,
     body: request.body as FormData,

@@ -1,5 +1,5 @@
 import type { Logger } from 'pino';
-import type { ApiRequest } from './api.js';
+import type { ApiRequest, MultipartRequest } from './api.js';
 
 export interface SetupInstanceOptions {
   /**
@@ -18,5 +18,5 @@ export interface CompositorManager {
 }
 
 export interface NodeCompositorManager extends CompositorManager {
-  sendMultipartRequest(request: ApiRequest): Promise<object>;
+  sendMultipartRequest(request: MultipartRequest): Promise<object>;
 }
