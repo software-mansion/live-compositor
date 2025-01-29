@@ -1,4 +1,8 @@
-import type { RegisterInput, RegisterOutput, NodeCompositorManager } from '@live-compositor/core';
+import type {
+  Input as CoreInput,
+  Output as CoreOutput,
+  NodeCompositorManager,
+} from '@live-compositor/core';
 import { OfflineCompositor as CoreLiveCompositor } from '@live-compositor/core';
 import { createLogger } from '../logger';
 import LocallySpawnedInstance from '../manager/locallySpawnedInstance';
@@ -21,12 +25,12 @@ export default class OfflineCompositor {
     await this.coreCompositor!.init();
   }
 
-  public async render(root: ReactElement, request: RegisterOutput, durationMs?: number) {
+  public async render(root: ReactElement, request: CoreOutput.RegisterOutput, durationMs?: number) {
     assert(this.coreCompositor);
     await this.coreCompositor.render(root, request, durationMs);
   }
 
-  public async registerInput(inputId: string, request: RegisterInput) {
+  public async registerInput(inputId: string, request: CoreInput.RegisterInput) {
     assert(this.coreCompositor);
     await this.coreCompositor.registerInput(inputId, request);
   }

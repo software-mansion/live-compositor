@@ -22,7 +22,6 @@ export { RegisterRtpInput, RegisterMp4Input } from './types/registerInput.js';
 export {
   RegisterRtpOutput,
   RegisterMp4Output,
-  RegisterCanvasOutput,
   RegisterWhipOutput,
 } from './types/registerOutput.js';
 

@@ -1,10 +1,14 @@
-import type { NodeCompositorManager, RegisterInput, RegisterOutput } from '@live-compositor/core';
+import type {
+  NodeCompositorManager,
+  Input as CoreInput,
+  Output as CoreOutput,
+} from '@live-compositor/core';
 import { LiveCompositor as CoreLiveCompositor } from '@live-compositor/core';
 import { createLogger } from '../logger';
 import LocallySpawnedInstance from '../manager/locallySpawnedInstance';
 import assert from 'assert';
 import type { ReactElement } from 'react';
-import type { RegisterImage } from '../../../../live-compositor/cjs/types/registerRenderer';
+import type { Renderers } from 'live-compositor';
 import FormData from 'form-data';
 import fetch from 'node-fetch';
 
@@ -24,7 +28,7 @@ export default class LiveCompositor {
   public async registerOutput(
     outputId: string,
     root: ReactElement,
-    request: RegisterOutput
+    request: CoreOutput.RegisterOutput
   ): Promise<void> {
     assert(this.coreCompositor);
     await this.coreCompositor.registerOutput(outputId, root, request);
@@ -35,7 +39,7 @@ export default class LiveCompositor {
     await this.coreCompositor.unregisterOutput(outputId);
   }
 
-  public async registerInput(inputId: string, request: RegisterInput): Promise<void> {
+  public async registerInput(inputId: string, request: CoreInput.RegisterInput): Promise<void> {
     assert(this.coreCompositor);
     await this.coreCompositor.registerInput(inputId, request);
   }
@@ -45,7 +49,7 @@ export default class LiveCompositor {
     await this.coreCompositor.unregisterInput(inputId);
   }
 
-  public async registerImage(imageId: string, request: RegisterImage): Promise<void> {
+  public async registerImage(imageId: string, request: Renderers.RegisterImage): Promise<void> {
     assert(this.coreCompositor);
     await this.coreCompositor.registerImage(imageId, request);
   }

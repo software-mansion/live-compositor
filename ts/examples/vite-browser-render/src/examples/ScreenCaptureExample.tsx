@@ -8,7 +8,11 @@ function ScreenCaptureExample() {
     await compositor.registerFont(
       'https://fonts.gstatic.com/s/notosans/v36/o-0mIpQlx3QUlC5A4PNB6Ryti20_6n1iPHjcz6L1SoM-jCpoiyD9A-9a6Vc.ttf'
     );
-    await compositor.registerInput('screen', { type: 'screen_capture' });
+    try {
+      await compositor.registerInput('screen', { type: 'screen_capture' });
+    } catch (err: any) {
+      console.warn('Failed to register screen capture input', err);
+    }
   }, []);
 
   return (

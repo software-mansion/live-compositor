@@ -3,8 +3,13 @@ import type { ReactElement } from 'react';
 import type { Logger } from 'pino';
 import { pino } from 'pino';
 import { assert } from '../utils';
-import type { RegisterOutput, RegisterInput, RegisterImage } from './types';
-import WasmInstance from '../wasmInstance';
+import {
+  type RegisterOutput,
+  type RegisterInput,
+  type RegisterImage,
+  intoRegisterOutputRequest,
+} from './api';
+import WasmInstance from '../mainContext/instance';
 
 export type LiveCompositorOptions = {
   framerate?: Framerate;
@@ -43,7 +48,7 @@ export default class LiveCompositor {
   public async init(): Promise<void> {
     assert(wasmBundleUrl, 'Location of WASM bundle is not defined, call setWasmBundleUrl() first.');
     this.instance = new WasmInstance({
-      framerate: this.options.framerate ?? { num: 30, den: 1 },
+      framerate: this.options.framerate ?? { num: 60, den: 1 },
       wasmBundleUrl,
       logger: this.logger.child({ element: 'wasmInstance' }),
     });
@@ -58,7 +63,7 @@ export default class LiveCompositor {
     request: RegisterOutput
   ): Promise<void> {
     assert(this.coreCompositor);
-    await this.coreCompositor.registerOutput(outputId, root, request);
+    await this.coreCompositor.registerOutput(outputId, root, intoRegisterOutputRequest(request));
   }
 
   public async unregisterOutput(outputId: string): Promise<void> {

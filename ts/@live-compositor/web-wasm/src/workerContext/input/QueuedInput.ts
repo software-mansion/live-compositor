@@ -1,7 +1,7 @@
 import type { Frame, InputId } from '@live-compositor/browser-render';
 import type { Logger } from 'pino';
 import { Queue } from '@datastructures-js/queue';
-import { workerPostEvent } from '../../worker/pipeline';
+import { workerPostEvent } from '../pipeline';
 import { CompositorEventType } from '../../eventSender';
 import type { Interval } from '../../utils';
 import { assert } from '../../utils';
