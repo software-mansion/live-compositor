@@ -36,18 +36,6 @@ pub async fn init_peer_connection(
 
     register_codecs(&mut media_engine)?;
 
-    //media_engine.register_default_codecs()?;
-    //if let Some(video) = whip_ctx.options.video {
-    //    media_engine.register_codec(video_codec_parameters(video), RTPCodecType::Video)?;
-    //}
-    //
-    //if let Some(audio) = whip_ctx.options.audio {
-    //    media_engine.register_codec(
-    //        audio_codec_parameters(audio, whip_ctx.pipeline_ctx.mixing_sample_rate)?,
-    //        RTPCodecType::Audio,
-    //    )?;
-    //}
-
     let mut registry = Registry::new();
     registry = register_default_interceptors(registry, &mut media_engine)?;
     let api = APIBuilder::new()
@@ -134,48 +122,21 @@ fn audio_codec_capability(
     }
 }
 
-fn video_codec_parameters(video: VideoCodec) -> RTCRtpCodecParameters {
-    let capability = video_codec_capability(video);
-    let payload_type = match video {
-        VideoCodec::H264 => 96,
-    };
-    RTCRtpCodecParameters {
-        capability,
-        payload_type,
-        ..Default::default()
-    }
-}
-
-fn audio_codec_parameters(
-    audio_options: WhipAudioOptions,
-    sample_rate: u32,
-) -> Result<RTCRtpCodecParameters, WhipError> {
-    let capability = audio_codec_capability(audio_options, sample_rate)?;
-    let payload_type = match audio_options.codec {
-        AudioCodec::Aac => return Err(WhipError::UnsupportedCodec("AAC")),
-        AudioCodec::Opus => 111,
-    };
-    Ok(RTCRtpCodecParameters {
-        capability,
-        payload_type,
-        ..Default::default()
-    })
-}
-
 fn register_codecs(media_engine: &mut MediaEngine) -> webrtc::error::Result<()> {
-    for codec in vec![RTCRtpCodecParameters {
-        capability: RTCRtpCodecCapability {
-            mime_type: MIME_TYPE_OPUS.to_owned(),
-            clock_rate: 48000,
-            channels: 2,
-            sdp_fmtp_line: "minptime=10;useinbandfec=1".to_owned(),
-            rtcp_feedback: vec![],
+    media_engine.register_codec(
+        RTCRtpCodecParameters {
+            capability: RTCRtpCodecCapability {
+                mime_type: MIME_TYPE_OPUS.to_owned(),
+                clock_rate: 48000,
+                channels: 2,
+                sdp_fmtp_line: "minptime=10;useinbandfec=1".to_owned(),
+                rtcp_feedback: vec![],
+            },
+            payload_type: 111,
+            ..Default::default()
         },
-        payload_type: 111,
-        ..Default::default()
-    }] {
-        media_engine.register_codec(codec, RTPCodecType::Audio)?;
-    }
+        RTPCodecType::Audio,
+    )?;
 
     let video_rtcp_feedback = vec![
         RTCPFeedback {
@@ -195,7 +156,7 @@ fn register_codecs(media_engine: &mut MediaEngine) -> webrtc::error::Result<()> 
             parameter: "pli".to_owned(),
         },
     ];
-    for codec in vec![
+    let video_codecs = vec![
         RTCRtpCodecParameters {
             capability: RTCRtpCodecCapability {
                 mime_type: MIME_TYPE_H264.to_owned(),
@@ -254,19 +215,6 @@ fn register_codecs(media_engine: &mut MediaEngine) -> webrtc::error::Result<()> 
                 clock_rate: 90000,
                 channels: 0,
                 sdp_fmtp_line:
-                    "level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42001f"
-                        .to_owned(),
-                rtcp_feedback: video_rtcp_feedback.clone(),
-            },
-            payload_type: 127,
-            ..Default::default()
-        },
-        RTCRtpCodecParameters {
-            capability: RTCRtpCodecCapability {
-                mime_type: MIME_TYPE_H264.to_owned(),
-                clock_rate: 90000,
-                channels: 0,
-                sdp_fmtp_line:
                     "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=640032"
                         .to_owned(),
                 rtcp_feedback: video_rtcp_feedback.clone(),
@@ -274,7 +222,8 @@ fn register_codecs(media_engine: &mut MediaEngine) -> webrtc::error::Result<()> 
             payload_type: 123,
             ..Default::default()
         },
-    ] {
+    ];
+    for codec in video_codecs {
         media_engine.register_codec(codec, RTPCodecType::Video)?;
     }
 
