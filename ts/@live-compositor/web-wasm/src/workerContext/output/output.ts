@@ -8,7 +8,7 @@ export class Output {
   public readonly resolution: Resolution;
 
   public constructor(request: RegisterOutput) {
-    if (request.type === 'canvas') {
+    if (request.type === 'stream' && request.video) {
       this.sink = new CanvasSink(request.video.canvas);
     } else {
       throw new Error(`Unknown output type ${(request as any).type}`);

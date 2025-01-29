@@ -5,6 +5,7 @@ import Output from './output.js';
 import type { CompositorManager } from '../compositorManager.js';
 import type { RegisterOutput } from '../api/output.js';
 import { intoRegisterOutput } from '../api/output.js';
+import type { RegisterInput } from '../api/input.js';
 import { intoRegisterInput } from '../api/input.js';
 import { parseEvent } from '../event.js';
 import { intoRegisterImage, intoRegisterWebRenderer } from '../api/renderer.js';
@@ -12,7 +13,6 @@ import { handleEvent } from './event.js';
 import type { ReactElement } from 'react';
 import type { Logger } from 'pino';
 import type { ImageRef } from '../api/image.js';
-import type { RegisterInput } from '../index.js';
 
 export class LiveCompositor {
   private manager: CompositorManager;

@@ -5,6 +5,7 @@ import type { Frame } from '@live-compositor/browser-render';
 import { MediaStreamInput } from './MediaStreamInput';
 import type { RegisterInput } from '../../workerApi';
 import type { Logger } from 'pino';
+import { assert } from '../../utils';
 
 export type InputStartResult = {
   videoDurationMs?: number;
@@ -59,10 +60,9 @@ export async function createInput(
     const source = new Mp4Source(request.url, inputLogger);
     await source.init();
     return new QueuedInput(inputId, source, inputLogger);
-  } else if (request.type === 'camera') {
-    return new MediaStreamInput(inputId, request.stream);
-  } else if (request.type === 'screen_capture') {
-    return new MediaStreamInput(inputId, request.stream);
+  } else if (request.type === 'stream') {
+    assert(request.videoStream);
+    return new MediaStreamInput(inputId, request.videoStream);
   }
   throw new Error(`Unknown input type ${(request as any).type}`);
 }

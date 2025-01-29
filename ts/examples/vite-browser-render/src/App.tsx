@@ -7,6 +7,7 @@ import MultipleCompositors from './examples/MultipleCompositors';
 import Camera from './examples/CameraExample';
 import ScreenCapture from './examples/ScreenCaptureExample';
 import { setWasmBundleUrl } from '@live-compositor/web-wasm';
+import WhipExample from './examples/WhipExample';
 
 setWasmBundleUrl('/assets/live-compositor.wasm');
 
@@ -15,6 +16,7 @@ function App() {
     counter: <Counter />,
     inputMp4: <InputMp4Example />,
     componentMp4: <ComponentMp4Example />,
+    whip: <WhipExample />,
     multipleCompositors: <MultipleCompositors />,
     camera: <Camera />,
     screenCapture: <ScreenCapture />,
@@ -27,6 +29,7 @@ function App() {
       <h1>Examples</h1>
       <div className="examples-tabs">
         <button onClick={() => setCurrentExample('home')}>Home</button>
+        <button onClick={() => setCurrentExample('whip')}>WHIP</button>
         <button onClick={() => setCurrentExample('inputMp4')}>Input Stream MP4</button>
         <button onClick={() => setCurrentExample('componentMp4')}>Component MP4</button>
         <button onClick={() => setCurrentExample('multipleCompositors')}>
@@ -48,6 +51,11 @@ function Home() {
       <h3>
         <code>@live-compositor/web-wasm</code> - LiveCompositor in the browser
       </h3>
+      <li>
+        <code>WHIP</code> - Streams Mp4 file to Twitch. Add{' '}
+        <code>?twitchKey=mytwitchstreamkey</code> query param with your Twitch stream key to stream
+        it yourself.
+      </li>
       <li>
         <code>Input Stream Mp4</code> - Register MP4 file as an input stream and render output on
         canvas.

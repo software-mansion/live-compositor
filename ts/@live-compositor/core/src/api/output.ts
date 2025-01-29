@@ -3,46 +3,79 @@ import type {
   Outputs,
   RegisterRtpOutput,
   RegisterMp4Output,
-  RegisterCanvasOutput,
   RegisterWhipOutput,
   _liveCompositorInternals,
 } from 'live-compositor';
 import { inputRefIntoRawId } from './input.js';
 
-export type RegisterOutputRequest = Api.RegisterOutput | RegisterCanvasOutputRequest;
+/**
+ * It represents HTTP request that can be sent to
+ * to compositor, but also additional variants that are specific to WASM like canvas
+ */
+export type RegisterOutputRequest = Api.RegisterOutput | RegisterWasmSpecificOutputRequest;
 
-export type RegisterCanvasOutputRequest = {
-  type: 'canvas';
-  video: OutputCanvasVideoOptions;
+export type RegisterWasmSpecificOutputRequest = RegisterWasmSpecificOutput & {
+  initial: { video?: Api.Video; audio?: Api.Audio };
 };
 
-export type OutputCanvasVideoOptions = {
-  resolution: Api.Resolution;
-  /**
-   * HTMLCanvasElement
-   */
-  canvas: any;
-  initial: Api.Video;
+export type RegisterWasmWhipOutput = {
+  type: 'web-wasm-whip';
+  iceServers?: Array<{
+    credential?: string;
+    urls: string | string[];
+    username?: string;
+  }>;
+  endpointUrl: string;
+  bearerToken?: string;
+  video?: {
+    resolution: Api.Resolution;
+    maxBitrate?: number;
+  };
+  // audio: boolean;
 };
+
+export type RegisterWasmCanvasOutput = {
+  type: 'web-wasm-canvas';
+  video?: {
+    resolution: Api.Resolution;
+    canvas: any; // HTMLCanvasElement
+  };
+};
+
+export type RegisterWasmStreamOutput = {
+  type: 'web-wasm-stream';
+  video?: {
+    resolution: Api.Resolution;
+  };
+};
+
+export type RegisterWasmSpecificOutput =
+  | RegisterWasmWhipOutput
+  | RegisterWasmStreamOutput
+  | RegisterWasmCanvasOutput;
 
 export type RegisterOutput =
   | ({ type: 'rtp_stream' } & RegisterRtpOutput)
   | ({ type: 'mp4' } & RegisterMp4Output)
-  | ({ type: 'canvas' } & RegisterCanvasOutput)
-  | ({ type: 'whip' } & RegisterWhipOutput);
+  | ({ type: 'whip' } & RegisterWhipOutput)
+  | RegisterWasmSpecificOutput;
 
 export function intoRegisterOutput(
   output: RegisterOutput,
   initial: { video?: Api.Video; audio?: Api.Audio }
 ): RegisterOutputRequest {
+  if (!output['video'] && !(output as any)['audio']) {
+    throw new Error('Either audio or video field needs to be specified.');
+  }
   if (output.type === 'rtp_stream') {
     return intoRegisterRtpOutput(output, initial);
   } else if (output.type === 'mp4') {
     return intoRegisterMp4Output(output, initial);
-  } else if (output.type === 'canvas') {
-    return intoRegisterCanvasOutput(output, initial);
   } else if (output.type === 'whip') {
     return intoRegisterWhipOutput(output, initial);
+  } else if (['web-wasm-canvas', 'web-wasm-whip', 'web-wasm-stream'].includes(output.type)) {
+    // just pass wasm types as they are, they will not be serialized
+    return { ...output, initial };
   } else {
     throw new Error(`Unknown output type ${(output as any).type}`);
   }
@@ -71,20 +104,6 @@ function intoRegisterMp4Output(
     path: output.serverPath,
     video: output.video && initial.video && intoOutputVideoOptions(output.video, initial.video),
     audio: output.audio && initial.audio && intoOutputMp4AudioOptions(output.audio, initial.audio),
-  };
-}
-
-function intoRegisterCanvasOutput(
-  output: Outputs.RegisterCanvasOutput,
-  initial: { video?: Api.Video; _audio?: Api.Audio }
-): RegisterOutputRequest {
-  return {
-    type: 'canvas',
-    video: {
-      resolution: output.video.resolution,
-      canvas: output.video.canvas,
-      initial: initial.video!,
-    },
   };
 }
 

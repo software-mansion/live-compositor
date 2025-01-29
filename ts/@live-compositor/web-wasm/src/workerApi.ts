@@ -8,17 +8,14 @@ export type RegisterInput =
       url: string;
     }
   | {
-      type: 'camera';
-      stream: ReadableStream;
-    }
-  | {
-      type: 'screen_capture';
-      stream: ReadableStream;
+      type: 'stream';
+      videoStream?: ReadableStream;
+      audioStream?: ReadableStream;
     };
 
 export type RegisterOutput = {
-  type: 'canvas';
-  video: {
+  type: 'stream';
+  video?: {
     canvas: OffscreenCanvas;
     resolution: Resolution;
     initial: Api.Video;

@@ -33,7 +33,7 @@ export default function CompositorCanvas(props: CompositorCanvasProps) {
       await compositor.registerOutput('output', children, {
         type: 'canvas',
         video: {
-          canvas: canvas as any,
+          canvas: canvas,
           resolution: {
             width: Number(canvasProps.width ?? canvas.width),
             height: Number(canvasProps.height ?? canvas.height),
