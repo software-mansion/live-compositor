@@ -66,10 +66,6 @@ impl StatefulViewComponent {
             .with_padding(view.padding)
     }
 
-    pub(super) fn padding(&self, pts: Duration) -> Padding {
-        self.view(pts).padding
-    }
-
     pub(super) fn component_id(&self) -> Option<&ComponentId> {
         self.end.id.as_ref()
     }

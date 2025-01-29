@@ -329,6 +329,18 @@ export type Component =
        */
       box_shadow?: BoxShadow[] | null;
       /**
+       * (**default=`0.0`**) Padding for all sides of the component.
+       */
+      padding?: number | null;
+      /**
+       * (**default=`0.0`**) Padding for the top and bottom of the component.
+       */
+      padding_vertical?: number | null;
+      /**
+       * (**default=`0.0`**) Padding for the left and right of the component.
+       */
+      padding_horizontal?: number | null;
+      /**
        * (**default=`0.0`**) Padding on top side in pixels.
        */
       padding_top?: number | null;

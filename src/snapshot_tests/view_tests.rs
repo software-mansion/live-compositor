@@ -215,16 +215,16 @@ fn view_tests() {
         ..default.clone()
     });
     runner.add(TestCase {
-        name: "view/column_view_padding_static_children",
+        name: "view/unsized_view_padding_static_children",
         scene_updates: scene_from_json(include_str!(
-            "../../snapshot_tests/view/column_view_padding_static_children.scene.json"
+            "../../snapshot_tests/view/unsized_view_padding_static_children.scene.json"
         )),
         ..default.clone()
     });
     runner.add(TestCase {
-        name: "view/row_view_padding_static_children",
+        name: "view/view_padding_multiple_children",
         scene_updates: scene_from_json(include_str!(
-            "../../snapshot_tests/view/row_view_padding_static_children.scene.json"
+            "../../snapshot_tests/view/view_padding_multiple_children.scene.json"
         )),
         ..default.clone()
     });
@@ -236,16 +236,23 @@ fn view_tests() {
         ..default.clone()
     });
     runner.add(TestCase {
-        name: "view/padding_absolute_children_left",
+        name: "view/nested_padding_static_children_overflow_visible",
         scene_updates: scene_from_json(include_str!(
-            "../../snapshot_tests/view/padding_absolute_left_children.scene.json"
+            "../../snapshot_tests/view/nested_padding_static_children_overflow_visible.scene.json"
         )),
         ..default.clone()
     });
     runner.add(TestCase {
-        name: "view/padding_absolute_children_right",
+        name: "view/padding_absolute_children",
         scene_updates: scene_from_json(include_str!(
-            "../../snapshot_tests/view/padding_absolute_right_children.scene.json"
+            "../../snapshot_tests/view/padding_absolute_children.scene.json"
+        )),
+        ..default.clone()
+    });
+    runner.add(TestCase {
+        name: "view/view_padding_overflow_children",
+        scene_updates: scene_from_json(include_str!(
+            "../../snapshot_tests/view/view_padding_overflow_children.scene.json"
         )),
         ..default.clone()
     });

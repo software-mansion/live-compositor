@@ -93,6 +93,15 @@ pub struct View {
     /// List of box shadows.
     pub box_shadow: Option<Vec<BoxShadow>>,
 
+    /// (**default=`0.0`**) Padding for all sides of the component.
+    pub padding: Option<f32>,
+
+    /// (**default=`0.0`**) Padding for the top and bottom of the component.
+    pub padding_vertical: Option<f32>,
+
+    /// (**default=`0.0`**) Padding for the left and right of the component.
+    pub padding_horizontal: Option<f32>,
+
     /// (**default=`0.0`**) Padding on top side in pixels.
     pub padding_top: Option<f32>,
 

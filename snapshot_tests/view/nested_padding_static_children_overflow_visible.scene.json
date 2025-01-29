@@ -24,6 +24,7 @@
               "padding_left": 20,
               "padding_right": 40,
               "border_width": 10,
+              "overflow": "visible",
               "border_color": "green",
               "background_color": "blue",
               "children": [

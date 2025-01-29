@@ -149,10 +149,13 @@ function sceneBuilder(
 
     box_shadow: style.boxShadow,
 
-    padding_top: style.paddingTop ?? style.paddingVertical ?? style.padding,
-    padding_bottom: style.paddingBottom ?? style.paddingVertical ?? style.padding,
-    padding_right: style.paddingRight ?? style.paddingHorizontal ?? style.padding,
-    padding_left: style.paddingLeft ?? style.paddingHorizontal ?? style.padding,
+    padding: style.padding,
+    padding_vertical: style.paddingVertical,
+    padding_horizontal: style.paddingHorizontal,
+    padding_top: style.paddingTop,
+    padding_bottom: style.paddingBottom,
+    padding_right: style.paddingRight,
+    padding_left: style.paddingLeft,
   };
 }
 
