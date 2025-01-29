@@ -2,8 +2,7 @@ import type { Frame, FrameSet, InputId, OutputId, Renderer } from '@live-composi
 import type { Framerate } from '../compositor/compositor';
 import type { Input } from './input/input';
 import type { Output } from './output/output';
-import type { Interval } from '../utils';
-import { framerateToDurationMs } from '../utils';
+import type { Timeout } from '../utils';
 import type { Logger } from 'pino';
 
 export type StopQueueFn = () => void;
@@ -12,40 +11,29 @@ export class Queue {
   private inputs: Record<InputId, Input> = {};
   private outputs: Record<OutputId, Output> = {};
   private renderer: Renderer;
-  private framerate: Framerate;
-  private currentPts: number;
-  private startTimeMs?: number;
-  private queueInterval?: Interval;
   private logger: Logger;
+  private frameTicker: FrameTicker;
+  private startTimeMs?: number;
 
   public constructor(framerate: Framerate, renderer: Renderer, logger: Logger) {
     this.renderer = renderer;
-    this.framerate = framerate;
-    this.currentPts = 0;
     this.logger = logger;
+    this.frameTicker = new FrameTicker(framerate, logger);
   }
 
   public start() {
     this.logger.debug('Start queue');
-    if (this.queueInterval) {
-      throw new Error('Queue was already started.');
-    }
-    const tickDuration = framerateToDurationMs(this.framerate);
-    // TODO: setInterval can drift, this implementation needs to be replaced
-    this.queueInterval = setInterval(async () => {
-      await this.onTick();
-      this.currentPts += tickDuration;
-    }, tickDuration);
     this.startTimeMs = Date.now();
+    this.frameTicker.start(this.startTimeMs, async (pts: number) => {
+      await this.onTick(pts);
+    });
     for (const input of Object.values(this.inputs)) {
       input.updateQueueStartTime(this.startTimeMs);
     }
   }
 
   public stop() {
-    if (this.queueInterval) {
-      clearTimeout(this.queueInterval);
-    }
+    this.frameTicker.stop();
     for (const input of Object.values(this.inputs)) {
       input.close();
     }
@@ -84,22 +72,22 @@ export class Queue {
     return this.outputs[outputId];
   }
 
-  private async onTick(): Promise<void> {
-    const frames = await this.getInputFrames();
+  private async onTick(currentPtsMs: number): Promise<void> {
+    const frames = await this.getInputFrames(currentPtsMs);
     this.logger.trace({ frames }, 'onQueueTick');
 
     const outputs = this.renderer.render({
-      ptsMs: this.currentPts,
+      ptsMs: currentPtsMs,
       frames,
     });
     this.sendOutputs(outputs);
   }
 
-  private async getInputFrames(): Promise<Record<InputId, Frame>> {
+  private async getInputFrames(currentPtsMs: number): Promise<Record<InputId, Frame>> {
     const frames: Array<[InputId, Frame | undefined]> = await Promise.all(
       Object.entries(this.inputs).map(async ([inputId, input]) => [
         inputId,
-        await input.getFrame(this.currentPts),
+        await input.getFrame(currentPtsMs),
       ])
     );
     const validFrames = frames.filter((entry): entry is [string, Frame] => !!entry[1]);
@@ -115,6 +103,74 @@ export class Queue {
         continue;
       }
       void output.send(frame);
+    }
+  }
+}
+
+class FrameTicker {
+  private framerate: Framerate;
+  private onTick?: (pts: number) => Promise<void>;
+  private logger: Logger;
+
+  private timeout?: Timeout;
+  private pendingTick?: Promise<void>;
+
+  private startTimeMs: number = 0; // init on start
+  private frameCounter: number = 0;
+
+  constructor(framerate: Framerate, logger: Logger) {
+    this.framerate = framerate;
+    this.logger = logger;
+  }
+
+  public start(startTimeMs: number, onTick: (pts: number) => Promise<void>) {
+    this.onTick = onTick;
+    this.startTimeMs = startTimeMs;
+    this.scheduleNext();
+  }
+
+  public stop() {
+    if (this.timeout) {
+      clearTimeout(this.timeout);
+      this.timeout = undefined;
+    }
+  }
+
+  private scheduleNext() {
+    const timeoutDuration = this.startTimeMs + this.currentPtsMs() - Date.now();
+    this.timeout = setTimeout(
+      () => {
+        void this.doTick();
+        this.scheduleNext();
+      },
+      Math.max(timeoutDuration, 0)
+    );
+  }
+
+  private async doTick(): Promise<void> {
+    if (this.pendingTick) {
+      return;
+    }
+    this.maybeSkipFrames();
+    try {
+      this.pendingTick = this.onTick?.(this.currentPtsMs());
+      await this.pendingTick;
+    } catch (err: any) {
+      this.logger.warn(err, 'Queue tick failed.');
+    }
+    this.pendingTick = undefined;
+    this.frameCounter += 1;
+  }
+
+  private currentPtsMs(): number {
+    return this.frameCounter * 1000 * (this.framerate.den / this.framerate.num);
+  }
+
+  private maybeSkipFrames() {
+    const frameDurationMs = 1000 * (this.framerate.den / this.framerate.num);
+    while (Date.now() - this.startTimeMs > this.currentPtsMs() + frameDurationMs) {
+      this.logger.info(`Processing to slow, dropping frame (frameCounter: ${this.frameCounter})`);
+      this.frameCounter += 1;
     }
   }
 }
