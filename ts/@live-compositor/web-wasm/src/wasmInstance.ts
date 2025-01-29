@@ -58,13 +58,6 @@ class WasmInstance implements CompositorManager {
     return handleResponse(response);
   }
 
-  //TODO  update handleRequest for font, to do after changes connected with workers
-  public async sendMultipartRequest(request: ApiRequest): Promise<object> {
-    const [msg, transferable] = await handleRequest(request);
-    const response = await this.worker.postMessage(msg, transferable);
-    return handleResponse(response);
-  }
-
   public async registerFont(fontUrl: string): Promise<void> {
     await this.worker.postMessage({ type: 'registerFont', url: fontUrl });
   }

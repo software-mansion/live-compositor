@@ -4,7 +4,11 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs-extra';
 import * as tar from 'tar';
-import type { ApiRequest, CompositorManager, SetupInstanceOptions } from '@live-compositor/core';
+import type {
+  ApiRequest,
+  NodeCompositorManager,
+  SetupInstanceOptions,
+} from '@live-compositor/core';
 
 import { download, sendRequest, sendMultipartRequest } from '../fetch';
 import { retry, sleep } from '../utils';
@@ -25,7 +29,7 @@ type ManagedInstanceOptions = {
 /**
  * CompositorManager that will download and spawn it's own LiveCompositor instance locally.
  */
-class LocallySpawnedInstance implements CompositorManager {
+class LocallySpawnedInstance implements NodeCompositorManager {
   private port: number;
   private workingdir: string;
   private executablePath?: string;

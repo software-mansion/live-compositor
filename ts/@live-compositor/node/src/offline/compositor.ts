@@ -1,4 +1,4 @@
-import type { CompositorManager, RegisterInput, RegisterOutput } from '@live-compositor/core';
+import type { RegisterInput, RegisterOutput, NodeCompositorManager } from '@live-compositor/core';
 import { OfflineCompositor as CoreLiveCompositor } from '@live-compositor/core';
 import { createLogger } from '../logger';
 import LocallySpawnedInstance from '../manager/locallySpawnedInstance';
@@ -10,12 +10,11 @@ import FormData from 'form-data';
 
 export default class OfflineCompositor {
   private coreCompositor?: CoreLiveCompositor;
+  private nodeCompositorManager: NodeCompositorManager;
 
-  public constructor(manager?: CompositorManager) {
-    this.coreCompositor = new CoreLiveCompositor(
-      manager ?? LocallySpawnedInstance.defaultManager(),
-      createLogger()
-    );
+  public constructor(manager?: NodeCompositorManager) {
+    this.nodeCompositorManager = manager ?? LocallySpawnedInstance.defaultManager();
+    this.coreCompositor = new CoreLiveCompositor(this.nodeCompositorManager, createLogger());
   }
 
   public async init(): Promise<void> {
@@ -58,8 +57,7 @@ export default class OfflineCompositor {
     const formData = new FormData();
     formData.append('fontFile', fontBuffer);
 
-    assert(this.coreCompositor);
-    return this.coreCompositor.manager.sendMultipartRequest({
+    return this.nodeCompositorManager.sendMultipartRequest({
       method: 'POST',
       route: `/api/font/register`,
       body: formData,

@@ -1,4 +1,8 @@
-import type { ApiRequest, CompositorManager, SetupInstanceOptions } from '@live-compositor/core';
+import type {
+  ApiRequest,
+  NodeCompositorManager,
+  SetupInstanceOptions,
+} from '@live-compositor/core';
 
 import { sendRequest, sendMultipartRequest } from '../fetch';
 import { retry, sleep } from '../utils';
@@ -13,7 +17,7 @@ type CreateInstanceOptions = {
 /**
  * CompositorManager that will connect to existing instance
  */
-class ExistingInstance implements CompositorManager {
+class ExistingInstance implements NodeCompositorManager {
   private ip: string;
   private port: number;
   private protocol: 'http' | 'https';
