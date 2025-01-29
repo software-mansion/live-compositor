@@ -186,6 +186,7 @@ function intoRtpAudioEncoderOptions(
     type: 'opus',
     preset: encoder.preset,
     channels: encoder.channels,
+    sample_rate: encoder.sampleRate,
   };
 }
 
@@ -195,6 +196,7 @@ function intoMp4AudioEncoderOptions(
   return {
     type: 'aac',
     channels: encoder.channels,
+    sample_rate: encoder.sampleRate,
   };
 }
 
@@ -204,6 +206,8 @@ function intoWhipAudioEncoderOptions(
   return {
     type: 'opus',
     channels: encoder.channels,
+    preset: encoder.preset,
+    sample_rate: encoder.sampleRate,
   };
 }
 

@@ -1,5 +1,10 @@
 import type { Api } from '../api.js';
-import type { RegisterMp4Input, RegisterRtpInput, Inputs } from 'live-compositor';
+import type {
+  RegisterMp4Input,
+  RegisterRtpInput,
+  Inputs,
+  RegisterWhipInput,
+} from 'live-compositor';
 import { _liveCompositorInternals } from 'live-compositor';
 
 /**
@@ -18,6 +23,7 @@ export const parseInputRef = _liveCompositorInternals.parseInputRef;
 export type RegisterInput =
   | ({ type: 'rtp_stream' } & RegisterRtpInput)
   | ({ type: 'mp4' } & RegisterMp4Input)
+  | ({ type: 'whip' } & RegisterWhipInput)
   | { type: 'camera' }
   | { type: 'screen_capture' };
 
@@ -30,6 +36,8 @@ export function intoRegisterInput(input: RegisterInput): RegisterInputRequest {
     return intoMp4RegisterInput(input);
   } else if (input.type === 'rtp_stream') {
     return intoRtpRegisterInput(input);
+  } else if (input.type === 'whip') {
+    return intoWhipRegisterInput(input);
   } else if (input.type === 'camera') {
     return { type: 'camera' };
   } else if (input.type === 'screen_capture') {
@@ -60,6 +68,23 @@ function intoRtpRegisterInput(input: Inputs.RegisterRtpInput): RegisterInputRequ
     audio: input.audio && intoInputAudio(input.audio),
     required: input.required,
     offset_ms: input.offsetMs,
+  };
+}
+
+function intoWhipRegisterInput(input: Inputs.RegisterWhipInput): RegisterInputRequest {
+  return {
+    type: 'whip',
+    video: input.video,
+    audio: input.audio && intoInputWhipAudioOptions(input.audio),
+    required: input.required,
+    offset_ms: input.offsetMs,
+  };
+}
+
+function intoInputWhipAudioOptions(input: Inputs.InputWhipAudioOptions): Api.InputWhipAudioOptions {
+  return {
+    decoder: 'opus',
+    forward_error_correction: input.forwardErrorCorrection,
   };
 }
 

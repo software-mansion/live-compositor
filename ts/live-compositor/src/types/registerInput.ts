@@ -59,6 +59,28 @@ export type RegisterMp4Input = {
   videoDecoder?: Api.VideoDecoder | null;
 };
 
+export type RegisterWhipInput = {
+  /**
+   * Parameters of a video source included in the RTP stream.
+   */
+  video?: Api.InputWhipVideoOptions | null;
+  /**
+   * Parameters of an audio source included in the RTP stream.
+   */
+  audio?: InputWhipAudioOptions | null;
+  /**
+   * (**default=`false`**) If input is required and the stream is not delivered
+   * on time, then LiveCompositor will delay producing output frames.
+   */
+  required?: boolean | null;
+  /**
+   * Offset in milliseconds relative to the pipeline start (start request). If the offset is
+   * not defined then the stream will be synchronized based on the delivery time of the initial
+   * frames.
+   */
+  offsetMs?: number | null;
+};
+
 export type InputRtpAudioOptions =
   | ({ decoder: 'opus' } & InputRtpAudioOpusOptions)
   | ({ decoder: 'aac' } & InputRtpAudioAacOptions);
@@ -95,4 +117,14 @@ export type InputRtpAudioAacOptions = {
    * that should be used when depacketizing this stream.
    */
   rtpMode?: Api.AacRtpMode | null;
+};
+
+export type InputWhipAudioOptions = {
+  decoder: 'opus';
+  /**
+   * (**default=`false`**) Specifies whether the stream uses forward error correction.
+   * It's specific for Opus codec.
+   * For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
+   */
+  forwardErrorCorrection?: boolean | null;
 };

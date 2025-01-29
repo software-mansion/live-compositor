@@ -71,6 +71,28 @@ export type RegisterInput =
       video_decoder?: VideoDecoder | null;
     }
   | {
+      type: "whip";
+      /**
+       * Parameters of a video source included in the RTP stream.
+       */
+      video?: InputWhipVideoOptions | null;
+      /**
+       * Parameters of an audio source included in the RTP stream.
+       */
+      audio?: InputWhipAudioOptions | null;
+      /**
+       * (**default=`false`**) If input is required and the stream is not delivered
+       * on time, then LiveCompositor will delay producing output frames.
+       */
+      required?: boolean | null;
+      /**
+       * Offset in milliseconds relative to the pipeline start (start request). If the offset is
+       * not defined then the stream will be synchronized based on the delivery time of the initial
+       * frames.
+       */
+      offset_ms?: number | null;
+    }
+  | {
       type: "decklink";
       /**
        * Single DeckLink device can consist of multiple sub-devices. This field defines
@@ -147,6 +169,15 @@ export type InputRtpAudioOptions =
       rtp_mode?: AacRtpMode | null;
     };
 export type AacRtpMode = "low_bitrate" | "high_bitrate";
+export type InputWhipAudioOptions = {
+  decoder: "opus";
+  /**
+   * (**default=`false`**) Specifies whether the stream uses forward error correction.
+   * It's specific for Opus codec.
+   * For more information, check out [RFC](https://datatracker.ietf.org/doc/html/rfc6716#section-2.1.7).
+   */
+  forward_error_correction?: boolean | null;
+};
 export type RegisterOutput =
   | {
       type: "rtp_stream";
@@ -714,12 +745,20 @@ export type RtpAudioEncoderOptions = {
    * (**default="voip"**) Specifies preset for audio output encoder.
    */
   preset?: OpusEncoderPreset | null;
+  /**
+   * (**default=`48000`**) Sample rate. Allowed values: [8000, 16000, 24000, 48000].
+   */
+  sample_rate?: number | null;
 };
 export type AudioChannels = "mono" | "stereo";
 export type OpusEncoderPreset = "quality" | "voip" | "lowest_latency";
 export type Mp4AudioEncoderOptions = {
   type: "aac";
   channels: AudioChannels;
+  /**
+   * (**default=`44100`**) Sample rate. Allowed values: [8000, 16000, 24000, 44100, 48000].
+   */
+  sample_rate?: number | null;
 };
 export type WhipAudioEncoderOptions = {
   type: "opus";
@@ -731,6 +770,10 @@ export type WhipAudioEncoderOptions = {
    * (**default="voip"**) Specifies preset for audio output encoder.
    */
   preset?: OpusEncoderPreset | null;
+  /**
+   * (**default=`48000`**) Sample rate. Allowed values: [8000, 16000, 24000, 48000].
+   */
+  sample_rate?: number | null;
 };
 export type ImageSpec =
   | {
@@ -760,6 +803,9 @@ export type WebEmbeddingMethod =
   | "native_embedding_under_content";
 
 export interface InputRtpVideoOptions {
+  decoder: VideoDecoder;
+}
+export interface InputWhipVideoOptions {
   decoder: VideoDecoder;
 }
 export interface OutputVideoOptions {
