@@ -58,21 +58,6 @@ pub enum VulkanDecoderError {
     #[error("Vulkan error: {0}")]
     VkError(#[from] vk::Result),
 
-    #[error("Cannot find enough memory of the right type on the deivce")]
-    NoMemory,
-
-    #[error("The decoder instruction is not supported: {0:?}")]
-    DecoderInstructionNotSupported(Box<DecoderInstruction>),
-
-    #[error("Setting the frame cropping flag in sps is not supported")]
-    FrameCroppingNotSupported,
-
-    #[error("Bitstreams that contain fields rather than frames are not supported")]
-    FieldsNotSupported,
-
-    #[error("Scaling lists are not supported")]
-    ScalingListsNotSupported,
-
     #[error("A NALU requiring a session received before a session was created (probably before receiving first SPS)")]
     NoSession,
 
