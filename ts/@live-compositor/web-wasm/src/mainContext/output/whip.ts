@@ -107,14 +107,14 @@ export async function handleRegisterWhipOutput(
     const canvas = document.createElement('canvas');
     canvas.width = request.video.resolution.width;
     canvas.height = request.video.resolution.height;
-    const stream = canvas.captureStream(framerate.den / framerate.num);
+    const stream = canvas.captureStream(framerate.num / framerate.den);
     const track = stream.getVideoTracks()[0];
     const offscreen = canvas.transferControlToOffscreen();
 
     await track.applyConstraints({
       width: { exact: request.video.resolution.width },
       height: { exact: request.video.resolution.height },
-      frameRate: { ideal: framerate.den / framerate.num },
+      frameRate: { ideal: framerate.num / framerate.den },
     });
 
     videoPeerConnection = {
