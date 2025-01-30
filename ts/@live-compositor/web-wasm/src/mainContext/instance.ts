@@ -3,6 +3,7 @@ import type {
   CompositorManager,
   Input as CoreInput,
   Output as CoreOutput,
+  MultipartRequest,
 } from '@live-compositor/core';
 import type { Framerate } from '../compositor/compositor';
 import type { WorkerEvent, WorkerMessage, WorkerResponse } from '../workerApi';
@@ -59,6 +60,10 @@ class WasmInstance implements CompositorManager {
 
   public async sendRequest(request: ApiRequest): Promise<object> {
     return await this.handleRequest(request);
+  }
+
+  sendMultipartRequest(_request: MultipartRequest): Promise<object> {
+    throw new Error('Method sendMultipartRequest not implemented for web-wasm.');
   }
 
   public async registerFont(fontUrl: string): Promise<void> {

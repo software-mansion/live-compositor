@@ -44,7 +44,7 @@ export async function sendMultipartRequest(
     agent: url => (url.protocol === 'http:' ? httpAgent : httpsAgent),
   });
   if (response.status >= 400) {
-    const err: any = new Error(`Multipart request to compositor failed.`);
+    const err: any = new Error(`Request to compositor failed.`);
     err.response = response;
     try {
       err.body = await response.json();

@@ -5,9 +5,5 @@ export { Output, Input };
 export { ApiClient, ApiRequest, MultipartRequest, RegisterInputResponse } from './api.js';
 export { LiveCompositor } from './live/compositor.js';
 export { OfflineCompositor } from './offline/compositor.js';
-export {
-  NodeCompositorManager,
-  CompositorManager,
-  SetupInstanceOptions,
-} from './compositorManager.js';
+export { CompositorManager, SetupInstanceOptions } from './compositorManager.js';
 export { Logger, LoggerLevel } from './logger.js';

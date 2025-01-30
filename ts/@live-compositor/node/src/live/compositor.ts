@@ -1,28 +1,28 @@
 import type {
-  NodeCompositorManager,
+  CompositorManager,
   Input as CoreInput,
   Output as CoreOutput,
 } from '@live-compositor/core';
 import { LiveCompositor as CoreLiveCompositor } from '@live-compositor/core';
 import { createLogger } from '../logger';
 import LocallySpawnedInstance from '../manager/locallySpawnedInstance';
-import assert from 'assert';
 import type { ReactElement } from 'react';
 import type { Renderers } from 'live-compositor';
 import FormData from 'form-data';
 import fetch from 'node-fetch';
 
 export default class LiveCompositor {
-  private coreCompositor?: CoreLiveCompositor;
-  private nodeCompositorManager: NodeCompositorManager;
+  private coreCompositor: CoreLiveCompositor;
 
-  public constructor(manager?: NodeCompositorManager) {
-    this.nodeCompositorManager = manager ?? LocallySpawnedInstance.defaultManager();
-    this.coreCompositor = new CoreLiveCompositor(this.nodeCompositorManager, createLogger());
+  public constructor(manager?: CompositorManager) {
+    this.coreCompositor = new CoreLiveCompositor(
+      manager ?? LocallySpawnedInstance.defaultManager(),
+      createLogger()
+    );
   }
 
   public async init(): Promise<void> {
-    await this.coreCompositor!.init();
+    await this.coreCompositor.init();
   }
 
   public async registerOutput(
@@ -30,32 +30,26 @@ export default class LiveCompositor {
     root: ReactElement,
     request: CoreOutput.RegisterOutput
   ): Promise<void> {
-    assert(this.coreCompositor);
     await this.coreCompositor.registerOutput(outputId, root, request);
   }
 
   public async unregisterOutput(outputId: string): Promise<void> {
-    assert(this.coreCompositor);
     await this.coreCompositor.unregisterOutput(outputId);
   }
 
   public async registerInput(inputId: string, request: CoreInput.RegisterInput): Promise<void> {
-    assert(this.coreCompositor);
     await this.coreCompositor.registerInput(inputId, request);
   }
 
   public async unregisterInput(inputId: string): Promise<void> {
-    assert(this.coreCompositor);
     await this.coreCompositor.unregisterInput(inputId);
   }
 
   public async registerImage(imageId: string, request: Renderers.RegisterImage): Promise<void> {
-    assert(this.coreCompositor);
     await this.coreCompositor.registerImage(imageId, request);
   }
 
   public async unregisterImage(imageId: string): Promise<void> {
-    assert(this.coreCompositor);
     await this.coreCompositor.unregisterImage(imageId);
   }
 
@@ -75,7 +69,7 @@ export default class LiveCompositor {
     const formData = new FormData();
     formData.append('fontFile', fontBuffer);
 
-    return this.nodeCompositorManager.sendMultipartRequest({
+    return this.coreCompositor.manager.sendMultipartRequest({
       method: 'POST',
       route: `/api/font/register`,
       body: formData,
@@ -83,10 +77,10 @@ export default class LiveCompositor {
   }
 
   public async start(): Promise<void> {
-    await this.coreCompositor!.start();
+    await this.coreCompositor.start();
   }
 
   public async terminate(): Promise<void> {
-    await this.coreCompositor?.terminate();
+    await this.coreCompositor.terminate();
   }
 }

@@ -7,7 +7,7 @@ import * as tar from 'tar';
 import type {
   ApiRequest,
   MultipartRequest,
-  NodeCompositorManager,
+  CompositorManager,
   SetupInstanceOptions,
 } from '@live-compositor/core';
 
@@ -30,7 +30,7 @@ type ManagedInstanceOptions = {
 /**
  * CompositorManager that will download and spawn it's own LiveCompositor instance locally.
  */
-class LocallySpawnedInstance implements NodeCompositorManager {
+class LocallySpawnedInstance implements CompositorManager {
   private port: number;
   private workingdir: string;
   private executablePath?: string;

@@ -13,10 +13,7 @@ export interface SetupInstanceOptions {
 export interface CompositorManager {
   setupInstance(opts: SetupInstanceOptions): Promise<void>;
   sendRequest(request: ApiRequest): Promise<object>;
+  sendMultipartRequest(request: MultipartRequest): Promise<object>;
   registerEventListener(cb: (event: unknown) => void): void;
   terminate(): Promise<void>;
-}
-
-export interface NodeCompositorManager extends CompositorManager {
-  sendMultipartRequest(request: MultipartRequest): Promise<object>;
 }
