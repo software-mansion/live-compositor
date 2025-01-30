@@ -1,8 +1,22 @@
 import type { Output, RegisterOutputResult, RegisterWasmCanvasOutput } from '../output';
 import type { RegisterOutput } from '../../workerApi';
+import type { AudioMixer } from '../AudioMixer';
+import { PlaybackAudioMixer } from '../AudioMixer';
 
 export class CanvasOutput implements Output {
-  public async terminate(): Promise<void> {}
+  private mixer?: PlaybackAudioMixer;
+
+  constructor(mixer?: PlaybackAudioMixer) {
+    this.mixer = mixer;
+  }
+
+  public async terminate(): Promise<void> {
+    await this.mixer?.close();
+  }
+
+  public get audioMixer(): AudioMixer | undefined {
+    return this.mixer;
+  }
 }
 
 export async function handleRegisterCanvasOutput(
@@ -16,11 +30,7 @@ export async function handleRegisterCanvasOutput(
     const canvas = request.video.canvas;
     canvas.width = request.video.resolution.width;
     canvas.height = request.video.resolution.height;
-    const stream = canvas.captureStream(60);
-    const track = stream.getVideoTracks()[0];
     const offscreen = canvas.transferControlToOffscreen();
-
-    stream.addTrack(track);
 
     transferable.push(offscreen);
     video = {
@@ -28,12 +38,9 @@ export async function handleRegisterCanvasOutput(
       initial: request.initial.video,
       canvas: offscreen,
     };
-  } else {
-    // TODO: remove after adding audio
-    throw new Error('Video field is required');
   }
 
-  const output = new CanvasOutput();
+  const output = new CanvasOutput(request.audio ? new PlaybackAudioMixer() : undefined);
   return {
     output,
     workerMessage: [

@@ -45,6 +45,7 @@ export class LiveInputStreamStore<Id> {
   private onChangeCallbacks: Set<() => void> = new Set();
   private eventQueue?: UpdateAction<Id>[];
   private logger: Logger;
+  private pendingPromise?: Promise<any>;
 
   constructor(logger: Logger) {
     this.logger = logger;
@@ -70,10 +71,15 @@ export class LiveInputStreamStore<Id> {
   public async runBlocking<T = void>(
     fn: (update: (action: UpdateAction<Id>) => void) => Promise<T>
   ): Promise<T> {
+    while (this.pendingPromise) {
+      await this.pendingPromise.catch(() => {});
+    }
     this.eventQueue = [];
     try {
-      return await fn(a => this.applyUpdate(a));
+      this.pendingPromise = fn(a => this.applyUpdate(a));
+      return await this.pendingPromise;
     } finally {
+      this.pendingPromise = undefined;
       for (const event of this.eventQueue) {
         this.applyUpdate(event);
       }

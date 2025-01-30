@@ -9,7 +9,7 @@ export type RegisterOutput =
       video: {
         resolution: Api.Resolution;
       };
-      // audio: boolean;
+      audio?: boolean;
     }
   | {
       type: 'canvas';
@@ -17,7 +17,7 @@ export type RegisterOutput =
         canvas: HTMLCanvasElement;
         resolution: Api.Resolution;
       };
-      // audio: boolean;
+      audio?: boolean;
     }
   | {
       type: 'whip';
@@ -34,7 +34,7 @@ export type RegisterOutput =
         resolution: Api.Resolution;
         maxBitrate?: number;
       };
-      // audio: boolean;
+      audio?: boolean;
     };
 
 export function intoRegisterOutputRequest(request: RegisterOutput): Output.RegisterOutput {
@@ -42,11 +42,8 @@ export function intoRegisterOutputRequest(request: RegisterOutput): Output.Regis
     return { ...request, type: 'web-wasm-stream' };
   } else if (request.type === 'canvas') {
     return {
+      ...request,
       type: 'web-wasm-canvas',
-      video: {
-        canvas: request.video.canvas as HTMLCanvasElement,
-        resolution: request.video.resolution,
-      },
     };
   } else if (request.type === 'whip') {
     return { ...request, type: 'web-wasm-whip' };
@@ -57,4 +54,5 @@ export function intoRegisterOutputRequest(request: RegisterOutput): Output.Regis
 export type RegisterInput =
   | { type: 'mp4'; url: string }
   | { type: 'camera' }
-  | { type: 'screen_capture' };
+  | { type: 'screen_capture' }
+  | { type: 'stream'; stream: MediaStream };

@@ -3,6 +3,8 @@ import type { RegisterOutput } from '../../workerApi';
 import type { Output, RegisterOutputResult, RegisterWasmWhipOutput } from '../output';
 import type { Logger } from 'pino';
 import type { Framerate } from '../../compositor/compositor';
+import type { AudioMixer } from '../AudioMixer';
+import { MediaStreamAudioMixer } from '../AudioMixer';
 
 type PeerConnectionOptions = {
   logger: Logger;
@@ -15,12 +17,11 @@ type PeerConnectionOptions = {
     resolution: Api.Resolution;
     maxBitrate?: number;
   };
-  audio?: {
-    track: MediaStreamTrack;
-  };
+  audio: boolean;
 };
 
 export class WhipOutput implements Output {
+  private mixer?: MediaStreamAudioMixer = undefined;
   private options: PeerConnectionOptions;
   private pc?: RTCPeerConnection;
   private location?: string;
@@ -29,9 +30,13 @@ export class WhipOutput implements Output {
     this.options = options;
   }
 
-  async init(): Promise<void> {
+  public get audioMixer(): AudioMixer | undefined {
+    return this.mixer;
+  }
+
+  async init(): Promise<MediaStream> {
     const pc = new RTCPeerConnection({
-      iceServers: this.options.iceServers || [{ urls: 'stun:stun.cloudflare.com:3478' }],
+      iceServers: this.options.iceServers || [{ urls: 'stun:stun.l.google.com:19302' }],
       bundlePolicy: 'max-bundle',
     });
     const negotiationNeededPromise = new Promise<void>(res => {
@@ -39,8 +44,10 @@ export class WhipOutput implements Output {
         res();
       });
     });
+    const mediaStream = new MediaStream();
 
     if (this.options.video) {
+      mediaStream.addTrack(this.options.video.track);
       const videoSender = pc.addTransceiver(this.options.video.track, {
         direction: 'sendonly',
         sendEncodings: [
@@ -59,7 +66,10 @@ export class WhipOutput implements Output {
     }
 
     if (this.options.audio) {
-      pc.addTransceiver(this.options.audio.track, { direction: 'sendonly' });
+      this.mixer = new MediaStreamAudioMixer();
+      const track = this.mixer.outputMediaStreamTrack();
+      mediaStream.addTrack(track);
+      pc.addTransceiver(track, { direction: 'sendonly' });
     }
 
     await negotiationNeededPromise;
@@ -70,6 +80,7 @@ export class WhipOutput implements Output {
     );
 
     this.pc = pc;
+    return mediaStream;
   }
 
   public async terminate(): Promise<void> {
@@ -90,7 +101,7 @@ export class WhipOutput implements Output {
     }
     this.pc?.close();
     this.options.video?.stream.getTracks().forEach(track => track.stop());
-    this.options.audio?.track.stop();
+    await this.audioMixer?.close();
   }
 }
 
@@ -130,27 +141,24 @@ export async function handleRegisterWhipOutput(
       initial: request.initial.video,
       canvas: offscreen,
     };
-  } else {
-    // TODO: remove after adding audio
-    throw new Error('Video field is required');
   }
 
-  // @ts-ignore
-  const audioTrack = new MediaStreamTrackGenerator({ kind: 'audio' });
   const output = new WhipOutput({
     logger,
     iceServers: request.iceServers,
     bearerToken: request.bearerToken,
     endpointUrl: request.endpointUrl,
     video: videoPeerConnection,
-    audio: {
-      track: audioTrack,
-    },
+    audio: !!request.audio,
   });
-  await output.init();
+  const outputStream = await output.init();
 
   return {
     output,
+    result: {
+      type: 'web-wasm-whip',
+      stream: outputStream,
+    },
     workerMessage: [
       {
         type: 'registerOutput',
@@ -194,7 +202,7 @@ async function gatherICECandidates(
   return new Promise<RTCSessionDescription | null>(res => {
     setTimeout(function () {
       res(peerConnection.localDescription);
-    }, 5000);
+    }, 2000);
 
     peerConnection.onicegatheringstatechange = (_ev: Event) => {
       if (peerConnection.iceGatheringState === 'complete') {

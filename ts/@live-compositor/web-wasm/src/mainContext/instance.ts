@@ -14,7 +14,8 @@ import type { ImageSpec } from '@live-compositor/browser-render';
 import type { Api } from 'live-compositor';
 import type { Logger } from 'pino';
 import { AsyncWorker } from '../workerContext/bridge';
-import { handleRegisterOutputRequest, type Output } from './output';
+import type { RegisterOutputResponse, Output } from './output';
+import { handleRegisterOutputRequest } from './output';
 import type { Input } from './input';
 import { handleRegisterInputRequest } from './input';
 
@@ -95,22 +96,10 @@ class WasmInstance implements CompositorManager {
     if (route.type == 'input') {
       if (route.operation === 'register') {
         assert(request.body);
-        const { input, workerMessage } = await handleRegisterInputRequest(
+        return await this.handleRegisterInput(
           route.id,
           request.body as CoreInput.RegisterInputRequest
         );
-        let result;
-        try {
-          result = await this.worker.postMessage(workerMessage[0], workerMessage[1]);
-        } catch (err: any) {
-          input.terminate().catch(err => {
-            this.logger.warn({ err, outputId: route.id }, 'Failed to terminate input');
-          });
-          throw err;
-        }
-        this.inputs[route.id] = input;
-        assert(result?.type === 'registerInput');
-        return result?.body;
       } else if (route.operation === 'unregister') {
         const input = this.inputs[route.id];
         if (input) {
@@ -125,22 +114,10 @@ class WasmInstance implements CompositorManager {
     } else if (route.type === 'output') {
       if (route.operation === 'register') {
         assert(request.body);
-        const { output, result, workerMessage } = await handleRegisterOutputRequest(
+        return await this.handleRegisterOutput(
           route.id,
-          request.body as CoreOutput.RegisterOutputRequest,
-          this.logger.child({ outputId: route.id }),
-          this.framerate
+          request.body as CoreOutput.RegisterOutputRequest
         );
-        try {
-          await this.worker.postMessage(workerMessage[0], workerMessage[1]);
-        } catch (err: any) {
-          output.terminate().catch(err => {
-            this.logger.warn({ err, outputId: route.id }, 'Failed to terminate output');
-          });
-          throw err;
-        }
-        this.outputs[route.id] = output;
-        return result;
       } else if (route.operation === 'unregister') {
         const output = this.outputs[route.id];
         if (output) {
@@ -152,10 +129,16 @@ class WasmInstance implements CompositorManager {
           outputId: route.id,
         });
       } else if (route.operation === 'update') {
+        const body = request.body as Api.UpdateOutputRequest;
+        if (body.audio) {
+          for (const output of Object.values(this.outputs)) {
+            output.audioMixer?.update(body.audio.inputs);
+          }
+        }
         return await this.worker.postMessage({
           type: 'updateScene',
           outputId: route.id,
-          output: request.body as Api.UpdateOutputRequest,
+          output: body,
         });
       }
     } else if (route.type === 'image') {
@@ -179,6 +162,61 @@ class WasmInstance implements CompositorManager {
     }
 
     throw new Error('Unknown request');
+  }
+
+  private async handleRegisterOutput(
+    outputId: string,
+    request: CoreOutput.RegisterOutputRequest
+  ): Promise<RegisterOutputResponse | undefined> {
+    const { output, result, workerMessage } = await handleRegisterOutputRequest(
+      outputId,
+      request,
+      this.logger.child({ outputId }),
+      this.framerate
+    );
+    try {
+      await this.worker.postMessage(workerMessage[0], workerMessage[1]);
+    } catch (err: any) {
+      output.terminate().catch(err => {
+        this.logger.warn({ err, outputId }, 'Failed to terminate output');
+      });
+      throw err;
+    }
+    for (const [inputId, input] of Object.entries(this.inputs)) {
+      const audioTrack = input.audioTrack;
+      if (audioTrack) {
+        output.audioMixer?.addInput(inputId, input.audioTrack);
+      }
+    }
+    if ('initial' in request && request.initial && request.initial.audio?.inputs) {
+      output.audioMixer?.update(request.initial.audio.inputs);
+    }
+    this.outputs[outputId] = output;
+    return result;
+  }
+
+  private async handleRegisterInput(
+    inputId: string,
+    request: CoreInput.RegisterInputRequest
+  ): Promise<{ video_duration_ms?: number; audio_duration_ms?: number }> {
+    const { input, workerMessage } = await handleRegisterInputRequest(inputId, request);
+    let result;
+    try {
+      result = await this.worker.postMessage(workerMessage[0], workerMessage[1]);
+    } catch (err: any) {
+      input.terminate().catch(err => {
+        this.logger.warn({ err, inputId }, 'Failed to terminate input');
+      });
+      throw err;
+    }
+    this.inputs[inputId] = input;
+    for (const output of Object.values(this.outputs)) {
+      if (input.audioTrack) {
+        output.audioMixer?.addInput(inputId, input.audioTrack);
+      }
+    }
+    assert(result?.type === 'registerInput');
+    return result.body;
   }
 }
 

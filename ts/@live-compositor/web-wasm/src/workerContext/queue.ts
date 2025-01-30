@@ -168,7 +168,7 @@ class FrameTicker {
 
   private maybeSkipFrames() {
     const frameDurationMs = 1000 * (this.framerate.den / this.framerate.num);
-    while (Date.now() - this.startTimeMs > this.currentPtsMs() + frameDurationMs) {
+    while (Date.now() - this.startTimeMs > this.currentPtsMs() + frameDurationMs * 2) {
       this.logger.info(`Processing to slow, dropping frame (frameCounter: ${this.frameCounter})`);
       this.frameCounter += 1;
     }

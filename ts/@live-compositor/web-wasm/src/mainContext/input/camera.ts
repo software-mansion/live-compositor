@@ -7,6 +7,10 @@ export class CameraInput implements Input {
     this.mediaStream = mediaStream;
   }
 
+  public get audioTrack(): MediaStreamTrack | undefined {
+    return this.mediaStream.getAudioTracks()[0];
+  }
+
   public async terminate(): Promise<void> {
     this.mediaStream.getTracks().forEach(track => track.stop());
   }
@@ -14,11 +18,12 @@ export class CameraInput implements Input {
 
 export async function handleRegisterCameraInput(inputId: string): Promise<RegisterInputResult> {
   const mediaStream = await navigator.mediaDevices.getUserMedia({
-    audio: false,
+    audio: {
+      noiseSuppression: { ideal: true },
+    },
     video: true,
   });
   const videoTrack = mediaStream.getVideoTracks()[0];
-  const audioTrack = mediaStream.getAudioTracks()[0];
   const transferable = [];
 
   // @ts-ignore
@@ -27,14 +32,6 @@ export async function handleRegisterCameraInput(inputId: string): Promise<Regist
     // @ts-ignore
     videoTrackProcessor = new MediaStreamTrackProcessor({ track: videoTrack });
     transferable.push(videoTrackProcessor.readable);
-  }
-
-  // @ts-ignore
-  let audioTrackProcessor: MediaStreamTrackProcessor | undefined;
-  if (audioTrack) {
-    // @ts-ignore
-    audioTrackProcessor = new MediaStreamTrackProcessor({ track: audioTrack });
-    transferable.push(audioTrackProcessor.readable);
   }
 
   return {
@@ -46,7 +43,6 @@ export async function handleRegisterCameraInput(inputId: string): Promise<Regist
         input: {
           type: 'stream',
           videoStream: videoTrackProcessor.readable,
-          audioStream: videoTrackProcessor.readable,
         },
       },
       transferable,

@@ -31,7 +31,7 @@ export type RegisterWasmWhipOutput = {
     resolution: Api.Resolution;
     maxBitrate?: number;
   };
-  // audio: boolean;
+  audio?: boolean;
 };
 
 export type RegisterWasmCanvasOutput = {
@@ -40,6 +40,7 @@ export type RegisterWasmCanvasOutput = {
     resolution: Api.Resolution;
     canvas: any; // HTMLCanvasElement
   };
+  audio?: boolean;
 };
 
 export type RegisterWasmStreamOutput = {
@@ -47,6 +48,7 @@ export type RegisterWasmStreamOutput = {
   video?: {
     resolution: Api.Resolution;
   };
+  audio?: boolean;
 };
 
 export type RegisterWasmSpecificOutput =
