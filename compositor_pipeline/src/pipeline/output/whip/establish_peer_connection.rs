@@ -11,7 +11,10 @@ use std::sync::{
 use tracing::{debug, error, info};
 use url::{ParseError, Url};
 use webrtc::{
-    ice_transport::{ice_candidate::RTCIceCandidate, ice_connection_state::RTCIceConnectionState},
+    ice_transport::{
+        ice_candidate::{RTCIceCandidate, RTCIceCandidateInit},
+        ice_connection_state::RTCIceConnectionState,
+    },
     peer_connection::{sdp::session_description::RTCSessionDescription, RTCPeerConnection},
     rtcp::payload_feedbacks::picture_loss_indication::PictureLossIndication,
 };
@@ -71,7 +74,7 @@ pub async fn connect(
     let endpoint_url = Url::parse(&whip_ctx.options.endpoint_url)
         .map_err(|e| WhipError::InvalidEndpointUrl(e, whip_ctx.options.endpoint_url.clone()))?;
 
-    info!("Endpoint url: {}", endpoint_url);
+    debug!("WHIP endpoint url: {}", endpoint_url);
 
     let mut header_map = HeaderMap::new();
     header_map.append("Content-Type", HeaderValue::from_static("application/sdp"));
@@ -110,19 +113,13 @@ pub async fn connect(
         .and_then(|url| url.to_str().ok())
         .ok_or_else(|| WhipError::MissingLocationHeader)?;
 
-    let port = endpoint_url.port().ok_or_else(|| WhipError::MissingPort)?;
     let location_url = match Url::parse(location_url_str) {
         Ok(url) => Ok(url),
         Err(err) => match err {
             ParseError::RelativeUrlWithoutBase => {
-                let scheme = endpoint_url.scheme();
-                let host = endpoint_url
-                    .host_str()
-                    .ok_or_else(|| WhipError::MissingHost)?;
-                let formatted_url = format!("{}://{}:{}{}", scheme, host, port, location_url_str);
-                let location_url = Url::try_from(formatted_url.as_str())
-                    .map_err(|e| WhipError::InvalidEndpointUrl(e, formatted_url))?;
-                Ok(location_url)
+                let mut location = endpoint_url.clone();
+                location.set_path(location_url_str);
+                Ok(location)
             }
             _ => Err(WhipError::InvalidEndpointUrl(
                 err,
@@ -213,7 +210,7 @@ async fn handle_candidate(
     let response = client
         .patch(location.clone())
         .headers(header_map)
-        .body(serde_json::to_string(&ice_candidate)?)
+        .body(sdp_from_candidate(ice_candidate))
         .send()
         .await
         .map_err(|_| WhipError::RequestFailed(Method::PATCH, location.clone()))?;
@@ -238,4 +235,18 @@ async fn handle_candidate(
     };
 
     Ok(())
+}
+
+fn sdp_from_candidate(candidate: RTCIceCandidateInit) -> String {
+    let mut sdp = String::new();
+    if let Some(mid) = candidate.sdp_mid {
+        if !mid.is_empty() {
+            sdp.push_str(format!("a=mid:{}\n", mid).as_str());
+        }
+    }
+    if let Some(ufrag) = candidate.username_fragment {
+        sdp.push_str(format!("a=ice-ufrag:{}\n", ufrag).as_str());
+    }
+    sdp.push_str(format!("a=candidate:{}\n", candidate.candidate).as_str());
+    sdp
 }
