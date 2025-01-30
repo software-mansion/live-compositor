@@ -92,6 +92,27 @@ pub struct View {
 
     /// List of box shadows.
     pub box_shadow: Option<Vec<BoxShadow>>,
+
+    /// (**default=`0.0`**) Padding for all sides of the component.
+    pub padding: Option<f32>,
+
+    /// (**default=`0.0`**) Padding for the top and bottom of the component.
+    pub padding_vertical: Option<f32>,
+
+    /// (**default=`0.0`**) Padding for the left and right of the component.
+    pub padding_horizontal: Option<f32>,
+
+    /// (**default=`0.0`**) Padding on top side in pixels.
+    pub padding_top: Option<f32>,
+
+    /// (**default=`0.0`**) Padding on right side in pixels.
+    pub padding_right: Option<f32>,
+
+    /// (**default=`0.0`**) Padding on bottom side in pixels.
+    pub padding_bottom: Option<f32>,
+
+    /// (**default=`0.0`**) Padding on left side in pixels.
+    pub padding_left: Option<f32>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema)]

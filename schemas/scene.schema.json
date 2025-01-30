@@ -251,6 +251,62 @@
               "items": {
                 "$ref": "#/definitions/BoxShadow"
               }
+            },
+            "padding": {
+              "description": "(**default=`0.0`**) Padding for all sides of the component.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
+            },
+            "padding_vertical": {
+              "description": "(**default=`0.0`**) Padding for the top and bottom of the component.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
+            },
+            "padding_horizontal": {
+              "description": "(**default=`0.0`**) Padding for the left and right of the component.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
+            },
+            "padding_top": {
+              "description": "(**default=`0.0`**) Padding on top side in pixels.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
+            },
+            "padding_right": {
+              "description": "(**default=`0.0`**) Padding on right side in pixels.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
+            },
+            "padding_bottom": {
+              "description": "(**default=`0.0`**) Padding on bottom side in pixels.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
+            },
+            "padding_left": {
+              "description": "(**default=`0.0`**) Padding on left side in pixels.",
+              "type": [
+                "number",
+                "null"
+              ],
+              "format": "float"
             }
           },
           "additionalProperties": false

@@ -135,21 +135,26 @@ impl ViewComponentParam {
         let (top, left, width, height) = match self.direction {
             ViewChildrenDirection::Row => {
                 let width = opts.width.unwrap_or(opts.static_child_size);
-                let height = opts.height.unwrap_or(opts.parent_size.height);
-                let top = opts.parent_border_width;
-                let left = static_offset;
+                let height = opts
+                    .height
+                    .unwrap_or(opts.parent_size.height - self.padding.vertical());
+                let top = opts.parent_border_width + self.padding.top;
+                let left = static_offset + self.padding.left;
                 static_offset += width;
                 (top, left, width, height)
             }
             ViewChildrenDirection::Column => {
                 let height = opts.height.unwrap_or(opts.static_child_size);
-                let width = opts.width.unwrap_or(opts.parent_size.width);
-                let top = static_offset;
-                let left = opts.parent_border_width;
+                let width = opts
+                    .width
+                    .unwrap_or(opts.parent_size.width - self.padding.horizontal());
+                let top = static_offset + self.padding.top;
+                let left = opts.parent_border_width + self.padding.left;
                 static_offset += height;
                 (top, left, width, height)
             }
         };
+
         let layout = match child {
             StatefulComponent::Layout(layout_component) => {
                 let children_layouts = layout_component.layout(Size { width, height }, pts);
@@ -201,8 +206,8 @@ impl ViewComponentParam {
     /// size represents dimensions of content (without a border).
     fn static_child_size(&self, size: Size, children: &[StatefulComponent], pts: Duration) -> f32 {
         let max_size = match self.direction {
-            super::ViewChildrenDirection::Row => size.width,
-            super::ViewChildrenDirection::Column => size.height,
+            super::ViewChildrenDirection::Row => size.width - self.padding.horizontal(),
+            super::ViewChildrenDirection::Column => size.height - self.padding.vertical(),
         };
 
         let children_with_unknown_size_count = Self::static_children_iter(children, pts)

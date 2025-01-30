@@ -98,6 +98,7 @@ fn yuv_test_uniform_color() {
             border_width: 0.0,
             border_color: RGBAColor(0, 0, 0, 0),
             box_shadow: vec![],
+            padding: Default::default(),
         })],
         resolution: Resolution { width, height },
         ..Default::default()

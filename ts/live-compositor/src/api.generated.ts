@@ -359,6 +359,34 @@ export type Component =
        * List of box shadows.
        */
       box_shadow?: BoxShadow[] | null;
+      /**
+       * (**default=`0.0`**) Padding for all sides of the component.
+       */
+      padding?: number | null;
+      /**
+       * (**default=`0.0`**) Padding for the top and bottom of the component.
+       */
+      padding_vertical?: number | null;
+      /**
+       * (**default=`0.0`**) Padding for the left and right of the component.
+       */
+      padding_horizontal?: number | null;
+      /**
+       * (**default=`0.0`**) Padding on top side in pixels.
+       */
+      padding_top?: number | null;
+      /**
+       * (**default=`0.0`**) Padding on right side in pixels.
+       */
+      padding_right?: number | null;
+      /**
+       * (**default=`0.0`**) Padding on bottom side in pixels.
+       */
+      padding_bottom?: number | null;
+      /**
+       * (**default=`0.0`**) Padding on left side in pixels.
+       */
+      padding_left?: number | null;
     }
   | {
       type: "web_view";
