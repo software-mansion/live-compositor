@@ -36,7 +36,9 @@ function PartialText(props: PartialTextProps) {
 
   return (
     <View>
-      <Text style={{ fontSize: 40 }}>{props.text.substring(0, textPart.characters)}</Text>
+      <Text style={{ fontSize: 40, fontFamily: 'Noto Sans' }}>
+        {props.text.substring(0, textPart.characters)}
+      </Text>
     </View>
   );
 }
@@ -59,6 +61,9 @@ async function run() {
   await ffplayStartPlayerAsync('127.0.0.1', 8001);
   await sleep(2000);
 
+  await compositor.registerFont(
+    'https://fonts.gstatic.com/s/notosans/v36/o-0mIpQlx3QUlC5A4PNB6Ryti20_6n1iPHjcz6L1SoM-jCpoiyD9A-9a6Vc.ttf'
+  );
   await compositor.registerImage('image_1', {
     assetType: 'svg',
     url: 'https://compositor.live/img/logo.svg',

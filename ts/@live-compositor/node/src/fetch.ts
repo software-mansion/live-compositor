@@ -5,7 +5,8 @@ import { Stream } from 'stream';
 import { promisify } from 'util';
 
 import fetch from 'node-fetch';
-import type { ApiRequest } from '@live-compositor/core';
+import type FormData from 'form-data';
+import type { ApiRequest, MultipartRequest } from '@live-compositor/core';
 
 const pipeline = promisify(Stream.pipeline);
 const httpAgent = new http.Agent({ keepAlive: true });
@@ -18,6 +19,28 @@ export async function sendRequest(baseUrl: string, request: ApiRequest): Promise
     headers: {
       'Content-Type': 'application/json',
     },
+    agent: url => (url.protocol === 'http:' ? httpAgent : httpsAgent),
+  });
+  if (response.status >= 400) {
+    const err: any = new Error(`Request to compositor failed.`);
+    err.response = response;
+    try {
+      err.body = await response.json();
+    } catch {
+      err.body = await response.text();
+    }
+    throw err;
+  }
+  return (await response.json()) as object;
+}
+
+export async function sendMultipartRequest(
+  baseUrl: string,
+  request: MultipartRequest
+): Promise<object> {
+  const response = await fetch(new URL(request.route, baseUrl), {
+    method: request.method,
+    body: request.body as FormData,
     agent: url => (url.protocol === 'http:' ? httpAgent : httpsAgent),
   });
   if (response.status >= 400) {

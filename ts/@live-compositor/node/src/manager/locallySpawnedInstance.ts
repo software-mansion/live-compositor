@@ -4,9 +4,14 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs-extra';
 import * as tar from 'tar';
-import type { ApiRequest, CompositorManager, SetupInstanceOptions } from '@live-compositor/core';
+import type {
+  ApiRequest,
+  MultipartRequest,
+  CompositorManager,
+  SetupInstanceOptions,
+} from '@live-compositor/core';
 
-import { download, sendRequest } from '../fetch';
+import { download, sendRequest, sendMultipartRequest } from '../fetch';
 import { retry, sleep } from '../utils';
 import type { SpawnPromise } from '../spawn';
 import { killProcess, spawn } from '../spawn';
@@ -94,6 +99,9 @@ class LocallySpawnedInstance implements CompositorManager {
     return await sendRequest(`http://127.0.0.1:${this.port}`, request);
   }
 
+  async sendMultipartRequest(request: MultipartRequest): Promise<object> {
+    return await sendMultipartRequest(`http://127.0.0.1:${this.port}`, request);
+  }
   public registerEventListener(cb: (event: object) => void): void {
     this.wsConnection.registerEventListener(cb);
   }

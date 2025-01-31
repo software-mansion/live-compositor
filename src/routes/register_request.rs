@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
-use axum::extract::{Multipart, Path, State};
+use axum::extract::{Path, State};
 use compositor_pipeline::pipeline::{input::InputInitInfo, Port};
 use glyphon::fontdb::Source;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    routes::Json,
+    routes::{Json, Multipart},
     state::{Pipeline, Response},
 };
 use compositor_api::{
@@ -150,7 +150,7 @@ pub(super) async fn handle_image(
 
 pub(super) async fn handle_font(
     State(api): State<ApiState>,
-    mut multipart: Multipart,
+    Multipart(mut multipart): Multipart,
 ) -> Result<Response, ApiError> {
     let Some(field) = multipart
         .next_field()

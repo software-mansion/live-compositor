@@ -1,5 +1,5 @@
 import type { Logger } from 'pino';
-import type { ApiRequest } from './api.js';
+import type { ApiRequest, MultipartRequest } from './api.js';
 
 export interface SetupInstanceOptions {
   /**
@@ -13,6 +13,7 @@ export interface SetupInstanceOptions {
 export interface CompositorManager {
   setupInstance(opts: SetupInstanceOptions): Promise<void>;
   sendRequest(request: ApiRequest): Promise<object>;
+  sendMultipartRequest(request: MultipartRequest): Promise<object>;
   registerEventListener(cb: (event: unknown) => void): void;
   terminate(): Promise<void>;
 }
