@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use bytes::Bytes;
 use compositor_api::types as api;
@@ -43,15 +43,19 @@ pub async fn create_renderer(options: JsValue) -> Result<LiveCompositorRenderer,
     let input_uploader = InputUploader::default();
     let output_downloader = OutputDownloader::default();
 
-    Ok(LiveCompositorRenderer {
+    let inner = InnerLiveCompositorRenderer {
         renderer,
         input_uploader,
         output_downloader,
-    })
+    };
+    Ok(LiveCompositorRenderer(Mutex::new(inner)))
 }
 
 #[wasm_bindgen]
-pub struct LiveCompositorRenderer {
+pub struct LiveCompositorRenderer(Mutex<InnerLiveCompositorRenderer>);
+
+#[wasm_bindgen]
+pub struct InnerLiveCompositorRenderer {
     renderer: Renderer,
     input_uploader: InputUploader,
     output_downloader: OutputDownloader,
@@ -59,6 +63,57 @@ pub struct LiveCompositorRenderer {
 
 #[wasm_bindgen]
 impl LiveCompositorRenderer {
+    pub fn render(&self, input: types::FrameSet) -> Result<types::FrameSet, JsValue> {
+        let mut inner = self.0.lock().unwrap();
+        inner.render(input)
+    }
+
+    pub fn update_scene(
+        &self,
+        output_id: String,
+        resolution: JsValue,
+        scene: JsValue,
+    ) -> Result<(), JsValue> {
+        let mut inner = self.0.lock().unwrap();
+        inner.update_scene(output_id, resolution, scene)
+    }
+
+    pub fn register_input(&self, input_id: String) {
+        let mut inner = self.0.lock().unwrap();
+        inner.register_input(input_id)
+    }
+
+    pub async fn register_image(
+        &self,
+        renderer_id: String,
+        image_spec: JsValue,
+    ) -> Result<(), JsValue> {
+        let mut inner = self.0.lock().unwrap();
+        inner.register_image(renderer_id, image_spec).await
+    }
+
+    pub async fn register_font(&self, font_url: String) -> Result<(), JsValue> {
+        let mut inner = self.0.lock().unwrap();
+        inner.register_font(font_url).await
+    }
+
+    pub fn unregister_input(&self, input_id: String) {
+        let mut inner = self.0.lock().unwrap();
+        inner.unregister_input(input_id)
+    }
+
+    pub fn unregister_output(&self, output_id: String) {
+        let mut inner = self.0.lock().unwrap();
+        inner.unregister_output(output_id)
+    }
+
+    pub fn unregister_image(&self, renderer_id: String) -> Result<(), JsValue> {
+        let mut inner = self.0.lock().unwrap();
+        inner.unregister_image(renderer_id)
+    }
+}
+
+impl InnerLiveCompositorRenderer {
     pub fn render(&mut self, input: types::FrameSet) -> Result<types::FrameSet, JsValue> {
         let (device, queue) = self.renderer.wgpu_ctx();
         let frame_set = self.input_uploader.upload(&device, &queue, input)?;
