@@ -76,7 +76,7 @@ export class Queue {
     const frames = await this.getInputFrames(currentPtsMs);
     this.logger.trace({ frames }, 'onQueueTick');
 
-    const outputs = this.renderer.render({
+    const outputs = await this.renderer.render({
       ptsMs: currentPtsMs,
       frames,
     });

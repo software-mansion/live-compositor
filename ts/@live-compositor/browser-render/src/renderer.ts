@@ -1,5 +1,6 @@
 import { wasm } from './wasm';
 import type * as Api from './api';
+import { Mutex } from 'async-mutex';
 
 export type RendererOptions = {
   /**
@@ -28,9 +29,11 @@ export enum FrameFormat {
 
 export class Renderer {
   private renderer: wasm.LiveCompositorRenderer;
+  private mutex: Mutex;
 
   private constructor(renderer: wasm.LiveCompositorRenderer) {
     this.renderer = renderer;
+    this.mutex = new Mutex();
   }
 
   public static async create(options: RendererOptions): Promise<Renderer> {
@@ -41,41 +44,61 @@ export class Renderer {
     return new Renderer(renderer);
   }
 
-  public render(input: FrameSet): FrameSet {
-    const frames = new Map(Object.entries(input.frames));
-    const inputFrameSet = new wasm.FrameSet(input.ptsMs, frames);
-    const output = this.renderer.render(inputFrameSet);
-    return {
-      ptsMs: output.pts_ms,
-      frames: Object.fromEntries(output.frames),
-    };
+  public async render(input: FrameSet): Promise<FrameSet> {
+    return await this.mutex.runExclusive(() => {
+      const frames = new Map(Object.entries(input.frames));
+      const inputFrameSet = new wasm.FrameSet(input.ptsMs, frames);
+      const output = this.renderer.render(inputFrameSet);
+      return {
+        ptsMs: output.pts_ms,
+        frames: Object.fromEntries(output.frames),
+      };
+    });
   }
 
-  public updateScene(outputId: Api.OutputId, resolution: Api.Resolution, scene: Api.Component) {
-    this.renderer.update_scene(outputId, resolution, scene);
+  public async updateScene(
+    outputId: Api.OutputId,
+    resolution: Api.Resolution,
+    scene: Api.Component
+  ): Promise<void> {
+    await this.mutex.runExclusive(() => {
+      this.renderer.update_scene(outputId, resolution, scene);
+    });
   }
 
-  public registerInput(inputId: Api.InputId) {
-    this.renderer.register_input(inputId);
+  public async registerInput(inputId: Api.InputId): Promise<void> {
+    await this.mutex.runExclusive(() => {
+      this.renderer.register_input(inputId);
+    });
   }
 
-  public async registerImage(rendererId: Api.RendererId, imageSpec: Api.ImageSpec) {
-    await this.renderer.register_image(rendererId, imageSpec);
+  public async registerImage(rendererId: Api.RendererId, imageSpec: Api.ImageSpec): Promise<void> {
+    await this.mutex.runExclusive(async () => {
+      await this.renderer.register_image(rendererId, imageSpec);
+    });
   }
 
   public async registerFont(fontUrl: string) {
-    await this.renderer.register_font(fontUrl);
+    await this.mutex.runExclusive(async () => {
+      await this.renderer.register_font(fontUrl);
+    });
   }
 
-  public unregisterInput(inputId: Api.InputId) {
-    this.renderer.unregister_input(inputId);
+  public async unregisterInput(inputId: Api.InputId) {
+    await this.mutex.runExclusive(() => {
+      this.renderer.unregister_input(inputId);
+    });
   }
 
-  public unregisterImage(rendererId: Api.RendererId) {
-    this.renderer.unregister_image(rendererId);
+  public async unregisterImage(rendererId: Api.RendererId) {
+    await this.mutex.runExclusive(() => {
+      this.renderer.unregister_image(rendererId);
+    });
   }
 
-  public unregisterOutput(outputId: Api.OutputId) {
-    this.renderer.unregister_output(outputId);
+  public async unregisterOutput(outputId: Api.OutputId) {
+    await this.mutex.runExclusive(() => {
+      this.renderer.unregister_output(outputId);
+    });
   }
 }

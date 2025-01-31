@@ -9,6 +9,7 @@ use compositor_render::{
 use glyphon::fontdb::Source;
 use input_uploader::InputUploader;
 use output_downloader::OutputDownloader;
+use tracing::error;
 use types::to_js_error;
 use wasm_bindgen::prelude::*;
 use wgpu::create_wgpu_context;
@@ -48,6 +49,8 @@ pub async fn create_renderer(options: JsValue) -> Result<LiveCompositorRenderer,
         input_uploader,
         output_downloader,
     };
+
+    // return Ok(inner);
     Ok(LiveCompositorRenderer(Mutex::new(inner)))
 }
 
@@ -113,6 +116,13 @@ impl LiveCompositorRenderer {
     }
 }
 
+impl Drop for InnerLiveCompositorRenderer {
+    fn drop(&mut self) {
+        error!("DROP");
+    }
+}
+
+#[wasm_bindgen]
 impl InnerLiveCompositorRenderer {
     pub fn render(&mut self, input: types::FrameSet) -> Result<types::FrameSet, JsValue> {
         let (device, queue) = self.renderer.wgpu_ctx();
