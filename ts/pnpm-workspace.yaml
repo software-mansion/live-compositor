@@ -5,7 +5,7 @@ packages:
   - 'smelter-browser-render'
   - 'smelter-web-wasm'
   - 'examples/node-examples'
-  - 'examples/vite-browser-render'
+  - 'examples/vite-example'
   - 'create-smelter-app'
   - 'create-smelter-app/templates/node-minimal'
   - 'create-smelter-app/templates/node-express-zustand'
