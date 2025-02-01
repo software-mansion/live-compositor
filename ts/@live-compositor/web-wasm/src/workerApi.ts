@@ -10,7 +10,8 @@ export type RegisterInput =
   | {
       type: 'stream';
       videoStream?: ReadableStream;
-      audioStream?: ReadableStream;
+      // For now audio stream is handled on a main context
+      // audioStream?: ReadableStream;
     };
 
 export type RegisterOutput = {

@@ -8,6 +8,7 @@ import Camera from './examples/CameraExample';
 import ScreenCapture from './examples/ScreenCaptureExample';
 import { setWasmBundleUrl } from '@live-compositor/web-wasm';
 import WhipExample from './examples/WhipExample';
+import DemoExample from './examples/Demo';
 
 setWasmBundleUrl('/assets/live-compositor.wasm');
 
@@ -21,6 +22,7 @@ function App() {
     camera: <Camera />,
     screenCapture: <ScreenCapture />,
     home: <Home />,
+    demo: <DemoExample />,
   };
   const [currentExample, setCurrentExample] = useState<keyof typeof EXAMPLES>('home');
 
@@ -29,6 +31,10 @@ function App() {
       <h1>Examples</h1>
       <div className="examples-tabs">
         <button onClick={() => setCurrentExample('home')}>Home</button>
+
+        <button onClick={() => setCurrentExample('demo')}>Demo</button>
+
+        <h3>Smelter examples</h3>
         <button onClick={() => setCurrentExample('whip')}>WHIP</button>
         <button onClick={() => setCurrentExample('inputMp4')}>Input Stream MP4</button>
         <button onClick={() => setCurrentExample('componentMp4')}>Component MP4</button>
@@ -37,6 +43,8 @@ function App() {
         </button>
         <button onClick={() => setCurrentExample('camera')}>Camera</button>
         <button onClick={() => setCurrentExample('screenCapture')}>Screen Capture</button>
+
+        <h3>Smelter rendering engine examples</h3>
         <button onClick={() => setCurrentExample('counter')}>Counter</button>
       </div>
       <div className="card">{EXAMPLES[currentExample]}</div>
@@ -51,6 +59,13 @@ function Home() {
       <h3>
         <code>@live-compositor/web-wasm</code> - LiveCompositor in the browser
       </h3>
+      <li>
+        <code>Demo</code> - Demo that combine most of the below features in one example. Stream a
+        scene that includes a camera, screen share and mp4 file to Twitch. Add{' '}
+        <code>?twitchKey=mytwitchstreamkey</code> query param with your Twitch stream key to stream
+        it yourself.
+      </li>
+      <br />
       <li>
         <code>WHIP</code> - Streams Mp4 file to Twitch. Add{' '}
         <code>?twitchKey=mytwitchstreamkey</code> query param with your Twitch stream key to stream

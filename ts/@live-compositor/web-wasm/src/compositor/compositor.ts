@@ -10,6 +10,7 @@ import {
   intoRegisterOutputRequest,
 } from './api';
 import WasmInstance from '../mainContext/instance';
+import type { RegisterOutputResponse } from '../mainContext/output';
 
 export type LiveCompositorOptions = {
   framerate?: Framerate;
@@ -61,9 +62,18 @@ export default class LiveCompositor {
     outputId: string,
     root: ReactElement,
     request: RegisterOutput
-  ): Promise<void> {
+  ): Promise<{ stream?: MediaStream }> {
     assert(this.coreCompositor);
-    await this.coreCompositor.registerOutput(outputId, root, intoRegisterOutputRequest(request));
+    const response = (await this.coreCompositor.registerOutput(
+      outputId,
+      root,
+      intoRegisterOutputRequest(request)
+    )) as RegisterOutputResponse | undefined;
+    if (response?.type === 'web-wasm-stream' || response?.type === 'web-wasm-whip') {
+      return { stream: response.stream };
+    } else {
+      return {};
+    }
   }
 
   public async unregisterOutput(outputId: string): Promise<void> {

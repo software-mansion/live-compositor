@@ -1,19 +1,29 @@
 import type { RegisterOutput } from '../../workerApi';
+import type { AudioMixer } from '../AudioMixer';
+import { MediaStreamAudioMixer } from '../AudioMixer';
 import type { Output, RegisterOutputResult, RegisterWasmStreamOutput } from '../output';
 
 type StreamOptions = {
   stream: MediaStream;
+  mixer?: AudioMixer;
 };
 
 export class StreamOutput implements Output {
   private stream: MediaStream;
+  private mixer?: AudioMixer;
 
   constructor(options: StreamOptions) {
     this.stream = options.stream;
+    this.mixer = options.mixer;
+  }
+
+  public get audioMixer(): AudioMixer | undefined {
+    return this.mixer;
   }
 
   public async terminate(): Promise<void> {
     this.stream.getTracks().forEach(track => track.stop());
+    await this.mixer?.close();
   }
 }
 
@@ -42,16 +52,15 @@ export async function handleRegisterStreamOutput(
       initial: request.initial.video,
       canvas: offscreen,
     };
-  } else {
-    // TODO: remove after adding audio
-    throw new Error('Video field is required');
   }
 
-  // @ts-ignore
-  const audioTrack = new MediaStreamTrackGenerator({ kind: 'audio' });
-  stream.addTrack(audioTrack);
+  let mixer: MediaStreamAudioMixer | undefined;
+  if (request.audio) {
+    mixer = new MediaStreamAudioMixer();
+    stream.addTrack(mixer.outputMediaStreamTrack());
+  }
 
-  const output = new StreamOutput({ stream });
+  const output = new StreamOutput({ stream, mixer });
 
   return {
     output,

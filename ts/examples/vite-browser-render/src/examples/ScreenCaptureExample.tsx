@@ -17,7 +17,7 @@ function ScreenCaptureExample() {
 
   return (
     <div className="card">
-      <CompositorCanvas onCanvasCreate={onCanvasCreate} width={1280} height={720}>
+      <CompositorCanvas onCanvasStarted={onCanvasCreate} width={1280} height={720}>
         <Scene />
       </CompositorCanvas>
     </div>
@@ -26,11 +26,11 @@ function ScreenCaptureExample() {
 
 function Scene() {
   return (
-    <View style={{ width: 1280, height: 720 }}>
+    <View>
       <Rescaler>
         <InputStream inputId="screen" />
       </Rescaler>
-      <View style={{ width: 300, height: 40, backgroundColor: '#000000', bottom: 20, left: 520 }}>
+      <View style={{ width: 400, height: 40, backgroundColor: '#000000', bottom: 20, left: 520 }}>
         <Text style={{ fontSize: 30, fontFamily: 'Noto Sans' }}>Screen capture example</Text>
       </View>
     </View>

@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { LiveCompositor } from '@live-compositor/web-wasm';
 import { Mp4, Rescaler, Text, View } from 'live-compositor';
 
 function WhipExample() {
   const [compositor, setCompositor] = useState<LiveCompositor | undefined>();
+  const previewRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const compositor = new LiveCompositor({});
@@ -36,21 +37,32 @@ function WhipExample() {
       if (!streamKey) {
         throw new Error('Add "twitchKey" query params with your Twitch stream key.');
       }
-      await compositor.registerOutput('output', <Scene />, {
+      const { stream } = await compositor.registerOutput('output', <Scene />, {
         type: 'whip',
         endpointUrl: 'https://g.webrtc.live-video.net:4443/v2/offer',
         bearerToken: streamKey,
         video: {
           resolution: { width: 1920, height: 1080 },
-          maxBitrate: 2_000_000,
+          maxBitrate: 6_000_000,
         },
+        audio: true,
       });
 
       await compositor.start();
+
+      if (stream && previewRef.current) {
+        previewRef.current.srcObject = stream;
+        await previewRef.current.play();
+      }
     })();
   }, [compositor]);
 
-  return <div className="card">Streaming</div>;
+  return (
+    <div className="card">
+      <h2>Preview</h2>
+      <video ref={previewRef} />
+    </div>
+  );
 }
 
 const MP4_URL =

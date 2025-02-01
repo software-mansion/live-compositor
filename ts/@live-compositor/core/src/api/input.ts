@@ -14,7 +14,8 @@ import { _liveCompositorInternals } from 'live-compositor';
 export type RegisterInputRequest =
   | Api.RegisterInput
   | { type: 'camera' }
-  | { type: 'screen_capture' };
+  | { type: 'screen_capture' }
+  | { type: 'stream'; stream: any };
 
 export type InputRef = _liveCompositorInternals.InputRef;
 export const inputRefIntoRawId = _liveCompositorInternals.inputRefIntoRawId;
@@ -25,7 +26,8 @@ export type RegisterInput =
   | ({ type: 'mp4' } & RegisterMp4Input)
   | ({ type: 'whip' } & RegisterWhipInput)
   | { type: 'camera' }
-  | { type: 'screen_capture' };
+  | { type: 'screen_capture' }
+  | { type: 'stream'; stream: any };
 
 /**
  * Converts object passed by user (or modified by platform specific interface) into
@@ -42,6 +44,8 @@ export function intoRegisterInput(input: RegisterInput): RegisterInputRequest {
     return { type: 'camera' };
   } else if (input.type === 'screen_capture') {
     return { type: 'screen_capture' };
+  } else if (input.type === 'stream') {
+    return { type: 'stream', stream: input.stream };
   } else {
     throw new Error(`Unknown input type ${(input as any).type}`);
   }

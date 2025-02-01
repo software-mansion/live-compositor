@@ -1,6 +1,6 @@
 import type { Input, RegisterInputResult } from '../input';
 
-export class ScreenCaptureInput implements Input {
+export class StreamInput implements Input {
   private mediaStream: MediaStream;
 
   constructor(mediaStream: MediaStream) {
@@ -16,17 +16,11 @@ export class ScreenCaptureInput implements Input {
   }
 }
 
-export async function handleRegisterScreenCaptureInput(
-  inputId: string
+export async function handleRegisterStreamInput(
+  inputId: string,
+  stream: MediaStream
 ): Promise<RegisterInputResult> {
-  const mediaStream = await navigator.mediaDevices.getDisplayMedia({
-    audio: true,
-    video: {
-      width: { max: 2048 },
-      height: { max: 2048 },
-    },
-  });
-  const videoTrack = mediaStream.getVideoTracks()[0];
+  const videoTrack = stream.getVideoTracks()[0];
   const transferable = [];
 
   // @ts-ignore
@@ -38,7 +32,7 @@ export async function handleRegisterScreenCaptureInput(
   }
 
   return {
-    input: new ScreenCaptureInput(mediaStream),
+    input: new StreamInput(stream),
     workerMessage: [
       {
         type: 'registerInput',

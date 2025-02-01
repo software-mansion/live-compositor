@@ -6,8 +6,10 @@ import type { Api } from 'live-compositor';
 import { handleRegisterStreamOutput } from './output/stream';
 import type { Logger } from 'pino';
 import type { Framerate } from '../compositor/compositor';
+import type { AudioMixer } from './AudioMixer';
 
 export interface Output {
+  get audioMixer(): AudioMixer | undefined;
   terminate(): Promise<void>;
 }
 
@@ -15,10 +17,15 @@ type InitialScene = {
   initial: { video?: Api.Video; audio?: Api.Audio };
 };
 
-export type RegisterOutputResponse = {
-  type: 'web-wasm-stream';
-  stream: MediaStream;
-};
+export type RegisterOutputResponse =
+  | {
+      type: 'web-wasm-stream';
+      stream: MediaStream;
+    }
+  | {
+      type: 'web-wasm-whip';
+      stream: MediaStream;
+    };
 
 export type RegisterOutputResult = {
   output: Output;
