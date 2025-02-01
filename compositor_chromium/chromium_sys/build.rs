@@ -14,7 +14,7 @@ fn main() -> Result<()> {
     println!("cargo:rerun-if-env-changed=CEF_ROOT");
 
     let out_dir = PathBuf::from(env::var("OUT_DIR")?);
-    let cache_dir = dirs::cache_dir().unwrap().join("live-compositor");
+    let cache_dir = dirs::cache_dir().unwrap().join("smelter");
     let cef_root = env::var("CEF_ROOT")
         .map(PathBuf::from)
         .unwrap_or(cache_dir.join("cef_root"));

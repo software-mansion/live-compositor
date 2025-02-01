@@ -3,7 +3,7 @@ import type { ApiRequest, MultipartRequest } from './api.js';
 
 export interface SetupInstanceOptions {
   /**
-   * sets LIVE_COMPOSITOR_AHEAD_OF_TIME_PROCESSING_ENABLE environment variable.
+   * sets SMELTER_AHEAD_OF_TIME_PROCESSING_ENABLE environment variable.
    */
   aheadOfTimeProcessing: boolean;
 

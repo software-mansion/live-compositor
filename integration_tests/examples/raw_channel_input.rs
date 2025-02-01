@@ -28,7 +28,7 @@ use compositor_render::{
     Frame, FrameData, InputId, OutputId, Resolution,
 };
 use integration_tests::{gstreamer::start_gst_receive_tcp, test_input::TestInput};
-use live_compositor::{
+use smelter::{
     config::read_config,
     logger::{self},
 };

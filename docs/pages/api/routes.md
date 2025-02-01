@@ -4,7 +4,7 @@ description: API routes to configure the compositor.
 
 # Routes
 
-API is served by default on the port 8081. Different port can be configured using [`LIVE_COMPOSITOR_API_PORT`](../deployment/configuration#live_compositor_api_port) environment variable.
+API is served by default on the port 8081. Different port can be configured using [`SMELTER_API_PORT`](../deployment/configuration#live_compositor_api_port) environment variable.
 
 ## Start request
 
@@ -218,7 +218,7 @@ type Response = {
 
 Status/health check endpoint. Returns `200 OK`.
 
-- `instance_id` - ID that can be provided using `LIVE_COMPOSITOR_INSTANCE_ID` environment variable. Defaults to random value in the format `live_compositor_{RANDOM_VALUE}`.
+- `instance_id` - ID that can be provided using `SMELTER_INSTANCE_ID` environment variable. Defaults to random value in the format `live_compositor_{RANDOM_VALUE}`.
 
 ## WebSocket endpoint 
 

@@ -57,7 +57,7 @@ pub async fn init_peer_connection(
             let video_track = Arc::new(TrackLocalStaticRTP::new(
                 video_codec_capability(video),
                 "video".to_owned(),
-                format!("live-compositor-{}-video", whip_ctx.output_id).to_owned(),
+                format!("smelter-{}-video", whip_ctx.output_id).to_owned(),
             ));
             peer_connection
                 .add_track(video_track.clone())
@@ -72,7 +72,7 @@ pub async fn init_peer_connection(
             let audio_track = Arc::new(TrackLocalStaticRTP::new(
                 audio_codec_capability(audio_options, whip_ctx.pipeline_ctx.mixing_sample_rate)?,
                 "audio".to_owned(),
-                format!("live-compositor-{}-audio", whip_ctx.output_id).to_owned(),
+                format!("smelter-{}-audio", whip_ctx.output_id).to_owned(),
             ));
             peer_connection
                 .add_track(audio_track.clone())

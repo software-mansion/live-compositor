@@ -17,7 +17,7 @@ See [`requirements`](./requirements.md) page for details about software and hard
 
 ## Configuration
 
-Some of the compositor behaviors can only be configured on server startup. You can define those options using `LIVE_COMPOSITOR_*`
+Some of the compositor behaviors can only be configured on server startup. You can define those options using `SMELTER_*`
 environment variables. Full list of those variables can be found [here](./configuration.md).
 
 ## Web renderer support

@@ -64,20 +64,20 @@ pub fn read_config() -> Config {
 }
 
 fn try_read_config() -> Result<Config, String> {
-    let api_port = match env::var("LIVE_COMPOSITOR_API_PORT") {
+    let api_port = match env::var("SMELTER_API_PORT") {
         Ok(api_port) => api_port
             .parse::<u16>()
-            .map_err(|_| "LIVE_COMPOSITOR_API_PORT has to be valid port number")?,
+            .map_err(|_| "SMELTER_API_PORT has to be valid port number")?,
         Err(_) => 8081,
     };
 
-    let instance_id = match env::var("LIVE_COMPOSITOR_INSTANCE_ID") {
+    let instance_id = match env::var("SMELTER_INSTANCE_ID") {
         Ok(instance_id) => instance_id,
-        Err(_) => format!("live_compositor_{}", rand::thread_rng().gen::<u32>()),
+        Err(_) => format!("smelter_{}", rand::thread_rng().gen::<u32>()),
     };
 
     const DEFAULT_FRAMERATE: Framerate = Framerate { num: 30, den: 1 };
-    let framerate = match env::var("LIVE_COMPOSITOR_OUTPUT_FRAMERATE") {
+    let framerate = match env::var("SMELTER_OUTPUT_FRAMERATE") {
         Ok(framerate) => framerate_from_str(&framerate).unwrap_or(DEFAULT_FRAMERATE),
         Err(_) => DEFAULT_FRAMERATE,
     };
@@ -85,39 +85,39 @@ fn try_read_config() -> Result<Config, String> {
     /// Valid Opus sample rates
     const SUPPORTED_SAMPLE_RATES: [u32; 5] = [8_000, 12_000, 16_000, 24_000, 48_000];
     const DEFAULT_MIXING_SAMPLE_RATE: u32 = 48_000;
-    let mixing_sample_rate: u32 = match env::var("LIVE_COMPOSITOR_MIXING_SAMPLE_RATE") {
+    let mixing_sample_rate: u32 = match env::var("SMELTER_MIXING_SAMPLE_RATE") {
         Ok(sample_rate) => {
             let sample_rate = sample_rate
                 .parse()
-                .map_err(|_| "LIVE_COMPOSITOR_MIXING_SAMPLE_RATE has to be a valid number")?;
+                .map_err(|_| "SMELTER_MIXING_SAMPLE_RATE has to be a valid number")?;
 
             if SUPPORTED_SAMPLE_RATES.contains(&sample_rate) {
                 sample_rate
             } else {
-                return Err("LIVE_COMPOSITOR_MIXING_SAMPLE_RATE has to be a supported sample rate. Supported sample rates are: 8000, 12000, 16000, 24000, 48000".to_string());
+                return Err("SMELTER_MIXING_SAMPLE_RATE has to be a supported sample rate. Supported sample rates are: 8000, 12000, 16000, 24000, 48000".to_string());
             }
         }
         Err(_) => DEFAULT_MIXING_SAMPLE_RATE,
     };
 
-    let force_gpu = match env::var("LIVE_COMPOSITOR_FORCE_GPU") {
+    let force_gpu = match env::var("SMELTER_FORCE_GPU") {
         Ok(enable) => bool_env_from_str(&enable).unwrap_or(false),
         Err(_) => false,
     };
 
     const DEFAULT_STREAM_FALLBACK_TIMEOUT: Duration = Duration::from_millis(500);
-    let stream_fallback_timeout = match env::var("LIVE_COMPOSITOR_STREAM_FALLBACK_TIMEOUT_MS") {
+    let stream_fallback_timeout = match env::var("SMELTER_STREAM_FALLBACK_TIMEOUT_MS") {
         Ok(timeout_ms) => match timeout_ms.parse::<f64>() {
             Ok(timeout_ms) => Duration::from_secs_f64(timeout_ms / 1000.0),
             Err(_) => {
-                println!("CONFIG ERROR: Invalid value provided for \"LIVE_COMPOSITOR_STREAM_FALLBACK_TIMEOUT_MS\". Falling back to default value 500ms.");
+                println!("CONFIG ERROR: Invalid value provided for \"SMELTER_STREAM_FALLBACK_TIMEOUT_MS\". Falling back to default value 500ms.");
                 DEFAULT_STREAM_FALLBACK_TIMEOUT
             }
         },
         Err(_) => DEFAULT_STREAM_FALLBACK_TIMEOUT,
     };
 
-    let logger_level = match env::var("LIVE_COMPOSITOR_LOGGER_LEVEL") {
+    let logger_level = match env::var("SMELTER_LOGGER_LEVEL") {
         Ok(level) => level,
         Err(_) => "info,wgpu_hal=warn,wgpu_core=warn".to_string(),
     };
@@ -127,50 +127,48 @@ fn try_read_config() -> Result<Config, String> {
         Ok(_) => LoggerFormat::Compact,
         Err(_) => LoggerFormat::Json,
     };
-    let logger_format = match env::var("LIVE_COMPOSITOR_LOGGER_FORMAT") {
+    let logger_format = match env::var("SMELTER_LOGGER_FORMAT") {
         Ok(format) => LoggerFormat::from_str(&format).unwrap_or(default_logger_format),
         Err(_) => default_logger_format,
     };
 
-    let ffmpeg_logger_level = match env::var("LIVE_COMPOSITOR_FFMPEG_LOGGER_LEVEL") {
+    let ffmpeg_logger_level = match env::var("SMELTER_FFMPEG_LOGGER_LEVEL") {
         Ok(ffmpeg_log_level) => {
             FfmpegLogLevel::from_str(&ffmpeg_log_level).unwrap_or(FfmpegLogLevel::Warn)
         }
         Err(_) => FfmpegLogLevel::Warn,
     };
 
-    let download_root = env::var("LIVE_COMPOSITOR_DOWNLOAD_DIR")
+    let download_root = env::var("SMELTER_DOWNLOAD_DIR")
         .map(PathBuf::from)
         .unwrap_or(env::temp_dir());
 
-    let web_renderer_enable = match env::var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE") {
+    let web_renderer_enable = match env::var("SMELTER_WEB_RENDERER_ENABLE") {
         Ok(enable) => bool_env_from_str(&enable).unwrap_or(false),
         Err(_) => false,
     };
 
-    let web_renderer_gpu_enable = match env::var("LIVE_COMPOSITOR_WEB_RENDERER_GPU_ENABLE") {
+    let web_renderer_gpu_enable = match env::var("SMELTER_WEB_RENDERER_GPU_ENABLE") {
         Ok(enable) => bool_env_from_str(&enable).unwrap_or(true),
         Err(_) => true,
     };
 
-    let offline_processing: bool = match env::var("LIVE_COMPOSITOR_OFFLINE_PROCESSING_ENABLE") {
+    let offline_processing: bool = match env::var("SMELTER_OFFLINE_PROCESSING_ENABLE") {
         Ok(enable) => bool_env_from_str(&enable).unwrap_or(false),
         Err(_) => false,
     };
 
-    let ahead_of_time_processing: bool =
-        match env::var("LIVE_COMPOSITOR_AHEAD_OF_TIME_PROCESSING_ENABLE") {
-            Ok(enable) => bool_env_from_str(&enable).unwrap_or(offline_processing),
-            Err(_) => offline_processing,
-        };
-
-    let never_drop_output_frames: bool = match env::var("LIVE_COMPOSITOR_NEVER_DROP_OUTPUT_FRAMES")
-    {
+    let ahead_of_time_processing: bool = match env::var("SMELTER_AHEAD_OF_TIME_PROCESSING_ENABLE") {
         Ok(enable) => bool_env_from_str(&enable).unwrap_or(offline_processing),
         Err(_) => offline_processing,
     };
 
-    let run_late_scheduled_events = match env::var("LIVE_COMPOSITOR_RUN_LATE_SCHEDULED_EVENTS") {
+    let never_drop_output_frames: bool = match env::var("SMELTER_NEVER_DROP_OUTPUT_FRAMES") {
+        Ok(enable) => bool_env_from_str(&enable).unwrap_or(offline_processing),
+        Err(_) => offline_processing,
+    };
+
+    let run_late_scheduled_events = match env::var("SMELTER_RUN_LATE_SCHEDULED_EVENTS") {
         Ok(enable) => bool_env_from_str(&enable).unwrap_or(false),
         Err(_) => false,
     };
@@ -178,47 +176,47 @@ fn try_read_config() -> Result<Config, String> {
     let default_wgpu_features: WgpuFeatures =
         WgpuFeatures::UNIFORM_BUFFER_AND_STORAGE_TEXTURE_ARRAY_NON_UNIFORM_INDEXING
             | WgpuFeatures::SAMPLED_TEXTURE_AND_STORAGE_BUFFER_ARRAY_NON_UNIFORM_INDEXING;
-    let required_wgpu_features = match env::var("LIVE_COMPOSITOR_REQUIRED_WGPU_FEATURES") {
+    let required_wgpu_features = match env::var("SMELTER_REQUIRED_WGPU_FEATURES") {
         Ok(required_wgpu_features) => wgpu_features_from_str(&required_wgpu_features).unwrap(),
         Err(_) => default_wgpu_features,
     };
 
-    let default_buffer_duration = match env::var("LIVE_COMPOSITOR_INPUT_BUFFER_DURATION_MS") {
+    let default_buffer_duration = match env::var("SMELTER_INPUT_BUFFER_DURATION_MS") {
         Ok(duration) => match duration.parse::<f64>() {
             Ok(duration) => Duration::from_secs_f64(duration / 1000.0),
             Err(_) => {
-                println!("CONFIG ERROR: Invalid value provided for \"LIVE_COMPOSITOR_INPUT_BUFFER_DURATION_MS\". Falling back to default value {:?}.", queue::DEFAULT_BUFFER_DURATION);
+                println!("CONFIG ERROR: Invalid value provided for \"SMELTER_INPUT_BUFFER_DURATION_MS\". Falling back to default value {:?}.", queue::DEFAULT_BUFFER_DURATION);
                 queue::DEFAULT_BUFFER_DURATION
             }
         },
         Err(_) => queue::DEFAULT_BUFFER_DURATION,
     };
 
-    let load_system_fonts = match env::var("LIVE_COMPOSITOR_LOAD_SYSTEM_FONTS") {
+    let load_system_fonts = match env::var("SMELTER_LOAD_SYSTEM_FONTS") {
         Ok(enable) => bool_env_from_str(&enable).unwrap_or(true),
         Err(_) => true,
     };
 
-    let whip_whep_server_port = match env::var("LIVE_COMPOSITOR_WHIP_WHEP_SERVER_PORT") {
+    let whip_whep_server_port = match env::var("SMELTER_WHIP_WHEP_SERVER_PORT") {
         Ok(whip_whep_port) => whip_whep_port
             .parse::<u16>()
-            .map_err(|_| "LIVE_COMPOSITOR_WHIP_WHEP_SERVER_PORT has to be valid port number")?,
+            .map_err(|_| "SMELTER_WHIP_WHEP_SERVER_PORT has to be valid port number")?,
         Err(_) => 9000,
     };
 
-    let start_whip_whep = match env::var("LIVE_COMPOSITOR_START_WHIP_WHEP_SERVER") {
+    let start_whip_whep = match env::var("SMELTER_START_WHIP_WHEP_SERVER") {
         Ok(enable) => bool_env_from_str(&enable).unwrap_or(true),
         Err(_) => true,
     };
 
-    let log_file = match env::var("LIVE_COMPOSITOR_LOG_FILE") {
+    let log_file = match env::var("SMELTER_LOG_FILE") {
         Ok(path) => Some(Arc::from(PathBuf::from(path))),
         Err(_) => None,
     };
 
     let default_stun_servers = Arc::new(vec!["stun:stun.l.google.com:19302".to_string()]);
 
-    let stun_servers = match env::var("LIVE_COMPOSITOR_STUN_SERVERS") {
+    let stun_servers = match env::var("SMELTER_STUN_SERVERS") {
         Ok(var) => {
             if var.is_empty() {
                 error!("empty stun servers env");

@@ -1,13 +1,13 @@
 <h1 align="center">
-  <img src="assets/lc_logo_large.svg" width=600 alt="LiveCompositor">
+  <img src="assets/lc_logo_large.svg" width=600 alt="Smelter">
 
   <a href="https://compositor.live/docs/intro">Documentation</a> |
   <a href="https://discord.gg/Cxj3rzTTag">Discord</a>
 </h1>
 
-LiveCompositor is a media server for real-time, low latency, programmable video and audio mixing.
+Smelter is a media server for real-time, low latency, programmable video and audio mixing.
 
-LiveCompositor targets real-time use cases, with a significant focus on situations where latency is critical. It is a great fit
+Smelter targets real-time use cases, with a significant focus on situations where latency is critical. It is a great fit
 for any video conferencing, live-streaming, or broadcasting solutions where you need to combine or modify video on the fly.
 However, you can also use it for non-real-time use cases, for example, apply some effect on a video from an MP4 file and write the output
 to the new MP4.
@@ -18,18 +18,18 @@ https://github.com/user-attachments/assets/d8716866-67bd-4721-b1c2-1a1d31e1c5b5
 
 Check out our [`Getting started`](https://compositor.live/docs/intro) section.
 
-LiveCompositor supports Linux and macOS and can be used in 3 ways:
+Smelter supports Linux and macOS and can be used in 3 ways:
 - TypeScript SDK - [TypeScript SDK Reference](https://compositor.live/docs/typescript/api)
 - Standalone media server - [API Reference](https://compositor.live/docs/api/routes).
 - Element in a Membrane Framework pipeline - [https://hexdocs.pm/membrane_live_compositor_plugin](https://hexdocs.pm/membrane_live_compositor_plugin).
 
 ## Demos
 
-This is just a sample of effects that you can achieve with LiveCompositor. It is a compilation of a few demo projects
+This is just a sample of effects that you can achieve with Smelter. It is a compilation of a few demo projects
 written in TypeScript that you can find in [`demos`](./demos) directory.
 
-## LiveCompositor is created by Software Mansion
+## Smelter is created by Software Mansion
 
-[![swm](https://logo.swmansion.com/logo?color=white&variant=desktop&width=150&tag=live-compositor-github 'Software Mansion')](https://swmansion.com)
+[![swm](https://logo.swmansion.com/logo?color=white&variant=desktop&width=150&tag=smelter-github 'Software Mansion')](https://swmansion.com)
 
-Since 2012 [Software Mansion](https://swmansion.com) is a software agency with experience in building web and mobile apps as well as complex multimedia solutions. We are Core React Native Contributors and experts in live streaming and broadcasting technologies. We can help you build your next dream product – [Hire us](https://swmansion.com/contact/projects?utm_source=live-compositor&utm_medium=readme).
+Since 2012 [Software Mansion](https://swmansion.com) is a software agency with experience in building web and mobile apps as well as complex multimedia solutions. We are Core React Native Contributors and experts in live streaming and broadcasting technologies. We can help you build your next dream product – [Hire us](https://swmansion.com/contact/projects?utm_source=smelter&utm_medium=readme).

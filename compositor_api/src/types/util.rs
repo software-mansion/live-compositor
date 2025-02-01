@@ -81,7 +81,7 @@ pub enum PortOrPortRange {
 pub enum TransportProtocol {
     /// UDP protocol.
     Udp,
-    /// TCP protocol where LiveCompositor is the server side of the connection.
+    /// TCP protocol where Smelter is the server side of the connection.
     TcpServer,
 }
 

@@ -25,7 +25,7 @@ export function spawn(command: string, args: string[], opts: SpawnOptions): Spaw
     cwd: opts.cwd ?? cwd(),
     env: {
       ...process.env,
-      LIVE_COMPOSITOR_LOGGER_FORMAT: 'compact',
+      SMELTER_LOGGER_FORMAT: 'compact',
     },
   });
 

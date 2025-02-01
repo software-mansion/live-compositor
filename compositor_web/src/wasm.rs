@@ -28,7 +28,7 @@ pub fn start() -> Result<(), JsValue> {
 }
 
 #[wasm_bindgen]
-pub async fn create_renderer(options: JsValue) -> Result<LiveCompositorRenderer, JsValue> {
+pub async fn create_renderer(options: JsValue) -> Result<SmelterRenderer, JsValue> {
     let options = types::from_js_value::<types::RendererOptions>(options)?;
     // This option will only be respected for the first renderer
     let _ = wasm_log::try_init(wasm_log::Config::new(options.logger_level.into()));
@@ -43,7 +43,7 @@ pub async fn create_renderer(options: JsValue) -> Result<LiveCompositorRenderer,
     let input_uploader = InputUploader::default();
     let output_downloader = OutputDownloader::default();
 
-    Ok(LiveCompositorRenderer {
+    Ok(SmelterRenderer {
         renderer,
         input_uploader,
         output_downloader,
@@ -51,14 +51,14 @@ pub async fn create_renderer(options: JsValue) -> Result<LiveCompositorRenderer,
 }
 
 #[wasm_bindgen]
-pub struct LiveCompositorRenderer {
+pub struct SmelterRenderer {
     renderer: Renderer,
     input_uploader: InputUploader,
     output_downloader: OutputDownloader,
 }
 
 #[wasm_bindgen]
-impl LiveCompositorRenderer {
+impl SmelterRenderer {
     pub fn render(&mut self, input: types::FrameSet) -> Result<types::FrameSet, JsValue> {
         let (device, queue) = self.renderer.wgpu_ctx();
         let frame_set = self.input_uploader.upload(&device, &queue, input)?;

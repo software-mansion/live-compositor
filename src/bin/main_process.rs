@@ -1,5 +1,5 @@
-use live_compositor::server;
 use log::info;
+use smelter::server;
 
 fn main() {
     ffmpeg_next::format::network::init();

@@ -3,7 +3,7 @@ import { sleepAsync, spawn } from './utils';
 import path from 'path';
 import { mkdirp, writeFile } from 'fs-extra';
 
-const COMPOSITOR_DIR = path.join(__dirname, '../.live_compositor');
+const COMPOSITOR_DIR = path.join(__dirname, '../.smelter');
 
 export async function ffplayStartPlayerAsync(
   video_port: number,

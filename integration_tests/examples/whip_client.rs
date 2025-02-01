@@ -28,7 +28,7 @@ fn client_code() -> Result<()> {
         }),
     )?;
 
-    let token = env::var("LIVE_COMPOSITOR_WHIP_CLIENT_EXAMPLE_TOKEN").map_err(|err| anyhow!("Couldn't read LIVE_COMPOSITOR_WHIP_CLIENT_EXAMPLE_TOKEN environmental variable. You must provide it in order to run `whip_client` example. Read env error: {}", err))?;
+    let token = env::var("SMELTER_WHIP_CLIENT_EXAMPLE_TOKEN").map_err(|err| anyhow!("Couldn't read SMELTER_WHIP_CLIENT_EXAMPLE_TOKEN environmental variable. You must provide it in order to run `whip_client` example. Read env error: {}", err))?;
 
     examples::post(
         "output/output_1/register",

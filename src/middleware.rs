@@ -14,7 +14,7 @@ pub async fn body_logger_middleware(
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, Response> {
-    if !enabled!(target: "live_compositor::log_request_body", Level::TRACE) {
+    if !enabled!(target: "smelter::log_request_body", Level::TRACE) {
         return Ok(next.run(request).await);
     }
     let request = buffer_request_body(request).await?;
@@ -35,14 +35,14 @@ async fn buffer_request_body(request: Request) -> Result<Request, Response> {
 
     match serde_json::from_slice::<Value>(&bytes) {
         Ok(body_json) => {
-            trace!(target: "live_compositor::log_request_body", method = ?parts.method, path = ?parts.uri, "Request body: {}", body_json);
+            trace!(target: "smelter::log_request_body", method = ?parts.method, path = ?parts.uri, "Request body: {}", body_json);
         }
         Err(_) => match str::from_utf8(&bytes) {
             Ok(body_str) => {
-                trace!(target: "live_compositor::log_request_body", method = ?parts.method, path = ?parts.uri, "Request body: {}", body_str);
+                trace!(target: "smelter::log_request_body", method = ?parts.method, path = ?parts.uri, "Request body: {}", body_str);
             }
             Err(_) => {
-                trace!(target: "live_compositor::log_request_body", method = ?parts.method, path = ?parts.uri, "Request body: {:?}", bytes);
+                trace!(target: "smelter::log_request_body", method = ?parts.method, path = ?parts.uri, "Request body: {:?}", bytes);
             }
         },
     }
@@ -61,14 +61,14 @@ async fn buffer_response_body(response: Response) -> Result<Response, Response> 
 
     match serde_json::from_slice::<Value>(&bytes) {
         Ok(body_json) => {
-            trace!(target: "live_compositor::log_request_body", status=?parts.status, "Response body: {}", body_json);
+            trace!(target: "smelter::log_request_body", status=?parts.status, "Response body: {}", body_json);
         }
         Err(_) => match str::from_utf8(&bytes) {
             Ok(body_str) => {
-                trace!(target: "live_compositor::log_request_body", status=?parts.status, "Response body: {}", body_str);
+                trace!(target: "smelter::log_request_body", status=?parts.status, "Response body: {}", body_str);
             }
             Err(_) => {
-                trace!(target: "live_compositor::log_request_body", status=?parts.status, "Response body: {:?}", bytes);
+                trace!(target: "smelter::log_request_body", status=?parts.status, "Response body: {:?}", bytes);
             }
         },
     }

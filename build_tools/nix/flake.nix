@@ -1,5 +1,5 @@
 {
-  description = "Dev shell for LiveCompositor";
+  description = "Dev shell for Smelter";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";

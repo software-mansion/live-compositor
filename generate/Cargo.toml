@@ -8,11 +8,11 @@ license = "BUSL-1.1"
 
 [features]
 default = ["web_renderer" ]
-decklink = ["live_compositor/decklink"]
-web_renderer = ["live_compositor/web_renderer"]
+decklink = ["smelter/decklink"]
+web_renderer = ["smelter/web_renderer"]
 
 [dependencies]
-live_compositor = { workspace = true }
+smelter = { workspace = true }
 compositor_api = { workspace = true }
 reqwest = { workspace = true }
 anyhow = { workspace = true }

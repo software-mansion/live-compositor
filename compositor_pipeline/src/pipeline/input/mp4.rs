@@ -78,10 +78,7 @@ impl Mp4 {
                 let mut file_response = file_response.error_for_status()?;
 
                 let mut path = download_dir.to_owned();
-                path.push(format!(
-                    "live-compositor-user-file-{}.mp4",
-                    rand::random::<u64>()
-                ));
+                path.push(format!("smelter-user-file-{}.mp4", rand::random::<u64>()));
 
                 let mut file = std::fs::File::create(&path)?;
 

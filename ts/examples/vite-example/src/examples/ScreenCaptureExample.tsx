@@ -16,7 +16,7 @@ function ScreenCaptureExample() {
 
   return (
     <div className="card">
-      <CompositorCanvas onCanvasStarted={onCanvasCreate} width={1280} height={720}>
+      <CompositorCanvas onCanvasCreate={onCanvasCreate} width={1280} height={720}>
         <Scene />
       </CompositorCanvas>
     </div>

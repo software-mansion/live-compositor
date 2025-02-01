@@ -9,8 +9,7 @@ const PRETTY_TRANSPORT = {
 };
 
 function getLoggerLevel(): LoggerLevel {
-  const logLevel =
-    process.env.LIVE_COMPOSITOR_LOGGER_LEVEL ?? (process.env.DEBUG ? 'debug' : undefined);
+  const logLevel = process.env.SMELTER_LOGGER_LEVEL ?? (process.env.DEBUG ? 'debug' : undefined);
   if (Object.values(LoggerLevel).includes(logLevel as LoggerLevel)) {
     return logLevel as LoggerLevel;
   } else {
@@ -21,8 +20,8 @@ function getLoggerLevel(): LoggerLevel {
 type LoggerFormat = 'json' | 'pretty' | 'compact';
 
 function getLoggerFormat(): LoggerFormat {
-  const env = process.env.LIVE_COMPOSITOR_LOGGER_FORMAT;
-  return ['json', 'compact', 'pretty'].includes(process.env.LIVE_COMPOSITOR_LOGGER_FORMAT ?? '')
+  const env = process.env.SMELTER_LOGGER_FORMAT;
+  return ['json', 'compact', 'pretty'].includes(process.env.SMELTER_LOGGER_FORMAT ?? '')
     ? (env as LoggerFormat)
     : 'json';
 }
@@ -59,7 +58,7 @@ export function smelterInstanceLoggerOptions(): {
     };
   } else if (loggerLevel === LoggerLevel.TRACE) {
     return {
-      level: 'debug,wgpu_hal=warn,wgpu_core=warn,naga=warn,live_compositor::log_request_body=trace',
+      level: 'debug,wgpu_hal=warn,wgpu_core=warn,naga=warn,smelter::log_request_body=trace',
       format,
     };
   } else {

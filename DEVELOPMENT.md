@@ -29,7 +29,7 @@ to run **`./src/bin/main_process.rs`**
 
 To run binary from specific create you need to run the command from that crate directory.
 
-#### `live_compositor` create (root)
+#### `smelter` create (root)
 
 - `package_for_relase` - builds release binaries that can be uploaded to GitHub Releases
 - `main_process` - main binary to start standalone compositor
@@ -134,11 +134,11 @@ If you made changes that modify the snapshot:
 
 ### Packages
 
-- `live-compositor` - React components and common API types. (analog of `react` package).
-- `@live-compositor/core` - Base implementation that is used by packages like `@live-compositor/node`.
-- `@live-compositor/node` - Node.js SDK for compositor  (analog of `react-dom` for Node.js)
-- `@live-compositor/web-wasm` - Browser SDK for compositor that includes compositor compiled to WASM (analog of `react-dom` for Node.js)
-- `@live-compositor/browser-render` - Rendering ending from LiveCompositor compiled to WASM.
+- `@swmansion/smelter` - React components and common API types. (analog of `react` package).
+- `@swmansion/smelter-core` - Base implementation that is used by packages like `@swmansion/smelter-node`.
+- `@swmansion/smelter-node` - Node.js SDK for compositor  (analog of `react-dom` for Node.js)
+- `@swmansion/smelter-web-wasm` - Browser SDK for compositor that includes compositor compiled to WASM (analog of `react-dom` for Node.js)
+- `@swmansion/smelter-browser-render` - Rendering engine from Smelter compiled to WASM.
   - Run `pnpm run build-wasm` to build WASM bundle from Rust code
   - Run `pnpm run build` to build JS code (WASM has to be build earlier, or use `build:all` in root directory to build everything)
 
@@ -172,7 +172,7 @@ To run Node.js example against Rust code from the repo you need to in the root d
 
 ```
 cargo build -r --no-default-features
-export LIVE_COMPOSITOR_PATH=$(pwd)/target/release/main_process
+export SMELTER_PATH=$(pwd)/target/release/main_process
 ```
 
 #### Web WASM: **`./ts/examples/vite-browser-render`**

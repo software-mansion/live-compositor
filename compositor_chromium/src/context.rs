@@ -29,7 +29,7 @@ impl Context {
             let framework_path = std::env::current_exe()?
                 .parent()
                 .unwrap()
-                .join("live_compositor.app")
+                .join("smelter.app")
                 .join("Contents")
                 .join("Frameworks")
                 .join("Chromium Embedded Framework.framework")
