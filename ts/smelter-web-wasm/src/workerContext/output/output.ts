@@ -1,4 +1,4 @@
-import type { Frame, Resolution } from '@live-compositor/browser-render';
+import type { Frame, Resolution } from '@swmansion/smelter-browser-render';
 import type { OutputSink } from './sink';
 import CanvasSink from './canvas';
 import type { RegisterOutput } from '../../workerApi';

@@ -32,7 +32,7 @@ const packageManagers: Choice<PackageManager>[] = [
 ];
 
 export async function resolveOptions(): Promise<ProjectOptions> {
-  const projectName = await textPrompt('Project name: ', 'live-compositor-app');
+  const projectName = await textPrompt('Project name: ', 'smelter-app');
   await checkFFmpeg();
   // TODO: replace
   // const runtime = await selectPrompt('Select environment:', [
@@ -61,9 +61,9 @@ export async function resolveOptions(): Promise<ProjectOptions> {
 }
 
 export async function resolveBrowserOptions(): Promise<BrowserOptions> {
-  const usageType = await selectPrompt('Where do you want to run the LiveCompositor server?', [
+  const usageType = await selectPrompt('Where do you want to run the Smelter server?', [
     { value: 'external', title: 'Run as an external instance and communicate over the network.' },
-    { value: 'wasm', title: 'Embed LiveCompositor in the browser and render using WebGL.' },
+    { value: 'wasm', title: 'Embed Smelter in the browser and render using WebGL.' },
   ]);
   const templateName = await selectPrompt('Select project template:', [
     { value: 'vite', title: 'Vite + React' },
@@ -101,7 +101,7 @@ export async function checkFFmpeg(): Promise<void> {
     console.log();
     console.log(
       chalk.yellow(
-        `Failed to run FFmpeg command. Live Compositor requires FFmpeg to work and generated starter project will use "ffplay" to show the LiveCompositor output stream.`
+        `Failed to run FFmpeg command. Smelter requires FFmpeg to work and generated starter project will use "ffplay" to show the Smelter output stream.`
       )
     );
     console.log(chalk.yellow(`Please install it before continuing.`));

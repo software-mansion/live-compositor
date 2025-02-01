@@ -1,4 +1,4 @@
-import { loadWasmModule, Renderer } from '@live-compositor/browser-render';
+import { loadWasmModule, Renderer } from '@swmansion/smelter-browser-render';
 import { Pipeline } from './pipeline';
 import { pino, type Logger } from 'pino';
 import type { InitOptions, WorkerMessage, WorkerResponse } from '../workerApi';

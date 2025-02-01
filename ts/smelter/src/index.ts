@@ -29,7 +29,7 @@ export * as Inputs from './types/registerInput.js';
 export * as Outputs from './types/registerOutput.js';
 export * as Renderers from './types/registerRenderer.js';
 export * as Api from './api.js';
-export * as _liveCompositorInternals from './internal.js';
+export * as _smelterInternals from './internal.js';
 
 export {
   View,

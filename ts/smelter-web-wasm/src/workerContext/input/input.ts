@@ -1,7 +1,7 @@
 import Mp4Source from './source/Mp4Source';
 import { QueuedInput } from './QueuedInput';
 import type { InputVideoFrame } from './frame';
-import type { Frame } from '@live-compositor/browser-render';
+import type { Frame } from '@swmansion/smelter-browser-render';
 import { MediaStreamInput } from './MediaStreamInput';
 import type { RegisterInput } from '../../workerApi';
 import type { Logger } from 'pino';

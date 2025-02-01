@@ -1,28 +1,28 @@
 import type {
-  CompositorManager,
+  SmelterManager,
   Input as CoreInput,
   Output as CoreOutput,
-} from '@live-compositor/core';
-import { LiveCompositor as CoreLiveCompositor } from '@live-compositor/core';
+} from '@swmansion/smelter-core';
+import { Smelter as CoreSmelter } from '@swmansion/smelter-core';
 import { createLogger } from '../logger';
 import LocallySpawnedInstance from '../manager/locallySpawnedInstance';
 import type { ReactElement } from 'react';
-import type { Renderers } from 'live-compositor';
+import type { Renderers } from '@swmansion/smelter';
 import FormData from 'form-data';
 import fetch from 'node-fetch';
 
-export default class LiveCompositor {
-  private coreCompositor: CoreLiveCompositor;
+export default class Smelter {
+  private coreSmelter: CoreSmelter;
 
-  public constructor(manager?: CompositorManager) {
-    this.coreCompositor = new CoreLiveCompositor(
+  public constructor(manager?: SmelterManager) {
+    this.coreSmelter = new CoreSmelter(
       manager ?? LocallySpawnedInstance.defaultManager(),
       createLogger()
     );
   }
 
   public async init(): Promise<void> {
-    await this.coreCompositor.init();
+    await this.coreSmelter.init();
   }
 
   public async registerOutput(
@@ -30,27 +30,27 @@ export default class LiveCompositor {
     root: ReactElement,
     request: CoreOutput.RegisterOutput
   ): Promise<void> {
-    await this.coreCompositor.registerOutput(outputId, root, request);
+    await this.coreSmelter.registerOutput(outputId, root, request);
   }
 
   public async unregisterOutput(outputId: string): Promise<void> {
-    await this.coreCompositor.unregisterOutput(outputId);
+    await this.coreSmelter.unregisterOutput(outputId);
   }
 
   public async registerInput(inputId: string, request: CoreInput.RegisterInput): Promise<void> {
-    await this.coreCompositor.registerInput(inputId, request);
+    await this.coreSmelter.registerInput(inputId, request);
   }
 
   public async unregisterInput(inputId: string): Promise<void> {
-    await this.coreCompositor.unregisterInput(inputId);
+    await this.coreSmelter.unregisterInput(inputId);
   }
 
   public async registerImage(imageId: string, request: Renderers.RegisterImage): Promise<void> {
-    await this.coreCompositor.registerImage(imageId, request);
+    await this.coreSmelter.registerImage(imageId, request);
   }
 
   public async unregisterImage(imageId: string): Promise<void> {
-    await this.coreCompositor.unregisterImage(imageId);
+    await this.coreSmelter.unregisterImage(imageId);
   }
 
   public async registerFont(fontSource: string | ArrayBuffer): Promise<object> {
@@ -69,7 +69,7 @@ export default class LiveCompositor {
     const formData = new FormData();
     formData.append('fontFile', fontBuffer);
 
-    return this.coreCompositor.manager.sendMultipartRequest({
+    return this.coreSmelter.manager.sendMultipartRequest({
       method: 'POST',
       route: `/api/font/register`,
       body: formData,
@@ -77,10 +77,10 @@ export default class LiveCompositor {
   }
 
   public async start(): Promise<void> {
-    await this.coreCompositor.start();
+    await this.coreSmelter.start();
   }
 
   public async terminate(): Promise<void> {
-    await this.coreCompositor.terminate();
+    await this.coreSmelter.terminate();
   }
 }

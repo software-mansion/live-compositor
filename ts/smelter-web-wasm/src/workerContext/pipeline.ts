@@ -1,13 +1,13 @@
-import type { Component, ImageSpec, Renderer } from '@live-compositor/browser-render';
+import type { Component, ImageSpec, Renderer } from '@swmansion/smelter-browser-render';
 import type { Framerate } from '../compositor/compositor';
 import type { Logger } from 'pino';
-import type { Api } from 'live-compositor';
+import type { Api } from '@swmansion/smelter';
 import { createInput } from './input/input';
 import { Output } from './output/output';
 import { Queue } from './queue';
 import type { RegisterInput, RegisterOutput, WorkerEvent, WorkerResponse } from '../workerApi';
 import { workerPostEvent as genericWorkerPostEvent } from './bridge';
-import { CompositorEventType } from '../eventSender';
+import { SmelterEventType } from '../eventSender';
 
 export const workerPostEvent = genericWorkerPostEvent<WorkerEvent>;
 
@@ -25,7 +25,7 @@ export class Pipeline {
 
   public start() {
     if (this.started) {
-      throw new Error('Compositor was already started');
+      throw new Error('Smelter was already started');
     }
     this.started = true;
     this.queue.start();
@@ -81,7 +81,7 @@ export class Pipeline {
     // If we add outputs that can end early or require flushing
     // then this needs to be change
     workerPostEvent({
-      type: CompositorEventType.OUTPUT_DONE,
+      type: SmelterEventType.OUTPUT_DONE,
       outputId,
     });
   }

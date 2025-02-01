@@ -1,11 +1,11 @@
 import { createElement, useContext, useEffect, useState } from 'react';
 import type { ComponentBaseProps, SceneComponent } from '../component.js';
-import { createCompositorComponent } from '../component.js';
+import { createSmelterComponent } from '../component.js';
 import { View, type Api } from '../index.js';
 import { imageRefIntoRawId } from '../types/refs/imageRef.js';
 import { newInternalImageId } from '../context/internalImageIdManager.js';
 import { newBlockingTask } from '../hooks.js';
-import { LiveCompositorContext } from '../context/index.js';
+import { SmelterContext } from '../context/index.js';
 import { isValidImageType } from '../types/utils.js';
 
 export type ImageProps = Omit<ComponentBaseProps, 'children'> &
@@ -22,10 +22,10 @@ export type ImageProps = Omit<ComponentBaseProps, 'children'> &
 
 type ImageSceneBuliderProps = Omit<ImageProps, 'imageId'> & { imageId: string };
 
-export const InnerImage = createCompositorComponent<ImageSceneBuliderProps>(sceneBuilder);
+export const InnerImage = createSmelterComponent<ImageSceneBuliderProps>(sceneBuilder);
 
 function Image(props: ImageProps) {
-  const ctx = useContext(LiveCompositorContext);
+  const ctx = useContext(SmelterContext);
   const [internalImageId, setInternalImageId] = useState(0);
   const [isImageRegistered, setIsImageRegistered] = useState(!!props.imageId);
 

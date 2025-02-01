@@ -1,5 +1,5 @@
 {
-  "name": "@live-compositor/browser-render",
+  "name": "@swmansion/smelter-browser-render",
   "version": "0.1.0-rc.4",
   "main": "dist/index.js",
   "scripts": {
@@ -8,7 +8,7 @@
     "watch": "rollup -w --no-watch.clearScreen -c",
     "build-wasm": "node ./scripts/buildWasm.mjs",
     "build": "rollup -c",
-    "clean": "rimraf dist",
+    "clean": "rimraf dist src/generated",
     "prepublishOnly": "pnpm run clean && pnpm run build-wasm && pnpm run build"
   },
   "author": "",
@@ -22,6 +22,6 @@
     "wasm-pack": "^0.13.0"
   },
   "peerDependencies": {
-    "live-compositor": "workspace:0.1.0"
+    "@swmansion/smelter": "workspace:0.1.0"
   }
 }

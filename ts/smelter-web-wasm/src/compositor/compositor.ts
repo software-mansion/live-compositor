@@ -1,4 +1,4 @@
-import { LiveCompositor as CoreLiveCompositor } from '@live-compositor/core';
+import { Smelter as CoreSmelter } from '@swmansion/smelter-core';
 import type { ReactElement } from 'react';
 import type { Logger } from 'pino';
 import { pino } from 'pino';
@@ -12,7 +12,7 @@ import {
 import WasmInstance from '../mainContext/instance';
 import type { RegisterOutputResponse } from '../mainContext/output';
 
-export type LiveCompositorOptions = {
+export type SmelterOptions = {
   framerate?: Framerate;
   streamFallbackTimeoutMs?: number;
 };
@@ -26,24 +26,24 @@ let wasmBundleUrl: string | undefined;
 
 /*
  * Defines url where WASM bundle is hosted. This method needs to be called before
- * first LiveCompositor instance is initiated.
+ * first Smelter instance is initiated.
  */
 export function setWasmBundleUrl(url: string) {
   wasmBundleUrl = url;
 }
 
-export default class LiveCompositor {
-  private coreCompositor?: CoreLiveCompositor;
+export default class Smelter {
+  private coreSmelter?: CoreSmelter;
   private instance?: WasmInstance;
-  private options: LiveCompositorOptions;
+  private options: SmelterOptions;
   private logger: Logger = pino({ level: 'warn' });
 
-  public constructor(options: LiveCompositorOptions) {
+  public constructor(options: SmelterOptions) {
     this.options = options;
   }
 
   /*
-   * Initializes LiveCompositor instance. It needs to be called before any resource is registered.
+   * Initializes Smelter instance. It needs to be called before any resource is registered.
    * Outputs won't produce any results until `start()` is called.
    */
   public async init(): Promise<void> {
@@ -53,9 +53,9 @@ export default class LiveCompositor {
       wasmBundleUrl,
       logger: this.logger.child({ element: 'wasmInstance' }),
     });
-    this.coreCompositor = new CoreLiveCompositor(this.instance, this.logger);
+    this.coreSmelter = new CoreSmelter(this.instance, this.logger);
 
-    await this.coreCompositor!.init();
+    await this.coreSmelter!.init();
   }
 
   public async registerOutput(
@@ -63,8 +63,8 @@ export default class LiveCompositor {
     root: ReactElement,
     request: RegisterOutput
   ): Promise<{ stream?: MediaStream }> {
-    assert(this.coreCompositor);
-    const response = (await this.coreCompositor.registerOutput(
+    assert(this.coreSmelter);
+    const response = (await this.coreSmelter.registerOutput(
       outputId,
       root,
       intoRegisterOutputRequest(request)
@@ -77,28 +77,28 @@ export default class LiveCompositor {
   }
 
   public async unregisterOutput(outputId: string): Promise<void> {
-    assert(this.coreCompositor);
-    await this.coreCompositor.unregisterOutput(outputId);
+    assert(this.coreSmelter);
+    await this.coreSmelter.unregisterOutput(outputId);
   }
 
   public async registerInput(inputId: string, request: RegisterInput): Promise<void> {
-    assert(this.coreCompositor);
-    await this.coreCompositor.registerInput(inputId, request);
+    assert(this.coreSmelter);
+    await this.coreSmelter.registerInput(inputId, request);
   }
 
   public async unregisterInput(inputId: string): Promise<void> {
-    assert(this.coreCompositor);
-    await this.coreCompositor.unregisterInput(inputId);
+    assert(this.coreSmelter);
+    await this.coreSmelter.unregisterInput(inputId);
   }
 
   public async registerImage(imageId: string, request: RegisterImage): Promise<void> {
-    assert(this.coreCompositor);
-    await this.coreCompositor.registerImage(imageId, request);
+    assert(this.coreSmelter);
+    await this.coreSmelter.registerImage(imageId, request);
   }
 
   public async unregisterImage(imageId: string): Promise<void> {
-    assert(this.coreCompositor);
-    await this.coreCompositor.unregisterImage(imageId);
+    assert(this.coreSmelter);
+    await this.coreSmelter.unregisterImage(imageId);
   }
 
   public async registerFont(fontUrl: string): Promise<void> {
@@ -110,13 +110,13 @@ export default class LiveCompositor {
    * Starts processing pipeline. Any previously registered output will start producing video data.
    */
   public async start(): Promise<void> {
-    await this.coreCompositor!.start();
+    await this.coreSmelter!.start();
   }
 
   /**
    * Stops processing pipeline.
    */
   public async terminate(): Promise<void> {
-    await this.coreCompositor?.terminate();
+    await this.coreSmelter?.terminate();
   }
 }

@@ -4,7 +4,7 @@ export type RegisterRtpOutput = {
   /**
    * Depends on the value of the `transport_protocol` field:
    * - `udp` - An UDP port number that RTP packets will be sent to.
-   * - `tcp_server` - A local TCP port number or a port range that LiveCompositor will listen for incoming connections.
+   * - `tcp_server` - A local TCP port number or a port range that Smelter will listen for incoming connections.
    */
   port: Api.PortOrPortRange;
   /**
@@ -21,7 +21,7 @@ export type RegisterRtpOutput = {
 
 export type RegisterMp4Output = {
   /**
-   * Path to output MP4 file (location on the server where LiveCompositor server is deployed).
+   * Path to output MP4 file (location on the server where Smelter server is deployed).
    */
   serverPath: string;
   /**

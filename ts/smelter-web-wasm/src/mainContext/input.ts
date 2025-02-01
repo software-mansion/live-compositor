@@ -1,4 +1,4 @@
-import type { Input as CoreInput } from '@live-compositor/core';
+import type { Input as CoreInput } from '@swmansion/smelter-core';
 import type { WorkerMessage } from '../workerApi';
 import { assert } from '../utils';
 import { handleRegisterCameraInput } from './input/camera';

@@ -1,17 +1,17 @@
 import type {
   ApiRequest,
-  CompositorManager,
+  SmelterManager,
   Input as CoreInput,
   Output as CoreOutput,
   MultipartRequest,
-} from '@live-compositor/core';
+} from '@swmansion/smelter-core';
 import type { Framerate } from '../compositor/compositor';
 import type { WorkerEvent, WorkerMessage, WorkerResponse } from '../workerApi';
 import { EventSender } from '../eventSender';
 import { Path } from 'path-parser';
 import { assert } from '../utils';
-import type { ImageSpec } from '@live-compositor/browser-render';
-import type { Api } from 'live-compositor';
+import type { ImageSpec } from '@swmansion/smelter-browser-render';
+import type { Api } from '@swmansion/smelter';
 import type { Logger } from 'pino';
 import { AsyncWorker } from '../workerContext/bridge';
 import type { RegisterOutputResponse, Output } from './output';
@@ -22,7 +22,7 @@ import { handleRegisterInputRequest } from './input';
 const apiPath = new Path('/api/:type/:id/:operation');
 const apiStartPath = new Path('/api/start');
 
-class WasmInstance implements CompositorManager {
+class WasmInstance implements SmelterManager {
   private eventSender: EventSender = new EventSender();
   private worker: AsyncWorker<WorkerMessage, WorkerResponse, WorkerEvent>;
   private logger: Logger;

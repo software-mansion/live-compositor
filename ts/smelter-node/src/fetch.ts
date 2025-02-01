@@ -6,7 +6,7 @@ import { promisify } from 'util';
 
 import fetch from 'node-fetch';
 import type FormData from 'form-data';
-import type { ApiRequest, MultipartRequest } from '@live-compositor/core';
+import type { ApiRequest, MultipartRequest } from '@swmansion/smelter-core';
 
 const pipeline = promisify(Stream.pipeline);
 const httpAgent = new http.Agent({ keepAlive: true });
@@ -22,7 +22,7 @@ export async function sendRequest(baseUrl: string, request: ApiRequest): Promise
     agent: url => (url.protocol === 'http:' ? httpAgent : httpsAgent),
   });
   if (response.status >= 400) {
-    const err: any = new Error(`Request to compositor failed.`);
+    const err: any = new Error(`Request to Smelter server failed.`);
     err.response = response;
     try {
       err.body = await response.json();
@@ -44,7 +44,7 @@ export async function sendMultipartRequest(
     agent: url => (url.protocol === 'http:' ? httpAgent : httpsAgent),
   });
   if (response.status >= 400) {
-    const err: any = new Error(`Request to compositor failed.`);
+    const err: any = new Error(`Request to Smelter server failed.`);
     err.response = response;
     try {
       err.body = await response.json();

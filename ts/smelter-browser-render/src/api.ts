@@ -1,4 +1,4 @@
-import type { Api } from 'live-compositor';
+import type { Api } from '@swmansion/smelter';
 
 export type Resolution = Api.Resolution;
 export type ImageSpec = Required<Pick<Api.ImageSpec, 'asset_type' | 'url'>>;

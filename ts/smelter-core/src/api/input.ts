@@ -4,8 +4,8 @@ import type {
   RegisterRtpInput,
   Inputs,
   RegisterWhipInput,
-} from 'live-compositor';
-import { _liveCompositorInternals } from 'live-compositor';
+} from '@swmansion/smelter';
+import { _smelterInternals } from '@swmansion/smelter';
 
 /**
  * It represents HTTP request that can be sent to
@@ -17,9 +17,9 @@ export type RegisterInputRequest =
   | { type: 'screen_capture' }
   | { type: 'stream'; stream: any };
 
-export type InputRef = _liveCompositorInternals.InputRef;
-export const inputRefIntoRawId = _liveCompositorInternals.inputRefIntoRawId;
-export const parseInputRef = _liveCompositorInternals.parseInputRef;
+export type InputRef = _smelterInternals.InputRef;
+export const inputRefIntoRawId = _smelterInternals.inputRefIntoRawId;
+export const parseInputRef = _smelterInternals.parseInputRef;
 
 export type RegisterInput =
   | ({ type: 'rtp_stream' } & RegisterRtpInput)

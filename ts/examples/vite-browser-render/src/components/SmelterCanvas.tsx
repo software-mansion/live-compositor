@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { LiveCompositor } from '@live-compositor/web-wasm';
+import { Smelter } from '@swmansion/smelter-web-wasm';
 
 type CanvasProps = React.DetailedHTMLProps<
   React.CanvasHTMLAttributes<HTMLCanvasElement>,
@@ -7,30 +7,30 @@ type CanvasProps = React.DetailedHTMLProps<
 >;
 
 type CompositorCanvasProps = {
-  onCanvasCreate?: (compositor: LiveCompositor) => Promise<void>;
-  onCanvasStarted?: (compositor: LiveCompositor) => Promise<void>;
+  onCanvasCreate?: (smelter: Smelter) => Promise<void>;
+  onCanvasStarted?: (smelter: Smelter) => Promise<void>;
   children: React.ReactElement;
 } & CanvasProps;
 
 export default function CompositorCanvas(props: CompositorCanvasProps) {
   const { onCanvasCreate, onCanvasStarted, children, ...canvasProps } = props;
+  const [smelter, setSmelter] = useState<Smelter | undefined>(undefined);
 
-  const [compositor, setCompositor] = useState<LiveCompositor | undefined>(undefined);
   const canvasRef = useCallback(
     async (canvas: HTMLCanvasElement | null) => {
       if (!canvas) {
         return;
       }
 
-      const compositor = new LiveCompositor({});
+      const smelter = new Smelter({});
 
-      await compositor.init();
+      await smelter.init();
 
       if (onCanvasCreate) {
-        await onCanvasCreate(compositor);
+        await onCanvasCreate(smelter);
       }
 
-      await compositor.registerOutput('output', children, {
+      await smelter.registerOutput('output', children, {
         type: 'canvas',
         video: {
           canvas: canvas,
@@ -42,11 +42,11 @@ export default function CompositorCanvas(props: CompositorCanvasProps) {
         audio: true,
       });
 
-      await compositor.start();
-      setCompositor(compositor);
+      await smelter.start();
+      setSmelter(smelter);
 
       if (onCanvasStarted) {
-        await onCanvasStarted(compositor);
+        await onCanvasStarted(smelter);
       }
     },
     [onCanvasCreate, onCanvasStarted, canvasProps.width, canvasProps.height, children]
@@ -54,11 +54,11 @@ export default function CompositorCanvas(props: CompositorCanvasProps) {
 
   useEffect(() => {
     return () => {
-      if (compositor) {
-        void compositor.terminate();
+      if (smelter) {
+        void smelter.terminate();
       }
     };
-  }, [compositor]);
+  }, [smelter]);
 
   return <canvas ref={canvasRef} {...canvasProps}></canvas>;
 }

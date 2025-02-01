@@ -1,19 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
-import { LiveCompositor } from '@live-compositor/web-wasm';
-import { Mp4, Rescaler, Text, View } from 'live-compositor';
+import { Smelter } from '@swmansion/smelter-web-wasm';
+import { Mp4, Rescaler, Text, View } from '@swmansion/smelter';
 
 function WhipExample() {
-  const [compositor, setCompositor] = useState<LiveCompositor | undefined>();
+  const [smelter, setSmelter] = useState<Smelter | undefined>();
   const previewRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    const compositor = new LiveCompositor({});
+    const smelter = new Smelter({});
     let terminate = false;
 
     const startPromise = (async () => {
-      await compositor.init();
+      await smelter.init();
       if (!terminate) {
-        setCompositor(compositor);
+        setSmelter(smelter);
       }
     })();
 
@@ -21,13 +21,13 @@ function WhipExample() {
       terminate = true;
       void (async () => {
         await startPromise;
-        await compositor.terminate();
+        await smelter.terminate();
       })();
     };
   }, []);
 
   useEffect(() => {
-    if (!compositor) {
+    if (!smelter) {
       return;
     }
 
@@ -37,7 +37,7 @@ function WhipExample() {
       if (!streamKey) {
         throw new Error('Add "twitchKey" query params with your Twitch stream key.');
       }
-      const { stream } = await compositor.registerOutput('output', <Scene />, {
+      const { stream } = await smelter.registerOutput('output', <Scene />, {
         type: 'whip',
         endpointUrl: 'https://g.webrtc.live-video.net:4443/v2/offer',
         bearerToken: streamKey,
@@ -48,14 +48,14 @@ function WhipExample() {
         audio: true,
       });
 
-      await compositor.start();
+      await smelter.start();
 
       if (stream && previewRef.current) {
         previewRef.current.srcObject = stream;
         await previewRef.current.play();
       }
     })();
-  }, [compositor]);
+  }, [smelter]);
 
   return (
     <div className="card">

@@ -1,5 +1,5 @@
-import type { RegisterMp4Input } from 'live-compositor';
-import { _liveCompositorInternals } from 'live-compositor';
+import type { RegisterMp4Input } from '@swmansion/smelter';
+import { _smelterInternals } from '@swmansion/smelter';
 import type { ReactElement } from 'react';
 import { createElement } from 'react';
 import type { ApiClient, Api } from '../api.js';
@@ -12,11 +12,11 @@ import { OutputRootComponent } from '../rootComponent.js';
 import type { Logger } from 'pino';
 import type { ImageRef } from '../api/image.js';
 
-type AudioContext = _liveCompositorInternals.AudioContext;
-type OfflineTimeContext = _liveCompositorInternals.OfflineTimeContext;
-type OfflineInputStreamStore<Id> = _liveCompositorInternals.OfflineInputStreamStore<Id>;
-type CompositorOutputContext = _liveCompositorInternals.CompositorOutputContext;
-type ChildrenLifetimeContext = _liveCompositorInternals.ChildrenLifetimeContext;
+type AudioContext = _smelterInternals.AudioContext;
+type OfflineTimeContext = _smelterInternals.OfflineTimeContext;
+type OfflineInputStreamStore<Id> = _smelterInternals.OfflineInputStreamStore<Id>;
+type SmelterOutputContext = _smelterInternals.SmelterOutputContext;
+type ChildrenLifetimeContext = _smelterInternals.ChildrenLifetimeContext;
 
 type Timeout = ReturnType<typeof setTimeout>;
 
@@ -54,9 +54,9 @@ class OfflineOutput {
     this.supportsVideo = 'video' in registerRequest && !!registerRequest.video;
 
     const onUpdate = () => this.updateTracker?.onUpdate();
-    this.audioContext = new _liveCompositorInternals.AudioContext(onUpdate);
-    this.internalInputStreamStore = new _liveCompositorInternals.OfflineInputStreamStore();
-    this.timeContext = new _liveCompositorInternals.OfflineTimeContext(
+    this.audioContext = new _smelterInternals.AudioContext(onUpdate);
+    this.internalInputStreamStore = new _smelterInternals.OfflineInputStreamStore();
+    this.timeContext = new _smelterInternals.OfflineTimeContext(
       onUpdate,
       (timestamp: number) => {
         store.setCurrentTimestamp(timestamp);
@@ -64,7 +64,7 @@ class OfflineOutput {
       },
       this.logger
     );
-    this.childrenLifetimeContext = new _liveCompositorInternals.ChildrenLifetimeContext(() => {});
+    this.childrenLifetimeContext = new _smelterInternals.ChildrenLifetimeContext(() => {});
 
     const rootElement = createElement(OutputRootComponent, {
       outputContext: new OutputContext(this, this.outputId, store),
@@ -119,11 +119,11 @@ class OfflineOutput {
   }
 }
 
-class OutputContext implements CompositorOutputContext {
-  public readonly globalInputStreamStore: _liveCompositorInternals.InputStreamStore<string>;
-  public readonly internalInputStreamStore: _liveCompositorInternals.InputStreamStore<number>;
-  public readonly audioContext: _liveCompositorInternals.AudioContext;
-  public readonly timeContext: _liveCompositorInternals.TimeContext;
+class OutputContext implements SmelterOutputContext {
+  public readonly globalInputStreamStore: _smelterInternals.InputStreamStore<string>;
+  public readonly internalInputStreamStore: _smelterInternals.InputStreamStore<number>;
+  public readonly audioContext: _smelterInternals.AudioContext;
+  public readonly timeContext: _smelterInternals.TimeContext;
   public readonly outputId: string;
   public readonly logger: Logger;
   private output: OfflineOutput;
@@ -131,7 +131,7 @@ class OutputContext implements CompositorOutputContext {
   constructor(
     output: OfflineOutput,
     outputId: string,
-    store: _liveCompositorInternals.InputStreamStore<string>
+    store: _smelterInternals.InputStreamStore<string>
   ) {
     this.output = output;
     this.globalInputStreamStore = store;

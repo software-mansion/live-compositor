@@ -10,7 +10,7 @@ export interface SetupInstanceOptions {
   logger: Logger;
 }
 
-export interface CompositorManager {
+export interface SmelterManager {
   setupInstance(opts: SetupInstanceOptions): Promise<void>;
   sendRequest(request: ApiRequest): Promise<object>;
   sendMultipartRequest(request: MultipartRequest): Promise<object>;

@@ -1,40 +1,40 @@
 import type {
   Input as CoreInput,
   Output as CoreOutput,
-  CompositorManager,
-} from '@live-compositor/core';
-import { OfflineCompositor as CoreLiveCompositor } from '@live-compositor/core';
+  SmelterManager,
+} from '@swmansion/smelter-core';
+import { OfflineSmelter as CoreSmelter } from '@swmansion/smelter-core';
 import { createLogger } from '../logger';
 import LocallySpawnedInstance from '../manager/locallySpawnedInstance';
 import type { ReactElement } from 'react';
-import type { Renderers } from 'live-compositor';
+import type { Renderers } from '@swmansion/smelter';
 import fetch from 'node-fetch';
 import FormData from 'form-data';
 
-export default class OfflineCompositor {
-  private coreCompositor: CoreLiveCompositor;
+export default class OfflineSmelter {
+  private coreSmelter: CoreSmelter;
 
-  public constructor(manager?: CompositorManager) {
-    this.coreCompositor = new CoreLiveCompositor(
+  public constructor(manager?: SmelterManager) {
+    this.coreSmelter = new CoreSmelter(
       manager ?? LocallySpawnedInstance.defaultManager(),
       createLogger()
     );
   }
 
   public async init(): Promise<void> {
-    await this.coreCompositor.init();
+    await this.coreSmelter.init();
   }
 
   public async render(root: ReactElement, request: CoreOutput.RegisterOutput, durationMs?: number) {
-    await this.coreCompositor.render(root, request, durationMs);
+    await this.coreSmelter.render(root, request, durationMs);
   }
 
   public async registerInput(inputId: string, request: CoreInput.RegisterInput) {
-    await this.coreCompositor.registerInput(inputId, request);
+    await this.coreSmelter.registerInput(inputId, request);
   }
 
   public async registerShader(shaderId: string, request: Renderers.RegisterShader) {
-    await this.coreCompositor.registerShader(shaderId, request);
+    await this.coreSmelter.registerShader(shaderId, request);
   }
 
   public async registerImage(imageId: string, request: Renderers.RegisterImage) {
@@ -57,7 +57,7 @@ export default class OfflineCompositor {
     const formData = new FormData();
     formData.append('fontFile', fontBuffer);
 
-    return this.coreCompositor.manager.sendMultipartRequest({
+    return this.coreSmelter.manager.sendMultipartRequest({
       method: 'POST',
       route: `/api/font/register`,
       body: formData,

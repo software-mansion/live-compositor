@@ -1,6 +1,6 @@
 import { createElement, useContext, useEffect, useState, useSyncExternalStore } from 'react';
 import { newBlockingTask } from '../hooks.js';
-import { LiveCompositorContext } from '../context/index.js';
+import { SmelterContext } from '../context/index.js';
 import { inputRefIntoRawId, OfflineTimeContext } from '../internal.js';
 import { InnerInputStream } from './InputStream.js';
 import { newInternalStreamId } from '../context/internalStreamIdManager.js';
@@ -18,14 +18,14 @@ export type Mp4Props = Omit<ComponentBaseProps, 'children'> & {
   muted?: boolean;
 
   /**
-   *  Url or path to the mp4 file. File path refers to the filesystem where LiveCompositor server is deployed.
+   *  Url or path to the mp4 file. File path refers to the filesystem where Smelter server is deployed.
    */
   source: string;
 };
 
 function Mp4(props: Mp4Props) {
   const { muted, volume, ...otherProps } = props;
-  const ctx = useContext(LiveCompositorContext);
+  const ctx = useContext(SmelterContext);
   const [inputId, setInputId] = useState(0);
 
   useEffect(() => {
@@ -73,7 +73,7 @@ function Mp4(props: Mp4Props) {
 }
 
 function useInternalAudioInput(inputId: number, volume: number) {
-  const ctx = useContext(LiveCompositorContext);
+  const ctx = useContext(SmelterContext);
   useEffect(() => {
     if (inputId === 0) {
       return;
@@ -93,7 +93,7 @@ function useInternalAudioInput(inputId: number, volume: number) {
 }
 
 function useTimeLimitedMp4(inputId: number) {
-  const ctx = useContext(LiveCompositorContext);
+  const ctx = useContext(SmelterContext);
   const [startTime, setStartTime] = useState(0);
   useEffect(() => {
     setStartTime(ctx.timeContext.timestampMs());

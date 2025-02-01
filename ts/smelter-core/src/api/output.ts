@@ -4,8 +4,8 @@ import type {
   RegisterRtpOutput,
   RegisterMp4Output,
   RegisterWhipOutput,
-  _liveCompositorInternals,
-} from 'live-compositor';
+  _smelterInternals,
+} from '@swmansion/smelter';
 import { inputRefIntoRawId } from './input.js';
 
 /**
@@ -213,9 +213,7 @@ function intoWhipAudioEncoderOptions(
   };
 }
 
-export function intoAudioInputsConfiguration(
-  inputs: _liveCompositorInternals.AudioConfig
-): Api.Audio {
+export function intoAudioInputsConfiguration(inputs: _smelterInternals.AudioConfig): Api.Audio {
   return {
     inputs: inputs.map(input => ({
       input_id: inputRefIntoRawId(input.inputRef),

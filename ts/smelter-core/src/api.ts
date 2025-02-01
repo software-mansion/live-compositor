@@ -1,5 +1,5 @@
-import { Api } from 'live-compositor';
-import type { CompositorManager } from './compositorManager.js';
+import { Api } from '@swmansion/smelter';
+import type { SmelterManager } from './smelterManager.js';
 import type { RegisterOutputRequest } from './api/output.js';
 import { inputRefIntoRawId, type InputRef, type RegisterInputRequest } from './api/input.js';
 import { imageRefIntoRawId, type ImageRef } from './api/image.js';
@@ -24,9 +24,9 @@ export type RegisterInputResponse = {
 };
 
 export class ApiClient {
-  private serverManager: CompositorManager;
+  private serverManager: SmelterManager;
 
-  constructor(serverManager: CompositorManager) {
+  constructor(serverManager: SmelterManager) {
     this.serverManager = serverManager;
   }
 

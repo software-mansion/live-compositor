@@ -7,7 +7,7 @@ import type { RegisterMp4Input } from '../types/registerInput.js';
 import type { RegisterImage } from '../types/registerRenderer.js';
 import type { Logger } from '../types/logger.js';
 
-export type CompositorOutputContext = {
+export type SmelterOutputContext = {
   // global store for input stream state
   globalInputStreamStore: InputStreamStore<string>;
   // internal input streams store
@@ -42,7 +42,7 @@ const noopLogger = {
   trace: () => null,
 } as const;
 
-export const LiveCompositorContext = createContext<CompositorOutputContext>({
+export const SmelterContext = createContext<SmelterOutputContext>({
   globalInputStreamStore: new LiveInputStreamStore(noopLogger),
   internalInputStreamStore: new LiveInputStreamStore(noopLogger),
   audioContext: new AudioContext(() => {}),

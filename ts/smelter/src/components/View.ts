@@ -1,6 +1,6 @@
 import type * as Api from '../api.js';
 import type { ComponentBaseProps, SceneComponent } from '../component.js';
-import { createCompositorComponent, sceneComponentIntoApi } from '../component.js';
+import { createSmelterComponent, sceneComponentIntoApi } from '../component.js';
 import type { Transition } from './common.js';
 import { intoApiTransition } from './common.js';
 
@@ -119,7 +119,7 @@ export type ViewProps = ComponentBaseProps & {
   transition?: Transition;
 };
 
-const View = createCompositorComponent<ViewProps>(sceneBuilder);
+const View = createSmelterComponent<ViewProps>(sceneBuilder);
 
 function sceneBuilder(
   { id, style = {}, transition }: ViewProps,

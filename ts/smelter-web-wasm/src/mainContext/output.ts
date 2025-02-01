@@ -1,8 +1,8 @@
-import type { Output as CoreOutput } from '@live-compositor/core';
+import type { Output as CoreOutput } from '@swmansion/smelter-core';
 import type { WorkerMessage } from '../workerApi';
 import { handleRegisterCanvasOutput } from './output/canvas';
 import { handleRegisterWhipOutput } from './output/whip';
-import type { Api } from 'live-compositor';
+import type { Api } from '@swmansion/smelter';
 import { handleRegisterStreamOutput } from './output/stream';
 import type { Logger } from 'pino';
 import type { Framerate } from '../compositor/compositor';

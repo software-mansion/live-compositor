@@ -4,7 +4,7 @@ import fs from 'fs';
 import type { ChildProcess, SpawnOptions } from 'child_process';
 import { spawn as nodeSpawn } from 'child_process';
 
-const TMP_SDP_DIR = path.join(os.tmpdir(), 'live-composiotor-sdp');
+const TMP_SDP_DIR = path.join(os.tmpdir(), 'smelter-sdp');
 
 /**
  * Util function that displays video sent over RTP to the specified port.

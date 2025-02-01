@@ -1,4 +1,4 @@
-import { OfflineCompositor } from '@live-compositor/node';
+import { OfflineSmelter } from '@swmansion/smelter-node';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   useCurrentTimestamp,
   useAfterTimestamp,
   Show,
-} from 'live-compositor';
+} from '@swmansion/smelter';
 import { downloadAllAssets } from './utils';
 import path from 'path';
 import { useState } from 'react';
@@ -56,27 +56,27 @@ function InputTile({ inputId }: { inputId: string }) {
 
 async function run() {
   await downloadAllAssets();
-  const compositor = new OfflineCompositor();
-  await compositor.init();
+  const smelter = new OfflineSmelter();
+  await smelter.init();
 
-  await compositor.registerFont(
+  await smelter.registerFont(
     'https://fonts.gstatic.com/s/notosans/v36/o-0mIpQlx3QUlC5A4PNB6Ryti20_6n1iPHjcz6L1SoM-jCpoiyD9A-9a6Vc.ttf'
   );
-  await compositor.registerInput('input_1', {
+  await smelter.registerInput('input_1', {
     type: 'mp4',
     serverPath: path.join(__dirname, '../.assets/BigBuckBunny.mp4'),
     offsetMs: 0,
     required: true,
   });
 
-  await compositor.registerInput('input_2', {
+  await smelter.registerInput('input_2', {
     type: 'mp4',
     serverPath: path.join(__dirname, '../.assets/ElephantsDream.mp4'),
     offsetMs: 0,
     required: true,
   });
 
-  await compositor.render(
+  await smelter.render(
     <ExampleApp />,
     {
       type: 'mp4',

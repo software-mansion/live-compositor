@@ -16,7 +16,7 @@ export default [
           {
             src: 'src/generated/compositor_web_bg.wasm',
             dest: 'dist',
-            rename: 'live-compositor.wasm',
+            rename: 'smelter.wasm',
           },
         ],
       }),

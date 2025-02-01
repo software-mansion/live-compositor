@@ -1,4 +1,10 @@
-import type { Frame, FrameSet, InputId, OutputId, Renderer } from '@live-compositor/browser-render';
+import type {
+  Frame,
+  FrameSet,
+  InputId,
+  OutputId,
+  Renderer,
+} from '@swmansion/smelter-browser-render';
 import type { Framerate } from '../compositor/compositor';
 import type { Input } from './input/input';
 import type { Output } from './output/output';

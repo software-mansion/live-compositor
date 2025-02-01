@@ -1,8 +1,8 @@
-import { _liveCompositorInternals } from 'live-compositor';
+import { _smelterInternals } from '@swmansion/smelter';
 import type { WorkerEvent } from './workerApi';
 
-export const CompositorEventType = _liveCompositorInternals.CompositorEventType;
-export const inputRefIntoRawId = _liveCompositorInternals.inputRefIntoRawId;
+export const SmelterEventType = _smelterInternals.SmelterEventType;
+export const inputRefIntoRawId = _smelterInternals.inputRefIntoRawId;
 
 export class EventSender {
   private eventCallbacks: Set<(event: object) => void> = new Set();
@@ -11,7 +11,7 @@ export class EventSender {
    * Check if this is event that should be passed to core
    */
   public static isExternalEvent(event: WorkerEvent): event is ExternalWorkerEvent {
-    return Object.values(CompositorEventType).includes(event?.type);
+    return Object.values(SmelterEventType).includes(event?.type);
   }
 
   public registerEventCallback(eventCallback: (event: object) => void) {
@@ -26,7 +26,7 @@ export class EventSender {
 }
 
 function toWebSocketMessage(event: ExternalWorkerEvent): WebSocketMessage {
-  if (event.type == CompositorEventType.OUTPUT_DONE) {
+  if (event.type == SmelterEventType.OUTPUT_DONE) {
     return {
       type: event.type,
       output_id: event.outputId,
@@ -45,35 +45,35 @@ function toWebSocketMessage(event: ExternalWorkerEvent): WebSocketMessage {
 export type ExternalWorkerEvent =
   | {
       type:
-        | _liveCompositorInternals.CompositorEventType.AUDIO_INPUT_DELIVERED
-        | _liveCompositorInternals.CompositorEventType.VIDEO_INPUT_DELIVERED
-        | _liveCompositorInternals.CompositorEventType.AUDIO_INPUT_PLAYING
-        | _liveCompositorInternals.CompositorEventType.VIDEO_INPUT_PLAYING
-        | _liveCompositorInternals.CompositorEventType.AUDIO_INPUT_EOS
-        | _liveCompositorInternals.CompositorEventType.VIDEO_INPUT_EOS;
+        | _smelterInternals.SmelterEventType.AUDIO_INPUT_DELIVERED
+        | _smelterInternals.SmelterEventType.VIDEO_INPUT_DELIVERED
+        | _smelterInternals.SmelterEventType.AUDIO_INPUT_PLAYING
+        | _smelterInternals.SmelterEventType.VIDEO_INPUT_PLAYING
+        | _smelterInternals.SmelterEventType.AUDIO_INPUT_EOS
+        | _smelterInternals.SmelterEventType.VIDEO_INPUT_EOS;
       inputId: string;
     }
   | {
-      type: _liveCompositorInternals.CompositorEventType.OUTPUT_DONE;
+      type: _smelterInternals.SmelterEventType.OUTPUT_DONE;
       outputId: string;
     };
 
 /**
- * Actual format that in non-WASM compositor would be sent via WebSocket. Here it's only used to match the format
+ * Actual format that in non-WASM smelter would be sent via WebSocket. Here it's only used to match the format
  * so the core package can handle both WASM and non-WASM instances.
  */
 export type WebSocketMessage =
   | {
       type:
-        | _liveCompositorInternals.CompositorEventType.AUDIO_INPUT_DELIVERED
-        | _liveCompositorInternals.CompositorEventType.VIDEO_INPUT_DELIVERED
-        | _liveCompositorInternals.CompositorEventType.AUDIO_INPUT_PLAYING
-        | _liveCompositorInternals.CompositorEventType.VIDEO_INPUT_PLAYING
-        | _liveCompositorInternals.CompositorEventType.AUDIO_INPUT_EOS
-        | _liveCompositorInternals.CompositorEventType.VIDEO_INPUT_EOS;
+        | _smelterInternals.SmelterEventType.AUDIO_INPUT_DELIVERED
+        | _smelterInternals.SmelterEventType.VIDEO_INPUT_DELIVERED
+        | _smelterInternals.SmelterEventType.AUDIO_INPUT_PLAYING
+        | _smelterInternals.SmelterEventType.VIDEO_INPUT_PLAYING
+        | _smelterInternals.SmelterEventType.AUDIO_INPUT_EOS
+        | _smelterInternals.SmelterEventType.VIDEO_INPUT_EOS;
       input_id: string;
     }
   | {
-      type: _liveCompositorInternals.CompositorEventType.OUTPUT_DONE;
+      type: _smelterInternals.SmelterEventType.OUTPUT_DONE;
       output_id: string;
     };

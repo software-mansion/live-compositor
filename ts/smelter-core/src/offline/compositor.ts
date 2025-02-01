@@ -1,14 +1,14 @@
-import type { Renderers } from 'live-compositor';
-import { _liveCompositorInternals } from 'live-compositor';
+import type { Renderers } from '@swmansion/smelter';
+import { _smelterInternals } from '@swmansion/smelter';
 import { ApiClient } from '../api.js';
-import type { CompositorManager } from '../compositorManager.js';
+import type { SmelterManager } from '../smelterManager.js';
 import type { RegisterOutput } from '../api/output.js';
 import { intoRegisterOutput } from '../api/output.js';
 import type { RegisterInput } from '../api/input.js';
 import { intoRegisterInput } from '../api/input.js';
 import { intoRegisterImage } from '../api/renderer.js';
 import OfflineOutput from './output.js';
-import { CompositorEventType, parseEvent } from '../event.js';
+import { SmelterEventType, parseEvent } from '../event.js';
 import type { ReactElement } from 'react';
 import type { Logger } from 'pino';
 import type { ImageRef } from '../api/image.js';
@@ -19,10 +19,10 @@ import type { ImageRef } from '../api/image.js';
  */
 export const OFFLINE_OUTPUT_ID = 'offline_output';
 
-export class OfflineCompositor {
-  public readonly manager: CompositorManager;
+export class OfflineSmelter {
+  public readonly manager: SmelterManager;
   private api: ApiClient;
-  private store: _liveCompositorInternals.OfflineInputStreamStore<string>;
+  private store: _smelterInternals.OfflineInputStreamStore<string>;
   private renderStarted: boolean = false;
   /**
    * Start and end timestamp of an inputs (if known).
@@ -30,10 +30,10 @@ export class OfflineCompositor {
   private inputTimestamps: number[] = [];
   private logger: Logger;
 
-  public constructor(manager: CompositorManager, logger: Logger) {
+  public constructor(manager: SmelterManager, logger: Logger) {
     this.manager = manager;
     this.api = new ApiClient(this.manager);
-    this.store = new _liveCompositorInternals.OfflineInputStreamStore();
+    this.store = new _smelterInternals.OfflineInputStreamStore();
     this.logger = logger;
   }
 
@@ -67,7 +67,7 @@ export class OfflineCompositor {
         const event = parseEvent(rawEvent, this.logger);
         if (
           event &&
-          event.type === CompositorEventType.OUTPUT_DONE &&
+          event.type === SmelterEventType.OUTPUT_DONE &&
           event.outputId === OFFLINE_OUTPUT_ID
         ) {
           res();

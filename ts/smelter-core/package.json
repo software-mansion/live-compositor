@@ -1,5 +1,5 @@
 {
-  "name": "@live-compositor/core",
+  "name": "@swmansion/smelter-core",
   "version": "0.1.0",
   "description": "",
   "type": "module",
@@ -36,7 +36,7 @@
     "react-reconciler": "0.29.2"
   },
   "peerDependencies": {
-    "live-compositor": "workspace:^0.1.0",
+    "@swmansion/smelter": "workspace:^0.1.0",
     "react": "*"
   }
 }

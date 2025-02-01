@@ -18,7 +18,7 @@ export type ComponentBaseProps = {
 export type SceneComponent = Api.Component | string;
 export type SceneBuilder<P> = (props: P, children: SceneComponent[]) => Api.Component;
 
-export function createCompositorComponent<P extends ComponentBaseProps>(
+export function createSmelterComponent<P extends ComponentBaseProps>(
   sceneBuilder: SceneBuilder<P>
 ): (props: P) => React.ReactNode {
   return (props: P): React.ReactNode => {
@@ -26,7 +26,7 @@ export function createCompositorComponent<P extends ComponentBaseProps>(
     const autoId = useId();
 
     return createElement(
-      'compositor',
+      'smelter',
       {
         sceneBuilder,
         props: { ...otherProps, id: otherProps.id ?? autoId },

@@ -1,4 +1,4 @@
-import { View, Text, useInputStreams, InputStream, Tiles } from 'live-compositor';
+import { View, Text, useInputStreams, InputStream, Tiles } from '@swmansion/smelter';
 
 import { store } from './store';
 import { useStore } from 'zustand';
@@ -31,8 +31,8 @@ function Instructions() {
       <View style={{ height: 20 }} />
       <Text style={{ width: 960, fontSize: 30, wrap: 'word' }}>
         This example renders static text and sends the output stream via RTP to local port 8001.
-        Generated code includes helpers in liveCompositorFfplayHelper.ts that display the output
-        stream using ffplay, make sure to remove them for any real production use.
+        Generated code includes helpers in smelterFfplayHelper.ts that display the output stream
+        using ffplay, make sure to remove them for any real production use.
       </Text>
       <View style={{ height: 20 }} />
       <Text style={{ fontSize: 50 }}>Where to go next?</Text>
@@ -43,7 +43,7 @@ function Instructions() {
         - ./src/routes.ts controls HTTP API that can be used to interact with this example.
       </Text>
       <Text style={{ width: 960, fontSize: 30, wrap: 'word' }}>
-        - ./compositor.tsx exposes LiveCompositor instance that can be used to add/remove new
+        - ./compositor.tsx exposes Smelter instance that can be used to add/remove new
         streams/images/shader.
       </Text>
       <Text style={{ width: 960, fontSize: 30, wrap: 'word' }}>

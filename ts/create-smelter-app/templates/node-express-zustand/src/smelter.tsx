@@ -1,16 +1,16 @@
-import LiveCompositor from '@live-compositor/node';
+import Smelter from '@swmansion/smelter-node';
 import App from './App';
-import { ffplayStartPlayerAsync } from './liveCompositorFfplayHelper';
+import { ffplayStartPlayerAsync } from './smelterFfplayHelper';
 
-export const Compositor = new LiveCompositor();
+export const SmelterInstance = new Smelter();
 
-export async function initializeCompositor() {
-  await Compositor.init();
+export async function initializeSmelterInstance() {
+  await SmelterInstance.init();
 
   // Display output with `ffplay`.
   await ffplayStartPlayerAsync('127.0.0.0', 8001);
 
-  await Compositor.registerOutput('output_1', <App />, {
+  await SmelterInstance.registerOutput('output_1', <App />, {
     type: 'rtp_stream',
     port: 8001,
     ip: '127.0.0.1',
@@ -27,5 +27,5 @@ export async function initializeCompositor() {
     },
   });
 
-  await Compositor.start();
+  await SmelterInstance.start();
 }

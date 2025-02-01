@@ -3,7 +3,7 @@ import type * as Api from './api';
 
 export type RendererOptions = {
   /**
-   * A timeout that defines when the compositor should switch to fallback on the input stream that stopped sending frames.
+   * A timeout that defines when the smelter should switch to fallback on the input stream that stopped sending frames.
    */
   streamFallbackTimeoutMs: number;
 

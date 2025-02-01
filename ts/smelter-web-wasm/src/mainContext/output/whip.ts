@@ -1,4 +1,4 @@
-import type { Api } from 'live-compositor';
+import type { Api } from '@swmansion/smelter';
 import type { RegisterOutput } from '../../workerApi';
 import type { Output, RegisterOutputResult, RegisterWasmWhipOutput } from '../output';
 import type { Logger } from 'pino';

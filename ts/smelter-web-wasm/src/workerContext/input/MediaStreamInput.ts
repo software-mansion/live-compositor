@@ -1,8 +1,8 @@
-import type { Frame, InputId } from '@live-compositor/browser-render';
+import type { Frame, InputId } from '@swmansion/smelter-browser-render';
 import type { Input, InputStartResult } from './input';
 import { InputVideoFrameRef } from './frame';
 import type { Interval } from '../../utils';
-import { CompositorEventType } from '../../eventSender';
+import { SmelterEventType } from '../../eventSender';
 import { workerPostEvent } from '../bridge';
 
 export type InputState = 'started' | 'playing' | 'finished';
@@ -48,7 +48,7 @@ export class MediaStreamInput implements Input {
       readPromise = undefined;
     }, 30);
     workerPostEvent({
-      type: CompositorEventType.VIDEO_INPUT_DELIVERED,
+      type: SmelterEventType.VIDEO_INPUT_DELIVERED,
       inputId: this.inputId,
     });
     return {};
@@ -67,7 +67,7 @@ export class MediaStreamInput implements Input {
       if (!this.sentEos) {
         this.sentEos = true;
         workerPostEvent({
-          type: CompositorEventType.VIDEO_INPUT_EOS,
+          type: SmelterEventType.VIDEO_INPUT_EOS,
           inputId: this.inputId,
         });
       }
@@ -78,7 +78,7 @@ export class MediaStreamInput implements Input {
       if (!this.sentFirstFrame) {
         this.sentFirstFrame = true;
         workerPostEvent({
-          type: CompositorEventType.VIDEO_INPUT_PLAYING,
+          type: SmelterEventType.VIDEO_INPUT_PLAYING,
           inputId: this.inputId,
         });
       }

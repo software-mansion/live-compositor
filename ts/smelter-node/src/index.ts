@@ -1,5 +1,5 @@
-import LiveCompositor from './live/compositor';
-import OfflineCompositor from './offline/compositor';
+import Smelter from './live/compositor';
+import OfflineSmelter from './offline/compositor';
 
-export default LiveCompositor;
-export { OfflineCompositor };
+export default Smelter;
+export { OfflineSmelter };

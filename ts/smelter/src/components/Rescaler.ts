@@ -3,7 +3,7 @@ import type * as Api from '../api.js';
 import type { Transition } from './common.js';
 import { intoApiTransition } from './common.js';
 import type { ComponentBaseProps, SceneComponent } from '../component.js';
-import { createCompositorComponent, sceneComponentIntoApi } from '../component.js';
+import { createSmelterComponent, sceneComponentIntoApi } from '../component.js';
 
 export type RescalerStyleProps = {
   /**
@@ -96,7 +96,7 @@ export type RescalerProps = ComponentBaseProps & {
   transition?: Transition;
 };
 
-const Rescaler = createCompositorComponent<RescalerProps>(sceneBuilder);
+const Rescaler = createSmelterComponent<RescalerProps>(sceneBuilder);
 
 function sceneBuilder(
   { id, style, transition }: RescalerProps,

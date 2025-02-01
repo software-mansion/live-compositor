@@ -1,6 +1,6 @@
-import type { _liveCompositorInternals } from 'live-compositor';
+import type { _smelterInternals } from '@swmansion/smelter';
 
-export type Logger = _liveCompositorInternals.Logger;
+export type Logger = _smelterInternals.Logger;
 
 export enum LoggerLevel {
   ERROR = 'error',

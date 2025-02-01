@@ -1,4 +1,4 @@
-import type { Frame } from '@live-compositor/browser-render';
+import type { Frame } from '@swmansion/smelter-browser-render';
 import type { OutputSink } from './sink';
 import { assert } from '../../utils';
 

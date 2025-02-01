@@ -1,16 +1,16 @@
-import type { _liveCompositorInternals } from 'live-compositor';
-import type { CompositorEvent } from '../event.js';
-import { CompositorEventType } from '../event.js';
+import type { _smelterInternals } from '@swmansion/smelter';
+import type { SmelterEvent } from '../event.js';
+import { SmelterEventType } from '../event.js';
 import type Output from './output.js';
 
-type LiveInputStreamStore<Id> = _liveCompositorInternals.LiveInputStreamStore<Id>;
+type LiveInputStreamStore<Id> = _smelterInternals.LiveInputStreamStore<Id>;
 
 export function handleEvent(
   store: LiveInputStreamStore<string>,
   outputs: Record<string, Output>,
-  event: CompositorEvent
+  event: SmelterEvent
 ) {
-  if (event.type === CompositorEventType.VIDEO_INPUT_DELIVERED) {
+  if (event.type === SmelterEventType.VIDEO_INPUT_DELIVERED) {
     if (event.inputRef.type === 'global') {
       store.dispatchUpdate({
         type: 'update_input',
@@ -22,7 +22,7 @@ export function handleEvent(
         input: { inputId: event.inputRef.id, videoState: 'ready' },
       });
     }
-  } else if (event.type === CompositorEventType.VIDEO_INPUT_PLAYING) {
+  } else if (event.type === SmelterEventType.VIDEO_INPUT_PLAYING) {
     if (event.inputRef.type === 'global') {
       store.dispatchUpdate({
         type: 'update_input',
@@ -34,7 +34,7 @@ export function handleEvent(
         input: { inputId: event.inputRef.id, videoState: 'playing' },
       });
     }
-  } else if (event.type === CompositorEventType.VIDEO_INPUT_EOS) {
+  } else if (event.type === SmelterEventType.VIDEO_INPUT_EOS) {
     if (event.inputRef.type === 'global') {
       store.dispatchUpdate({
         type: 'update_input',
@@ -46,7 +46,7 @@ export function handleEvent(
         input: { inputId: event.inputRef.id, videoState: 'finished' },
       });
     }
-  } else if (event.type === CompositorEventType.AUDIO_INPUT_DELIVERED) {
+  } else if (event.type === SmelterEventType.AUDIO_INPUT_DELIVERED) {
     if (event.inputRef.type === 'global') {
       store.dispatchUpdate({
         type: 'update_input',
@@ -58,7 +58,7 @@ export function handleEvent(
         input: { inputId: event.inputRef.id, audioState: 'ready' },
       });
     }
-  } else if (event.type === CompositorEventType.AUDIO_INPUT_PLAYING) {
+  } else if (event.type === SmelterEventType.AUDIO_INPUT_PLAYING) {
     if (event.inputRef.type === 'global') {
       store.dispatchUpdate({
         type: 'update_input',
@@ -70,7 +70,7 @@ export function handleEvent(
         input: { inputId: event.inputRef.id, audioState: 'playing' },
       });
     }
-  } else if (event.type === CompositorEventType.AUDIO_INPUT_EOS) {
+  } else if (event.type === SmelterEventType.AUDIO_INPUT_EOS) {
     if (event.inputRef.type === 'global') {
       store.dispatchUpdate({
         type: 'update_input',

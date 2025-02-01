@@ -1,5 +1,5 @@
-import type { Output } from '@live-compositor/core';
-import type { Api, Renderers } from 'live-compositor';
+import type { Output } from '@swmansion/smelter-core';
+import type { Api, Renderers } from '@swmansion/smelter';
 
 export type RegisterImage = Required<Pick<Renderers.RegisterImage, 'assetType' | 'url'>>;
 

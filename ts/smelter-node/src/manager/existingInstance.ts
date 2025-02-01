@@ -1,9 +1,9 @@
 import type {
   ApiRequest,
   MultipartRequest,
-  CompositorManager,
+  SmelterManager,
   SetupInstanceOptions,
-} from '@live-compositor/core';
+} from '@swmansion/smelter-core';
 
 import { sendRequest, sendMultipartRequest } from '../fetch';
 import { retry, sleep } from '../utils';
@@ -16,9 +16,9 @@ type CreateInstanceOptions = {
 };
 
 /**
- * CompositorManager that will connect to existing instance
+ * SmelterManager that will connect to existing instance
  */
-class ExistingInstance implements CompositorManager {
+class ExistingInstance implements SmelterManager {
   private ip: string;
   private port: number;
   private protocol: 'http' | 'https';
@@ -34,7 +34,7 @@ class ExistingInstance implements CompositorManager {
 
   public async setupInstance(opts: SetupInstanceOptions): Promise<void> {
     // TODO: verify if options match
-    // https://github.com/software-mansion/live-compositor/issues/877
+    // https://github.com/software-mansion/smelter/issues/877
     await retry(async () => {
       await sleep(500);
       return await this.sendRequest({

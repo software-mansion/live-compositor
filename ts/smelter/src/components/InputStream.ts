@@ -1,15 +1,15 @@
 import { createElement, useContext, useEffect, useState } from 'react';
 import type * as Api from '../api.js';
 import type { ComponentBaseProps, SceneComponent } from '../component.js';
-import { createCompositorComponent } from '../component.js';
+import { createSmelterComponent } from '../component.js';
 import { useAudioInput, useInputStreams } from '../hooks.js';
 import { useTimeLimitedComponent } from '../context/childrenLifetimeContext.js';
-import { LiveCompositorContext } from '../context/index.js';
+import { SmelterContext } from '../context/index.js';
 import { inputRefIntoRawId } from '../internal.js';
 
 export type InputStreamProps = Omit<ComponentBaseProps, 'children'> & {
   /**
-   * Id of an input. It identifies a stream registered using a `LiveCompositor.registerInput`.
+   * Id of an input. It identifies a stream registered using a `Smelter.registerInput`.
    */
   inputId: Api.InputId;
   /**
@@ -25,7 +25,7 @@ export type InputStreamProps = Omit<ComponentBaseProps, 'children'> & {
 type AudioPropNames = 'muted' | 'volume';
 
 export const InnerInputStream =
-  createCompositorComponent<Omit<InputStreamProps, AudioPropNames>>(sceneBuilder);
+  createSmelterComponent<Omit<InputStreamProps, AudioPropNames>>(sceneBuilder);
 
 function InputStream(props: InputStreamProps) {
   const { muted, volume, inputId, ...otherProps } = props;
@@ -40,7 +40,7 @@ function InputStream(props: InputStreamProps) {
 }
 
 function useTimeLimitedInputStream(inputId: string) {
-  const ctx = useContext(LiveCompositorContext);
+  const ctx = useContext(SmelterContext);
 
   // startTime is only needed for live case. In offline
   // mode offset is always set.

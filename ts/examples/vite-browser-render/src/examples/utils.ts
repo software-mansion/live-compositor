@@ -1,4 +1,4 @@
-import { loadWasmModule, Renderer } from '@live-compositor/browser-render';
+import { loadWasmModule, Renderer } from '@swmansion/smelter-browser-render';
 import { useEffect, useState } from 'react';
 import NotoSansFont from '../../assets/NotoSans.ttf';
 
@@ -6,7 +6,7 @@ export function useRenderer(): Renderer | null {
   const [renderer, setRenderer] = useState<Renderer | null>(null);
   useEffect(() => {
     const setupRenderer = async () => {
-      await loadWasmModule('./assets/live-compositor.wasm');
+      await loadWasmModule('/assets/smelter.wasm');
       const renderer = await Renderer.create({
         streamFallbackTimeoutMs: 500,
       });

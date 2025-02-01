@@ -1,5 +1,5 @@
-import type { Frame } from '@live-compositor/browser-render';
-import { FrameFormat } from '@live-compositor/browser-render';
+import type { Frame } from '@swmansion/smelter-browser-render';
+import { FrameFormat } from '@swmansion/smelter-browser-render';
 import { assert } from '../../utils';
 
 export type InputVideoFrame = {

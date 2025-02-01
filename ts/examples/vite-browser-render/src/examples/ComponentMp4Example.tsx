@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
-import type { LiveCompositor } from '@live-compositor/web-wasm';
-import { Mp4, Slide, SlideShow, Text, View } from 'live-compositor';
-import CompositorCanvas from '../components/CompositorCanvas';
+import type { Smelter } from '@swmansion/smelter-web-wasm';
+import { Mp4, Slide, SlideShow, Text, View } from '@swmansion/smelter';
+import CompositorCanvas from '../components/SmelterCanvas';
 
 const FIRST_MP4_URL =
   'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4';
@@ -10,7 +10,7 @@ const SECOND_MP4_URL =
   'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
 
 function InputMp4Example() {
-  const onCanvasCreate = useCallback(async (compositor: LiveCompositor) => {
+  const onCanvasCreate = useCallback(async (compositor: Smelter) => {
     await compositor.registerFont(
       'https://fonts.gstatic.com/s/notosans/v36/o-0mIpQlx3QUlC5A4PNB6Ryti20_6n1iPHjcz6L1SoM-jCpoiyD9A-9a6Vc.ttf'
     );

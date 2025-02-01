@@ -3,14 +3,14 @@ import './App.css';
 import Counter from './examples/Counter';
 import InputMp4Example from './examples/InputMp4Example';
 import ComponentMp4Example from './examples/ComponentMp4Example';
-import MultipleCompositors from './examples/MultipleCompositors';
+import MultipleInstances from './examples/MultipleInstances';
 import Camera from './examples/CameraExample';
 import ScreenCapture from './examples/ScreenCaptureExample';
-import { setWasmBundleUrl } from '@live-compositor/web-wasm';
+import { setWasmBundleUrl } from '@swmansion/smelter-web-wasm';
 import WhipExample from './examples/WhipExample';
 import DemoExample from './examples/Demo';
 
-setWasmBundleUrl('/assets/live-compositor.wasm');
+setWasmBundleUrl('/assets/smelter.wasm');
 
 function App() {
   const EXAMPLES = {
@@ -18,7 +18,7 @@ function App() {
     inputMp4: <InputMp4Example />,
     componentMp4: <ComponentMp4Example />,
     whip: <WhipExample />,
-    multipleCompositors: <MultipleCompositors />,
+    multipleCompositors: <MultipleInstances />,
     camera: <Camera />,
     screenCapture: <ScreenCapture />,
     home: <Home />,
@@ -39,7 +39,7 @@ function App() {
         <button onClick={() => setCurrentExample('inputMp4')}>Input Stream MP4</button>
         <button onClick={() => setCurrentExample('componentMp4')}>Component MP4</button>
         <button onClick={() => setCurrentExample('multipleCompositors')}>
-          Multiple LiveCompositor instances
+          Multiple Smelter instances
         </button>
         <button onClick={() => setCurrentExample('camera')}>Camera</button>
         <button onClick={() => setCurrentExample('screenCapture')}>Screen Capture</button>
@@ -57,7 +57,7 @@ function Home() {
     <div style={{ textAlign: 'left' }}>
       <h2>Packages:</h2>
       <h3>
-        <code>@live-compositor/web-wasm</code> - LiveCompositor in the browser
+        <code>@swmansion/smelter-web-wasm</code> - Smelter in the browser
       </h3>
       <li>
         <code>Demo</code> - Demo that combine most of the below features in one example. Stream a
@@ -80,8 +80,7 @@ function Home() {
         render output on canvas.
       </li>
       <li>
-        <code>Multiple LiveCompositor instances</code> - Runs multiple LiveCompositor instances at
-        the same time.
+        <code>Multiple Smelter instances</code> - Runs multiple Smelter instances at the same time.
       </li>
       <li>
         <code>Camera</code> - Use webcam as an input and render output on canvas.
@@ -90,7 +89,7 @@ function Home() {
         <code>Screen Capture</code> - Use screen capture as an input and render output on canvas.
       </li>
       <h3>
-        <code>@live-compositor/browser-render</code> - Rendering engine from LiveCompositor
+        <code>@swmansion/smelter-browser-render</code> - Rendering engine from Smelter
       </h3>
       <li>
         <code>Counter</code> - Render a GIF + counter trigged by user(with a button).

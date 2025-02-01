@@ -2,7 +2,7 @@ import type * as Api from '../api.js';
 
 export type RegisterRtpInput = {
   /**
-   * UDP port or port range on which the compositor should listen for the stream.
+   * UDP port or port range on which the smelter should listen for the stream.
    */
   port: Api.PortOrPortRange;
   /**
@@ -19,7 +19,7 @@ export type RegisterRtpInput = {
   audio?: InputRtpAudioOptions | null;
   /**
    * (**default=`false`**) If input is required and the stream is not delivered
-   * on time, then LiveCompositor will delay producing output frames.
+   * on time, then Smelter will delay producing output frames.
    */
   required?: boolean | null;
   /**
@@ -36,7 +36,7 @@ export type RegisterMp4Input = {
    */
   url?: string | null;
   /**
-   * Path to the MP4 file (location on the server where LiveCompositor server is deployed).
+   * Path to the MP4 file (location on the server where Smelter server is deployed).
    */
   serverPath?: string | null;
   /**
@@ -45,7 +45,7 @@ export type RegisterMp4Input = {
   loop?: boolean | null;
   /**
    * (**default=`false`**) If input is required and frames are not processed
-   * on time, then LiveCompositor will delay producing output frames.
+   * on time, then Smelter will delay producing output frames.
    */
   required?: boolean | null;
   /**
@@ -70,7 +70,7 @@ export type RegisterWhipInput = {
   audio?: InputWhipAudioOptions | null;
   /**
    * (**default=`false`**) If input is required and the stream is not delivered
-   * on time, then LiveCompositor will delay producing output frames.
+   * on time, then Smelter will delay producing output frames.
    */
   required?: boolean | null;
   /**
@@ -99,10 +99,10 @@ export type InputRtpAudioAacOptions = {
    * AudioSpecificConfig as described in MPEG-4 part 3, section 1.6.2.1
    * The config should be encoded as described in [RFC 3640](https://datatracker.ietf.org/doc/html/rfc3640#section-4.1).
    *
-   * The simplest way to obtain this value when using ffmpeg to stream to the compositor is
+   * The simplest way to obtain this value when using ffmpeg to stream to the smelter is
    * to pass the additional `-sdp_file FILENAME` option to ffmpeg. This will cause it to
    * write out an sdp file, which will contain this field. Programs which have the ability
-   * to stream AAC to the compositor should provide this information.
+   * to stream AAC to the smelter should provide this information.
    *
    * In MP4 files, the ASC is embedded inside the esds box (note that it is not the whole
    * box, only a part of it). This also applies to fragmented MP4s downloaded over HLS, if

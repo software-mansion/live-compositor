@@ -1,11 +1,11 @@
 import { useCallback } from 'react';
-import type { LiveCompositor } from '@live-compositor/web-wasm';
-import { InputStream, Rescaler, Text, View } from 'live-compositor';
-import CompositorCanvas from '../components/CompositorCanvas';
+import type { Smelter } from '@swmansion/smelter-web-wasm';
+import { InputStream, Rescaler, Text, View } from '@swmansion/smelter';
+import CompositorCanvas from '../components/SmelterCanvas';
 import NotoSansFont from '../../assets/NotoSans.ttf';
 
 function ScreenCapture() {
-  const onCanvasCreate = useCallback(async (compositor: LiveCompositor) => {
+  const onCanvasCreate = useCallback(async (compositor: Smelter) => {
     await compositor.registerFont(NotoSansFont);
     try {
       await compositor.registerInput('camera', { type: 'camera' });

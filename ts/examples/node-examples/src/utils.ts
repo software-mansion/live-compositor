@@ -8,7 +8,7 @@ import fetch from 'node-fetch';
 
 const pipeline = promisify(Stream.pipeline);
 
-const TMP_SDP_DIR = '/tmp/live-compositor-examples';
+const TMP_SDP_DIR = '/tmp/smelter-examples';
 
 export async function ffplayStartPlayerAsync(
   ip: string,

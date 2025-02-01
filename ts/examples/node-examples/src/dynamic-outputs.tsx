@@ -1,5 +1,5 @@
-import LiveCompositor from '@live-compositor/node';
-import { Text, InputStream, Tiles, Rescaler, View, useInputStreams } from 'live-compositor';
+import Smelter from '@swmansion/smelter-node';
+import { Text, InputStream, Tiles, Rescaler, View, useInputStreams } from '@swmansion/smelter';
 import { downloadAllAssets, gstReceiveTcpStream, sleep } from './utils';
 import path from 'path';
 import { mkdirp } from 'fs-extra';
@@ -34,8 +34,8 @@ function InputTile({ inputId }: { inputId: string }) {
 async function run() {
   await mkdirp(path.join(__dirname, '../.workingdir'));
   await downloadAllAssets();
-  const compositor = new LiveCompositor();
-  await compositor.init();
+  const smelter = new Smelter();
+  await smelter.init();
 
   const RESOLUTION = {
     width: 1920,
@@ -46,7 +46,7 @@ async function run() {
     preset: 'ultrafast',
   } as const;
 
-  await compositor.registerOutput('output_stream', <ExampleApp />, {
+  await smelter.registerOutput('output_stream', <ExampleApp />, {
     type: 'rtp_stream',
     port: 8001,
     transportProtocol: 'tcp_server',
@@ -62,7 +62,7 @@ async function run() {
     },
   });
   void gstReceiveTcpStream('127.0.0.1', 8001);
-  await compositor.registerOutput('output_recording', <ExampleApp />, {
+  await smelter.registerOutput('output_recording', <ExampleApp />, {
     type: 'mp4',
     serverPath: path.join(__dirname, '../.workingdir/dynamic_outputs_recording.mp4'),
     video: {
@@ -77,22 +77,22 @@ async function run() {
     },
   });
 
-  await compositor.registerInput('input_1', {
+  await smelter.registerInput('input_1', {
     type: 'mp4',
     serverPath: path.join(__dirname, '../.assets/BigBuckBunny.mp4'),
   });
   console.log(
-    'Start LiveCompositor pipeline with single input ("input_1") and two outputs (RTP "output_stream" and MP4 "output_recording").'
+    'Start Smelter pipeline with single input ("input_1") and two outputs (RTP "output_stream" and MP4 "output_recording").'
   );
-  await compositor.start();
+  await smelter.start();
 
   await sleep(10_000);
   console.log('Connect new input ("input_2") and start new output to MP4 "output_recording_part2"');
-  await compositor.registerInput('input_2', {
+  await smelter.registerInput('input_2', {
     type: 'mp4',
     serverPath: path.join(__dirname, '../.assets/ElephantsDream.mp4'),
   });
-  await compositor.registerOutput('output_recording_part2', <ExampleApp />, {
+  await smelter.registerOutput('output_recording_part2', <ExampleApp />, {
     type: 'mp4',
     serverPath: path.join(__dirname, '../.workingdir/dynamic_outputs_recording_10s.mp4'),
     video: {
@@ -109,12 +109,12 @@ async function run() {
 
   await sleep(10_000);
   console.log('Stop output "output_recording"');
-  await compositor.unregisterOutput('output_recording');
+  await smelter.unregisterOutput('output_recording');
 
   await sleep(10_000);
   console.log('Stop all remaining outputs.');
-  await compositor.unregisterOutput('output_recording_part2');
-  await compositor.unregisterOutput('output_stream');
-  await compositor.terminate();
+  await smelter.unregisterOutput('output_recording_part2');
+  await smelter.unregisterOutput('output_stream');
+  await smelter.terminate();
 }
 void run();

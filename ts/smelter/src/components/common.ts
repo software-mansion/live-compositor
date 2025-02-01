@@ -44,6 +44,6 @@ export function intoApiEasingFunction(easing: EasingFunction): Api.EasingFunctio
       points: easing.points,
     };
   } else {
-    throw new Error(`Invalid LiveCompositor.EasingFunction ${easing}`);
+    throw new Error(`Invalid Smelter.EasingFunction ${easing}`);
   }
 }

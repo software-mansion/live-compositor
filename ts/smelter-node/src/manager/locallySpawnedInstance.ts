@@ -7,16 +7,16 @@ import * as tar from 'tar';
 import type {
   ApiRequest,
   MultipartRequest,
-  CompositorManager,
+  SmelterManager,
   SetupInstanceOptions,
-} from '@live-compositor/core';
+} from '@swmansion/smelter-core';
 
 import { download, sendRequest, sendMultipartRequest } from '../fetch';
 import { retry, sleep } from '../utils';
 import type { SpawnPromise } from '../spawn';
 import { killProcess, spawn } from '../spawn';
 import { WebSocketConnection } from '../ws';
-import { compositorInstanceLoggerOptions } from '../logger';
+import { smelterInstanceLoggerOptions } from '../logger';
 
 const VERSION = `v0.3.0`;
 
@@ -28,9 +28,9 @@ type ManagedInstanceOptions = {
 };
 
 /**
- * CompositorManager that will download and spawn it's own LiveCompositor instance locally.
+ * SmelterManager that will download and spawn it's own Smelter instance locally.
  */
-class LocallySpawnedInstance implements CompositorManager {
+class LocallySpawnedInstance implements SmelterManager {
   private port: number;
   private workingdir: string;
   private executablePath?: string;
@@ -40,7 +40,7 @@ class LocallySpawnedInstance implements CompositorManager {
 
   constructor(opts: ManagedInstanceOptions) {
     this.port = opts.port;
-    this.workingdir = opts.workingdir ?? path.join(os.tmpdir(), `live-compositor-${uuidv4()}`);
+    this.workingdir = opts.workingdir ?? path.join(os.tmpdir(), `smelter-${uuidv4()}`);
     this.executablePath = opts.executablePath;
     this.enableWebRenderer = opts.enableWebRenderer;
     this.wsConnection = new WebSocketConnection(`ws://127.0.0.1:${this.port}/ws`);
@@ -59,7 +59,7 @@ class LocallySpawnedInstance implements CompositorManager {
   public async setupInstance(opts: SetupInstanceOptions): Promise<void> {
     const executablePath = this.executablePath ?? (await prepareExecutable(this.enableWebRenderer));
 
-    const { level, format } = compositorInstanceLoggerOptions();
+    const { level, format } = smelterInstanceLoggerOptions();
 
     const env = {
       LIVE_COMPOSITOR_DOWNLOAD_DIR: path.join(this.workingdir, 'download'),
@@ -74,8 +74,8 @@ class LocallySpawnedInstance implements CompositorManager {
     };
     this.childSpawnPromise = spawn(executablePath, [], { env, stdio: 'inherit' });
     this.childSpawnPromise.catch(err => {
-      opts.logger.error(err, 'LiveCompositor instance failed');
-      // TODO: parse structured logging from compositor and send them to this logger
+      opts.logger.error(err, 'Smelter instance failed');
+      // TODO: parse structured logging from smelter and send them to this logger
       if (err.stderr) {
         console.error(err.stderr);
       }
@@ -116,20 +116,20 @@ class LocallySpawnedInstance implements CompositorManager {
 
 async function prepareExecutable(enableWebRenderer?: boolean): Promise<string> {
   const version = enableWebRenderer ? `${VERSION}-web` : VERSION;
-  const downloadDir = path.join(os.homedir(), '.live_compositor', version, architecture());
+  const downloadDir = path.join(os.homedir(), '.smelter', version, architecture());
   const readyFilePath = path.join(downloadDir, '.ready');
-  const executablePath = path.join(downloadDir, 'live_compositor/live_compositor');
+  const executablePath = path.join(downloadDir, 'smelter/smelter');
 
   if (await fs.pathExists(readyFilePath)) {
     return executablePath;
   }
   await fs.mkdirp(downloadDir);
 
-  const tarGzPath = path.join(downloadDir, 'live_compositor.tar.gz');
+  const tarGzPath = path.join(downloadDir, 'smelter.tar.gz');
   if (await fs.pathExists(tarGzPath)) {
     await fs.remove(tarGzPath);
   }
-  await download(compositorTarGzUrl(enableWebRenderer), tarGzPath);
+  await download(smelterTarGzUrl(enableWebRenderer), tarGzPath);
 
   await tar.x({
     file: tarGzPath,
@@ -155,10 +155,10 @@ function architecture(): 'linux_aarch64' | 'linux_x86_64' | 'darwin_x86_64' | 'd
   }
 }
 
-function compositorTarGzUrl(withWebRenderer?: boolean): string {
+function smelterTarGzUrl(withWebRenderer?: boolean): string {
   const archiveNameSuffix = withWebRenderer ? '_with_web_renderer' : '';
-  const archiveName = `live_compositor${archiveNameSuffix}_${architecture()}.tar.gz`;
-  return `https://github.com/software-mansion/live-compositor/releases/download/${VERSION}/${archiveName}`;
+  const archiveName = `smelter${archiveNameSuffix}_${architecture()}.tar.gz`;
+  return `https://github.com/software-mansion/smelter/releases/download/${VERSION}/${archiveName}`;
 }
 
 export default LocallySpawnedInstance;

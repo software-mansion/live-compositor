@@ -1,5 +1,5 @@
 import { useAfterTimestamp } from '../hooks.js';
-import { LiveCompositorContext } from '../context/index.js';
+import { SmelterContext } from '../context/index.js';
 import { useContext, useEffect, useState } from 'react';
 import type { ComponentBaseProps } from '../component.js';
 
@@ -21,7 +21,7 @@ function Show(props: ShowProps) {
   if (props.timeRangeMs && !props.timeRangeMs.start && !props.timeRangeMs.end) {
     throw new Error('"timestampMs" prop needs to define at least one value "start" or "end".');
   }
-  const ctx = useContext(LiveCompositorContext);
+  const ctx = useContext(SmelterContext);
   const [mountTimestampMs, setStart] = useState<number>(() => ctx.timeContext.timestampMs());
   const afterStart = useAfterTimestamp(props.timeRangeMs?.start ?? 0);
   const afterEnd = useAfterTimestamp(props.timeRangeMs?.end ?? Infinity);

@@ -1,4 +1,4 @@
-import type { Api } from 'live-compositor';
+import type { Api } from '@swmansion/smelter';
 import { assert } from '../utils';
 
 type AudioInput = {

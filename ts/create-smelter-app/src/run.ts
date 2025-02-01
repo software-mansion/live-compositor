@@ -5,7 +5,7 @@ import { createNodeProject } from './createNodeProject';
 export default async function () {
   const options = await resolveOptions();
   if (options.runtime.type === 'node') {
-    console.log('Generating Node.js LiveCompositor project');
+    console.log('Generating Node.js Smelter project');
     await createNodeProject(options);
   } else {
     throw new Error('Unknown project type.');

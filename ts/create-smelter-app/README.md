@@ -1,7 +1,7 @@
-# `create-live-compositor`
+# `create-smelter-app`
 
-To start new project using Live Compositor run:
+To start new project using Smelter run:
 
 ```
-npm create live-compositor
+npm create smelter-app
 ```

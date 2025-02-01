@@ -1,8 +1,8 @@
-import { initializeCompositor } from './compositor';
+import { initializeSmelterInstance } from './smelter';
 import { app } from './routes';
 
 async function run() {
-  await initializeCompositor();
+  await initializeSmelterInstance();
 
   app.listen(3000);
 }

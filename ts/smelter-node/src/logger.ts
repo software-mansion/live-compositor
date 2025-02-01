@@ -1,4 +1,4 @@
-import { LoggerLevel } from '@live-compositor/core';
+import { LoggerLevel } from '@swmansion/smelter-core';
 import { pino, type Logger } from 'pino';
 
 const PRETTY_TRANSPORT = {
@@ -34,7 +34,7 @@ export function createLogger(): Logger {
   });
 }
 
-export function compositorInstanceLoggerOptions(): {
+export function smelterInstanceLoggerOptions(): {
   format: string;
   level: string;
 } {

@@ -1,3 +1,3 @@
-# `@live-compositor/browser-render`
+# `@swmansion/smelter-browser-render`
 
-Rendering engine from LiveCompositor compiled to WASM and using WebGL as rendering backend.
+Rendering engine from Smelter compiled to WASM and using WebGL as rendering backend.

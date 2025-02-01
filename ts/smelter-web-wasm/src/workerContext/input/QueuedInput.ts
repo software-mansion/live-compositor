@@ -1,8 +1,8 @@
-import type { Frame, InputId } from '@live-compositor/browser-render';
+import type { Frame, InputId } from '@swmansion/smelter-browser-render';
 import type { Logger } from 'pino';
 import { Queue } from '@datastructures-js/queue';
 import { workerPostEvent } from '../pipeline';
-import { CompositorEventType } from '../../eventSender';
+import { SmelterEventType } from '../../eventSender';
 import type { Interval } from '../../utils';
 import { assert } from '../../utils';
 import type { Input, InputStartResult, InputVideoFrameSource } from './input';
@@ -61,7 +61,7 @@ export class QueuedInput implements Input {
     }, ENQUEUE_INTERVAL_MS);
 
     workerPostEvent({
-      type: CompositorEventType.VIDEO_INPUT_DELIVERED,
+      type: SmelterEventType.VIDEO_INPUT_DELIVERED,
       inputId: this.inputId,
     });
     return this.source.getMetadata();
@@ -92,7 +92,7 @@ export class QueuedInput implements Input {
         this.sentFirstFrame = true;
         this.logger.debug('Input started');
         workerPostEvent({
-          type: CompositorEventType.VIDEO_INPUT_PLAYING,
+          type: SmelterEventType.VIDEO_INPUT_PLAYING,
           inputId: this.inputId,
         });
       }
@@ -101,7 +101,7 @@ export class QueuedInput implements Input {
         this.frames.pop().decrementRefCount();
         this.logger.debug('Input finished');
         workerPostEvent({
-          type: CompositorEventType.VIDEO_INPUT_EOS,
+          type: SmelterEventType.VIDEO_INPUT_EOS,
           inputId: this.inputId,
         });
       }

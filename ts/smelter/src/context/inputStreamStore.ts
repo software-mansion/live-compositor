@@ -1,5 +1,5 @@
 import { useContext, useState } from 'react';
-import { LiveCompositorContext } from './index.js';
+import { SmelterContext } from './index.js';
 import type { Logger } from '../types/logger.js';
 
 let nextStreamNumber = 1;
@@ -8,7 +8,7 @@ let nextStreamNumber = 1;
  * Generates unique input stream id that can be used in e.g. Mp4 component
  */
 export function useInternalStreamId(): string {
-  const ctx = useContext(LiveCompositorContext);
+  const ctx = useContext(SmelterContext);
   const [streamNumber, _setStreamNumber] = useState(() => {
     const result = nextStreamNumber;
     nextStreamNumber += 1;

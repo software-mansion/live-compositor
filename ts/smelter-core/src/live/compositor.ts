@@ -1,8 +1,8 @@
-import type { Renderers } from 'live-compositor';
-import { _liveCompositorInternals } from 'live-compositor';
+import type { Renderers } from '@swmansion/smelter';
+import { _smelterInternals } from '@swmansion/smelter';
 import { ApiClient } from '../api.js';
 import Output from './output.js';
-import type { CompositorManager } from '../compositorManager.js';
+import type { SmelterManager } from '../smelterManager.js';
 import type { RegisterOutput } from '../api/output.js';
 import { intoRegisterOutput } from '../api/output.js';
 import type { RegisterInput } from '../api/input.js';
@@ -14,18 +14,18 @@ import type { ReactElement } from 'react';
 import type { Logger } from 'pino';
 import type { ImageRef } from '../api/image.js';
 
-export class LiveCompositor {
-  public readonly manager: CompositorManager;
+export class Smelter {
+  public readonly manager: SmelterManager;
   private api: ApiClient;
-  private store: _liveCompositorInternals.LiveInputStreamStore<string>;
+  private store: _smelterInternals.LiveInputStreamStore<string>;
   private outputs: Record<string, Output> = {};
   private startTime?: number;
   private logger: Logger;
 
-  public constructor(manager: CompositorManager, logger: Logger) {
+  public constructor(manager: SmelterManager, logger: Logger) {
     this.manager = manager;
     this.api = new ApiClient(this.manager);
-    this.store = new _liveCompositorInternals.LiveInputStreamStore(logger);
+    this.store = new _smelterInternals.LiveInputStreamStore(logger);
     this.logger = logger;
   }
 
@@ -136,7 +136,7 @@ export class LiveCompositor {
   }
 
   public async start(): Promise<void> {
-    this.logger.info('Start compositor instance.');
+    this.logger.info('Start smelter instance.');
     const startTime = Date.now();
     await this.api.start();
     Object.values(this.outputs).forEach(output => {

@@ -1,21 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import { LiveCompositor } from '@live-compositor/web-wasm';
-import { InputStream, Mp4, Rescaler, Text, useInputStreams, View } from 'live-compositor';
+import { Smelter } from '@swmansion/smelter-web-wasm';
+import { InputStream, Mp4, Rescaler, Text, useInputStreams, View } from '@swmansion/smelter';
 
 function DemoExample() {
-  const [compositor, setCompositor] = useState<LiveCompositor | undefined>();
+  const [smelter, setSmelter] = useState<Smelter | undefined>();
   const previewRef = useRef<HTMLVideoElement>(null);
   const [hasCamera, setCamera] = useState<boolean>();
   const [hasScreenCapture, setScreenCapture] = useState<boolean>();
 
   useEffect(() => {
-    const compositor = new LiveCompositor({});
+    const smelter = new Smelter({});
     let terminate = false;
 
     const startPromise = (async () => {
-      await compositor.init();
+      await smelter.init();
       if (!terminate) {
-        setCompositor(compositor);
+        setSmelter(smelter);
       }
     })();
 
@@ -23,13 +23,13 @@ function DemoExample() {
       terminate = true;
       void (async () => {
         await startPromise;
-        await compositor.terminate();
+        await smelter.terminate();
       })();
     };
   }, []);
 
   useEffect(() => {
-    if (!compositor) {
+    if (!smelter) {
       return;
     }
 
@@ -40,7 +40,7 @@ function DemoExample() {
         throw new Error('Add "twitchKey" query params with your Twitch stream key.');
       }
 
-      const { stream } = await compositor.registerOutput('output', <Scene />, {
+      const { stream } = await smelter.registerOutput('output', <Scene />, {
         type: 'whip',
         endpointUrl: 'https://g.webrtc.live-video.net:4443/v2/offer',
         bearerToken: streamKey,
@@ -51,22 +51,22 @@ function DemoExample() {
         audio: true,
       });
 
-      await compositor.start();
+      await smelter.start();
 
       if (stream && previewRef.current) {
         previewRef.current.srcObject = stream;
         await previewRef.current.play();
       }
     })();
-  }, [compositor]);
+  }, [smelter]);
 
   const toggleCamera = async () => {
     try {
       setCamera(!hasCamera);
       if (hasCamera) {
-        await compositor?.unregisterInput('camera');
+        await smelter?.unregisterInput('camera');
       } else {
-        await compositor?.registerInput('camera', { type: 'camera' });
+        await smelter?.registerInput('camera', { type: 'camera' });
       }
     } catch (err) {
       console.warn(err, 'Failed to capture camera output');
@@ -77,9 +77,9 @@ function DemoExample() {
     try {
       setScreenCapture(!hasScreenCapture);
       if (hasScreenCapture) {
-        await compositor?.unregisterInput('screen');
+        await smelter?.unregisterInput('screen');
       } else {
-        await compositor?.registerInput('screen', { type: 'screen_capture' });
+        await smelter?.registerInput('screen', { type: 'screen_capture' });
       }
     } catch (err) {
       console.warn(err, 'Failed to capture screen output');

@@ -14,8 +14,8 @@ export default defineConfig({
       targets: [
         {
           src: path.join(
-            path.dirname(require.resolve('@live-compositor/browser-render')),
-            'live-compositor.wasm'
+            path.dirname(require.resolve('@swmansion/smelter-browser-render')),
+            'smelter.wasm'
           ),
           dest: 'assets',
         },

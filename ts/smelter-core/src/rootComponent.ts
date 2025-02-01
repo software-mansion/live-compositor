@@ -1,8 +1,8 @@
-import { _liveCompositorInternals, useAfterTimestamp } from 'live-compositor';
+import { _smelterInternals, useAfterTimestamp } from '@swmansion/smelter';
 import { createElement, useEffect, type ReactElement } from 'react';
 
-type CompositorOutputContext = _liveCompositorInternals.CompositorOutputContext;
-type ChildrenLifetimeContext = _liveCompositorInternals.ChildrenLifetimeContext;
+type SmelterOutputContext = _smelterInternals.SmelterOutputContext;
+type ChildrenLifetimeContext = _smelterInternals.ChildrenLifetimeContext;
 
 const globalDelayRef = Symbol();
 
@@ -11,16 +11,16 @@ export function OutputRootComponent({
   outputRoot,
   childrenLifetimeContext,
 }: {
-  outputContext: CompositorOutputContext;
+  outputContext: SmelterOutputContext;
   outputRoot: ReactElement;
   childrenLifetimeContext: ChildrenLifetimeContext;
 }) {
   useMinimalStreamDuration(childrenLifetimeContext);
   return createElement(
-    _liveCompositorInternals.LiveCompositorContext.Provider,
+    _smelterInternals.SmelterContext.Provider,
     { value: outputContext },
     createElement(
-      _liveCompositorInternals.ChildrenLifetimeContextType.Provider,
+      _smelterInternals.ChildrenLifetimeContextType.Provider,
       { value: childrenLifetimeContext },
       outputRoot
     )

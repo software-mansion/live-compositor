@@ -1,10 +1,10 @@
 import type * as Api from '../api.js';
 import type { ComponentBaseProps, SceneComponent } from '../component.js';
-import { createCompositorComponent, sceneComponentIntoApi } from '../component.js';
+import { createSmelterComponent, sceneComponentIntoApi } from '../component.js';
 
 export type ShaderProps = ComponentBaseProps & {
   /**
-   * Id of a shader. It identifies a shader registered using `LiveCompositor.registerShader`.
+   * Id of a shader. It identifies a shader registered using `Smelter.registerShader`.
    */
   shaderId: Api.RendererId;
   /**
@@ -50,7 +50,7 @@ export type ShaderParamStructField =
       fieldName: string;
     };
 
-const Shader = createCompositorComponent<ShaderProps>(sceneBuilder);
+const Shader = createSmelterComponent<ShaderProps>(sceneBuilder);
 
 function sceneBuilder(props: ShaderProps, children: SceneComponent[]): Api.Component {
   return {

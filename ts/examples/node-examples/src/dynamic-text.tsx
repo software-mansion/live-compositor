@@ -1,5 +1,5 @@
-import LiveCompositor from '@live-compositor/node';
-import { View, Text, Image } from 'live-compositor';
+import Smelter from '@swmansion/smelter-node';
+import { View, Text, Image } from '@swmansion/smelter';
 import { useEffect, useState } from 'react';
 import { ffplayStartPlayerAsync, sleep } from './utils';
 
@@ -55,22 +55,22 @@ function ExampleApp() {
 }
 
 async function run() {
-  const compositor = new LiveCompositor();
-  await compositor.init();
+  const smelter = new Smelter();
+  await smelter.init();
 
   await ffplayStartPlayerAsync('127.0.0.1', 8001);
   await sleep(2000);
 
-  await compositor.registerFont(
+  await smelter.registerFont(
     'https://fonts.gstatic.com/s/notosans/v36/o-0mIpQlx3QUlC5A4PNB6Ryti20_6n1iPHjcz6L1SoM-jCpoiyD9A-9a6Vc.ttf'
   );
-  await compositor.registerImage('image_1', {
+  await smelter.registerImage('image_1', {
     assetType: 'svg',
     url: 'https://compositor.live/img/logo.svg',
     resolution: { width: 300, height: 300 },
   });
 
-  await compositor.registerOutput('output_1', <ExampleApp />, {
+  await smelter.registerOutput('output_1', <ExampleApp />, {
     type: 'rtp_stream',
     port: 8001,
     ip: '127.0.0.1',
@@ -87,7 +87,7 @@ async function run() {
     },
   });
 
-  await compositor.start();
+  await smelter.start();
 }
 
 void run();

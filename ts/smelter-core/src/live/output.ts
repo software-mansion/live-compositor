@@ -1,5 +1,5 @@
-import type { RegisterMp4Input } from 'live-compositor';
-import { _liveCompositorInternals } from 'live-compositor';
+import type { RegisterMp4Input } from '@swmansion/smelter';
+import { _smelterInternals } from '@swmansion/smelter';
 import type { ReactElement } from 'react';
 import { createElement } from 'react';
 import type { ApiClient, Api } from '../api.js';
@@ -11,10 +11,10 @@ import { OutputRootComponent } from '../rootComponent.js';
 import type { Logger } from 'pino';
 import type { ImageRef } from '../api/image.js';
 
-type AudioContext = _liveCompositorInternals.AudioContext;
-type LiveTimeContext = _liveCompositorInternals.LiveTimeContext;
-type LiveInputStreamStore<Id> = _liveCompositorInternals.LiveInputStreamStore<Id>;
-type CompositorOutputContext = _liveCompositorInternals.CompositorOutputContext;
+type AudioContext = _smelterInternals.AudioContext;
+type LiveTimeContext = _smelterInternals.LiveTimeContext;
+type LiveInputStreamStore<Id> = _smelterInternals.LiveInputStreamStore<Id>;
+type SmelterOutputContext = _smelterInternals.SmelterOutputContext;
 
 class Output {
   api: ApiClient;
@@ -59,9 +59,9 @@ class Output {
     this.supportsVideo = 'video' in registerRequest && !!registerRequest.video;
 
     const onUpdate = () => this.throttledUpdate.scheduleCall();
-    this.audioContext = new _liveCompositorInternals.AudioContext(onUpdate);
-    this.timeContext = new _liveCompositorInternals.LiveTimeContext();
-    this.internalInputStreamStore = new _liveCompositorInternals.LiveInputStreamStore(this.logger);
+    this.audioContext = new _smelterInternals.AudioContext(onUpdate);
+    this.timeContext = new _smelterInternals.LiveTimeContext();
+    this.internalInputStreamStore = new _smelterInternals.LiveInputStreamStore(this.logger);
     if (startTimestamp !== undefined) {
       this.timeContext.initClock(startTimestamp);
     }
@@ -69,7 +69,7 @@ class Output {
     const rootElement = createElement(OutputRootComponent, {
       outputContext: new OutputContext(this, this.outputId, store),
       outputRoot: root,
-      childrenLifetimeContext: new _liveCompositorInternals.ChildrenLifetimeContext(() => {}),
+      childrenLifetimeContext: new _smelterInternals.ChildrenLifetimeContext(() => {}),
     });
 
     this.renderer = new Renderer({
@@ -115,20 +115,16 @@ class Output {
   }
 }
 
-class OutputContext implements CompositorOutputContext {
-  public readonly globalInputStreamStore: _liveCompositorInternals.InputStreamStore<string>;
-  public readonly internalInputStreamStore: _liveCompositorInternals.InputStreamStore<number>;
-  public readonly audioContext: _liveCompositorInternals.AudioContext;
-  public readonly timeContext: _liveCompositorInternals.TimeContext;
+class OutputContext implements SmelterOutputContext {
+  public readonly globalInputStreamStore: _smelterInternals.InputStreamStore<string>;
+  public readonly internalInputStreamStore: _smelterInternals.InputStreamStore<number>;
+  public readonly audioContext: _smelterInternals.AudioContext;
+  public readonly timeContext: _smelterInternals.TimeContext;
   public readonly outputId: string;
   public readonly logger: Logger;
   private output: Output;
 
-  constructor(
-    output: Output,
-    outputId: string,
-    store: _liveCompositorInternals.InputStreamStore<string>
-  ) {
+  constructor(output: Output, outputId: string, store: _smelterInternals.InputStreamStore<string>) {
     this.output = output;
     this.globalInputStreamStore = store;
     this.internalInputStreamStore = output.internalInputStreamStore;

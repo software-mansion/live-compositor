@@ -2,14 +2,14 @@
 import Reconciler from 'react-reconciler';
 import { DefaultEventPriority, LegacyRoot } from 'react-reconciler/constants.js';
 import type { Api } from './api.js';
-import type { _liveCompositorInternals } from 'live-compositor';
+import type { _smelterInternals } from '@swmansion/smelter';
 import type React from 'react';
 import type { Logger } from 'pino';
 
-type SceneBuilder<P> = _liveCompositorInternals.SceneBuilder<P>;
-type SceneComponent = _liveCompositorInternals.SceneComponent;
+type SceneBuilder<P> = _smelterInternals.SceneBuilder<P>;
+type SceneComponent = _smelterInternals.SceneComponent;
 
-export class LiveCompositorHostComponent {
+export class HostComponent {
   public props: object;
   public sceneBuilder: SceneBuilder<object>;
   public children: (Instance | TextInstance)[] = [];
@@ -34,7 +34,7 @@ type Props = {
 };
 type Container = Renderer;
 type HostContext = object;
-type Instance = LiveCompositorHostComponent;
+type Instance = HostComponent;
 type TextInstance = string;
 type ChildSet = Array<string | Instance>;
 type Timeout = ReturnType<typeof setTimeout>;
@@ -84,9 +84,9 @@ const HostConfig: Reconciler.HostConfig<
     _rootContainer: Container,
     _hostContext: HostContext,
     _internalHandle: any
-  ): LiveCompositorHostComponent {
-    if (type === 'compositor') {
-      return new LiveCompositorHostComponent(props.props, props.sceneBuilder);
+  ): HostComponent {
+    if (type === 'smelter') {
+      return new HostComponent(props.props, props.sceneBuilder);
     } else {
       throw new Error(`Unknown type ${type}`);
     }
@@ -179,7 +179,7 @@ const HostConfig: Reconciler.HostConfig<
     keepChildren: boolean,
     _recyclableInstance: Instance | null
   ) {
-    const newInstance = new LiveCompositorHostComponent(newProps.props, newProps.sceneBuilder);
+    const newInstance = new HostComponent(newProps.props, newProps.sceneBuilder);
     if (keepChildren) {
       newInstance.children = [...instance.children];
       return newInstance;
@@ -203,7 +203,7 @@ const HostConfig: Reconciler.HostConfig<
     props: Props,
     _internalInstanceHandle: any
   ): Instance {
-    return new LiveCompositorHostComponent(props.props, props.sceneBuilder);
+    return new HostComponent(props.props, props.sceneBuilder);
   },
 
   cloneHiddenTextInstance(
@@ -228,7 +228,7 @@ type RendererOptions = {
 interface FiberRootNode {
   tag: number; // 0
   containerInfo: Renderer;
-  pendingChildren: LiveCompositorHostComponent[];
+  pendingChildren: HostComponent[];
   current: any;
 }
 
@@ -277,16 +277,16 @@ class Renderer {
   }
 }
 
-function rootHostComponent(root: any, logger: Logger): LiveCompositorHostComponent {
+function rootHostComponent(root: any, logger: Logger): HostComponent {
   logger.error('No pendingChildren found, this might be an error.');
   let current = root;
   while (current) {
-    if (current?.stateNode instanceof LiveCompositorHostComponent) {
+    if (current?.stateNode instanceof HostComponent) {
       return current?.stateNode;
     }
     current = current.child;
   }
-  throw new Error('No live compositor host component found in the tree.');
+  throw new Error('No smelter host component found in the tree.');
 }
 
 function groupTextComponents(components: SceneComponent[]): SceneComponent[] {

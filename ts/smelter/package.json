@@ -1,5 +1,5 @@
 {
-  "name": "live-compositor",
+  "name": "@swmansion/smelter",
   "version": "0.1.0",
   "description": "",
   "type": "module",
@@ -24,9 +24,9 @@
   "author": "",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/software-mansion/live-compositor/issues"
+    "url": "https://github.com/software-mansion/smelter/issues"
   },
-  "homepage": "https://github.com/software-mansion/live-compositor",
+  "homepage": "https://github.com/software-mansion/smelter",
   "files": [
     "/esm",
     "/cjs"

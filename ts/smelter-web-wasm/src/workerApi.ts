@@ -1,5 +1,5 @@
-import type { _liveCompositorInternals, Api } from 'live-compositor';
-import type { ImageSpec, Resolution } from '@live-compositor/browser-render';
+import type { _smelterInternals, Api } from '@swmansion/smelter';
+import type { ImageSpec, Resolution } from '@swmansion/smelter-browser-render';
 import type { Framerate } from './compositor/compositor';
 
 export type RegisterInput =
@@ -82,15 +82,15 @@ export type WorkerResponse = void | {
 export type WorkerEvent =
   | {
       type:
-        | _liveCompositorInternals.CompositorEventType.AUDIO_INPUT_DELIVERED
-        | _liveCompositorInternals.CompositorEventType.VIDEO_INPUT_DELIVERED
-        | _liveCompositorInternals.CompositorEventType.AUDIO_INPUT_PLAYING
-        | _liveCompositorInternals.CompositorEventType.VIDEO_INPUT_PLAYING
-        | _liveCompositorInternals.CompositorEventType.AUDIO_INPUT_EOS
-        | _liveCompositorInternals.CompositorEventType.VIDEO_INPUT_EOS;
+        | _smelterInternals.SmelterEventType.AUDIO_INPUT_DELIVERED
+        | _smelterInternals.SmelterEventType.VIDEO_INPUT_DELIVERED
+        | _smelterInternals.SmelterEventType.AUDIO_INPUT_PLAYING
+        | _smelterInternals.SmelterEventType.VIDEO_INPUT_PLAYING
+        | _smelterInternals.SmelterEventType.AUDIO_INPUT_EOS
+        | _smelterInternals.SmelterEventType.VIDEO_INPUT_EOS;
       inputId: string;
     }
   | {
-      type: _liveCompositorInternals.CompositorEventType.OUTPUT_DONE;
+      type: _smelterInternals.SmelterEventType.OUTPUT_DONE;
       outputId: string;
     };

@@ -1,14 +1,14 @@
 import { useContext, useEffect, useState, useSyncExternalStore } from 'react';
 
 import type * as Api from './api.js';
-import type { CompositorOutputContext } from './context/index.js';
-import { LiveCompositorContext } from './context/index.js';
+import type { SmelterOutputContext } from './context/index.js';
+import { SmelterContext } from './context/index.js';
 import type { BlockingTask } from './context/timeContext.js';
 import { OfflineTimeContext } from './context/timeContext.js';
 import type { InputStreamInfo } from './context/inputStreamStore.js';
 
 export function useInputStreams(): Record<Api.InputId, InputStreamInfo<string>> {
-  const ctx = useContext(LiveCompositorContext);
+  const ctx = useContext(SmelterContext);
   const instanceCtx = useSyncExternalStore(
     ctx.globalInputStreamStore.subscribe,
     ctx.globalInputStreamStore.getSnapshot
@@ -25,7 +25,7 @@ export type AudioOptions = {
  * you can use `muted` and `volume` props instead.
  */
 export function useAudioInput(inputId: Api.InputId, audioOptions: AudioOptions) {
-  const ctx = useContext(LiveCompositorContext);
+  const ctx = useContext(SmelterContext);
 
   useEffect(() => {
     const options = { ...audioOptions };
@@ -37,13 +37,13 @@ export function useAudioInput(inputId: Api.InputId, audioOptions: AudioOptions) 
 }
 
 /**
- *  Returns current timestamp relative to `LiveCompositor.start()`.
+ *  Returns current timestamp relative to `Smelter.start()`.
  *
  *  Not recommended for live processing. It triggers re-renders only for specific timestamps
  *  that are registered with `useAfterTimestamp` hook(that includes components like Slide/Show).
  */
 export function useCurrentTimestamp(): number {
-  const ctx = useContext(LiveCompositorContext);
+  const ctx = useContext(SmelterContext);
   const timeContext = ctx.timeContext;
   useSyncExternalStore(timeContext.subscribe, timeContext.getSnapshot);
   // Value from useSyncExternalStore is the same as TimeContext.timestampMs for
@@ -56,7 +56,7 @@ export function useCurrentTimestamp(): number {
  * offline processing.
  */
 export function useAfterTimestamp(timestamp: number): boolean {
-  const ctx = useContext(LiveCompositorContext);
+  const ctx = useContext(SmelterContext);
   const currentTimestamp = useCurrentTimestamp();
 
   useEffect(() => {
@@ -74,11 +74,11 @@ export function useAfterTimestamp(timestamp: number): boolean {
 }
 
 /**
- * Create task that will stop rendering when compositor runs in offline mode.
+ * Create task that will stop rendering when smelter runs in offline mode.
  *
  * `task.done()` needs to be called when async action is finished, otherwise rendering will block indefinitely.
  */
-export function newBlockingTask(ctx: CompositorOutputContext): BlockingTask {
+export function newBlockingTask(ctx: SmelterOutputContext): BlockingTask {
   if (ctx.timeContext instanceof OfflineTimeContext) {
     return ctx.timeContext.newBlockingTask();
   } else {
@@ -93,7 +93,7 @@ export function newBlockingTask(ctx: CompositorOutputContext): BlockingTask {
  *  timestamp  will block until all blocking tasks are done.
  */
 export function useBlockingTask<T>(fn: () => Promise<T>): T | undefined {
-  const ctx = useContext(LiveCompositorContext);
+  const ctx = useContext(SmelterContext);
   const [result, setResult] = useState<T | undefined>(undefined);
   useEffect(() => {
     const task = newBlockingTask(ctx);

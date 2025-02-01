@@ -1,6 +1,6 @@
 import type * as Api from '../api.js';
 import type { ComponentBaseProps, SceneComponent } from '../component.js';
-import { createCompositorComponent, DEFAULT_FONT_SIZE } from '../component.js';
+import { createSmelterComponent, DEFAULT_FONT_SIZE } from '../component.js';
 
 export type TextStyleProps = {
   /**
@@ -74,7 +74,7 @@ export type TextProps = ComponentBaseProps & {
   style?: TextStyleProps;
 };
 
-const Text = createCompositorComponent<TextProps>(sceneBuilder);
+const Text = createSmelterComponent<TextProps>(sceneBuilder);
 
 function sceneBuilder(props: TextProps, children: SceneComponent[]): Api.Component {
   const { id, style } = props;

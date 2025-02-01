@@ -1,6 +1,6 @@
-import LiveCompositor from '@live-compositor/node';
-import { View, Text } from 'live-compositor';
-import { ffplayStartPlayerAsync } from './liveCompositorFfplayHelper';
+import Smelter from '@swmansion/smelter-node';
+import { View, Text } from '@swmansion/smelter';
+import { ffplayStartPlayerAsync } from './smelterFfplayHelper';
 
 function App() {
   return (
@@ -10,8 +10,8 @@ function App() {
       <View style={{ height: 20 }} />
       <Text style={{ width: 1000, fontSize: 30, wrap: 'word' }}>
         This example renders static text and sends the output stream via RTP to local port 8001.
-        Generated code includes helpers in liveCompositorFfplayHelper.ts that display the output
-        stream using ffplay, make sure to remove them for any real production use.
+        Generated code includes helpers in smelterFfplayHelper.ts that display the output stream
+        using ffplay, make sure to remove them for any real production use.
       </Text>
       <View />
     </View>
@@ -19,13 +19,13 @@ function App() {
 }
 
 async function run() {
-  const compositor = new LiveCompositor();
-  await compositor.init();
+  const smelter = new Smelter();
+  await smelter.init();
 
   // Display output with `ffplay`.
   await ffplayStartPlayerAsync('127.0.0.0', 8001);
 
-  await compositor.registerOutput('output_1', <App />, {
+  await smelter.registerOutput('output_1', <App />, {
     type: 'rtp_stream',
     port: 8001,
     ip: '127.0.0.1',
@@ -44,6 +44,6 @@ async function run() {
 
   // Connect any additional inputs/images/shader you might need before the start.
 
-  await compositor.start();
+  await smelter.start();
 }
 void run();
