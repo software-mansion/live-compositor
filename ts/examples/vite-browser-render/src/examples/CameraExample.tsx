@@ -2,12 +2,11 @@ import { useCallback } from 'react';
 import type { LiveCompositor } from '@live-compositor/web-wasm';
 import { InputStream, Rescaler, Text, View } from 'live-compositor';
 import CompositorCanvas from '../components/CompositorCanvas';
+import NotoSansFont from '../../assets/NotoSans.ttf';
 
 function ScreenCapture() {
   const onCanvasCreate = useCallback(async (compositor: LiveCompositor) => {
-    await compositor.registerFont(
-      'https://fonts.gstatic.com/s/notosans/v36/o-0mIpQlx3QUlC5A4PNB6Ryti20_6n1iPHjcz6L1SoM-jCpoiyD9A-9a6Vc.ttf'
-    );
+    await compositor.registerFont(NotoSansFont);
     try {
       await compositor.registerInput('camera', { type: 'camera' });
     } catch (err: any) {
