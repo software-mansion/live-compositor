@@ -103,7 +103,7 @@ export default class LiveCompositor {
 
   public async registerFont(fontUrl: string): Promise<void> {
     assert(this.instance);
-    await this.instance.registerFont(fontUrl);
+    await this.instance.registerFont(new URL(fontUrl, import.meta.url).toString());
   }
 
   /**

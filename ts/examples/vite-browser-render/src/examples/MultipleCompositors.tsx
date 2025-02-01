@@ -2,15 +2,14 @@ import { useCallback } from 'react';
 import type { LiveCompositor } from '@live-compositor/web-wasm';
 import { InputStream, Text, useInputStreams, View } from 'live-compositor';
 import CompositorCanvas from '../components/CompositorCanvas';
+import NotoSansFont from '../../assets/NotoSans.ttf';
 
 const MP4_URL =
   'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4';
 
 function MultipleCompositors() {
   const onCanvasCreate = useCallback(async (compositor: LiveCompositor) => {
-    await compositor.registerFont(
-      'https://fonts.gstatic.com/s/notosans/v36/o-0mIpQlx3QUlC5A4PNB6Ryti20_6n1iPHjcz6L1SoM-jCpoiyD9A-9a6Vc.ttf'
-    );
+    await compositor.registerFont(NotoSansFont);
     await compositor.registerInput('bunny_video', { type: 'mp4', url: MP4_URL });
   }, []);
 

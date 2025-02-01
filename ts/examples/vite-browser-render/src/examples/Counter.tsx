@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { loadWasmModule, Renderer } from '@live-compositor/browser-render';
+import NotoSansFont from '../../assets/NotoSans.ttf';
 
 function Counter() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -81,9 +82,7 @@ function useRenderer(): Renderer | null {
         asset_type: 'gif',
         url: 'https://media.tenor.com/eFPFHSN4rJ8AAAAM/example.gif',
       });
-      await renderer.registerFont(
-        'https://fonts.gstatic.com/s/notosans/v36/o-0mIpQlx3QUlC5A4PNB6Ryti20_6n1iPHjcz6L1SoM-jCpoiyD9A-9a6Vc.ttf'
-      );
+      await renderer.registerFont(new URL(NotoSansFont, import.meta.url).toString());
 
       setRenderer(renderer);
     };
