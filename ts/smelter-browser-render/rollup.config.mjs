@@ -14,9 +14,14 @@ export default [
       copy({
         targets: [
           {
-            src: 'src/generated/compositor_web_bg.wasm',
+            src: 'src/generated/smelter/compositor_web_bg.wasm',
             dest: 'dist',
             rename: 'smelter.wasm',
+          },
+          {
+            src: 'src/generated/LICENSE',
+            dest: 'dist',
+            rename: 'LICENSE-smelter-wasm-bundle',
           },
         ],
       }),
