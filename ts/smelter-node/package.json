@@ -1,0 +1,39 @@
+{
+  "name": "@swmansion/smelter-node",
+  "version": "0.1.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "watch": "tsc --watch --preserveWatchOutput",
+    "build": "tsc",
+    "clean": "rimraf dist",
+    "prepublishOnly": "pnpm run clean && pnpm run build"
+  },
+  "author": "",
+  "license": "MIT",
+  "files": [
+    "/dist"
+  ],
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.14.10",
+    "@types/node-fetch": "^2.6.11",
+    "@types/uuid": "^10.0.0",
+    "@types/ws": "^8.5.12",
+    "@types/react": "^18.3.3"
+  },
+  "dependencies": {
+    "@swmansion/smelter": "workspace:^0.1.0",
+    "@swmansion/smelter-core": "workspace:^0.1.0",
+    "fs-extra": "^11.2.0",
+    "node-fetch": "^2.6.7",
+    "form-data": "^4.0.1",
+    "pino": "^9.5.0",
+    "pino-pretty": "^13.0.0",
+    "tar": "^7.4.3",
+    "uuid": "^10.0.0",
+    "ws": "^8.18.0"
+  }
+}

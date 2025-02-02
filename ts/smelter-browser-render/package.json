@@ -1,0 +1,27 @@
+{
+  "name": "@swmansion/smelter-browser-render",
+  "version": "0.1.0-rc.4",
+  "main": "dist/index.js",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "watch": "rollup -w --no-watch.clearScreen -c",
+    "build-wasm": "node ./scripts/buildWasm.mjs",
+    "build": "rollup -c",
+    "clean": "rimraf dist src/generated",
+    "prepublishOnly": "pnpm run clean && pnpm run build-wasm && pnpm run build"
+  },
+  "author": "",
+  "license": "BUSL-1.1",
+  "description": "",
+  "devDependencies": {
+    "@rollup/plugin-typescript": "^11.1.6",
+    "rollup": "^4.21.2",
+    "rollup-plugin-copy": "^3.5.0",
+    "rollup-plugin-dts": "^6.1.1",
+    "wasm-pack": "^0.13.0"
+  },
+  "peerDependencies": {
+    "@swmansion/smelter": "workspace:0.1.0"
+  }
+}

@@ -1,6 +1,6 @@
-import LiveCompositor from '@live-compositor/node';
-import { Text, InputStream, Tiles, Rescaler, View } from 'live-compositor';
-import { downloadAllAssets, gstReceiveTcpStream, sleep } from './utils';
+import Smelter from '@swmansion/smelter-node';
+import { Text, InputStream, Tiles, Rescaler, View } from '@swmansion/smelter';
+import { downloadAllAssets, gstReceiveTcpStream } from './utils';
 import path from 'path';
 import { useState, useEffect } from 'react';
 
@@ -51,12 +51,10 @@ function InputTile({ inputId, muted }: { inputId: string; muted: boolean }) {
 
 async function run() {
   await downloadAllAssets();
-  const compositor = new LiveCompositor();
-  await compositor.init();
+  const smelter = new Smelter();
+  await smelter.init();
 
-  await sleep(2000);
-
-  await compositor.registerOutput('output_1', <ExampleApp />, {
+  await smelter.registerOutput('output_1', <ExampleApp />, {
     type: 'rtp_stream',
     port: 8001,
     transportProtocol: 'tcp_server',
@@ -79,16 +77,16 @@ async function run() {
   });
   void gstReceiveTcpStream('127.0.0.1', 8001);
 
-  await compositor.registerInput('input_1', {
+  await smelter.registerInput('input_1', {
     type: 'mp4',
     serverPath: path.join(__dirname, '../.assets/BigBuckBunny.mp4'),
   });
 
-  await compositor.registerInput('input_2', {
+  await smelter.registerInput('input_2', {
     type: 'mp4',
     serverPath: path.join(__dirname, '../.assets/ElephantsDream.mp4'),
   });
 
-  await compositor.start();
+  await smelter.start();
 }
 void run();

@@ -1,5 +1,5 @@
-import { OfflineCompositor } from '@live-compositor/node';
-import { View, Text, Rescaler, SlideShow, Slide, Mp4, InputStream } from 'live-compositor';
+import { OfflineSmelter } from '@swmansion/smelter-node';
+import { View, Text, Rescaler, SlideShow, Slide, Mp4, InputStream } from '@swmansion/smelter';
 import { downloadAllAssets } from './utils';
 import path from 'path';
 import type { ReactElement } from 'react';
@@ -97,17 +97,17 @@ function SlideWithLabel({ label, children }: { label: string; children: ReactEle
 
 async function run() {
   await downloadAllAssets();
-  const compositor = new OfflineCompositor();
-  await compositor.init();
+  const smelter = new OfflineSmelter();
+  await smelter.init();
 
-  await compositor.registerInput('input_1', {
+  await smelter.registerInput('input_1', {
     type: 'mp4',
     serverPath: path.join(__dirname, '../.assets/BigBuckBunny.mp4'),
     offsetMs: 0,
     required: true,
   });
 
-  await compositor.render(<ExampleApp />, {
+  await smelter.render(<ExampleApp />, {
     type: 'mp4',
     serverPath: path.join(__dirname, '../.assets/concat_mp4_output.mp4'),
     video: {
