@@ -115,7 +115,7 @@ async function exampleAsync() {
     url: DONATE_URL,
   });
 
-  const useWebCam = process.env.LIVE_COMPOSITOR_WEBCAM !== 'false';
+  const useWebCam = process.env.SMELTER_WEBCAM !== 'false';
   await compositor.registerInput('webcam_input', {
     type: 'rtp_stream',
     port: WEBCAM_INPUT_PORT,

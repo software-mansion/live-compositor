@@ -1,12 +1,12 @@
 use std::{fs, io, path::PathBuf};
 
 use compositor_api::types::{self, Component};
-use live_compositor::routes;
 use schemars::{
     schema::{RootSchema, Schema, SchemaObject},
     schema_for, JsonSchema,
 };
 use serde::{Deserialize, Serialize};
+use smelter::routes;
 
 const ROOT_DIR: &str = env!("CARGO_MANIFEST_DIR");
 

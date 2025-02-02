@@ -37,8 +37,8 @@ type RegisterWebRenderer = {
 
 ## Environment variables
 
-- `LIVE_COMPOSITOR_WEB_RENDERER_ENABLE` (default: `false`) - Enables web rendering capabilities.
-- `LIVE_COMPOSITOR_WEB_RENDERER_GPU_ENABLE` (default: `true`) - If enabled, websites are rendered on GPU. Otherwise, software based rendering is used.
+- `SMELTER_WEB_RENDERER_ENABLE` (default: `false`) - Enables web rendering capabilities.
+- `SMELTER_WEB_RENDERER_GPU_ENABLE` (default: `true`) - If enabled, websites are rendered on GPU. Otherwise, software based rendering is used.
 
 :::tip
 Read more about environment variables [here](../../deployment/configuration.md#environment-variables)

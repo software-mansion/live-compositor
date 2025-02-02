@@ -14,7 +14,7 @@ pub fn run() {
     let config = read_config();
     init_logger(config.logger.clone());
 
-    info!("Starting LiveCompositor with config:\n{:#?}", config);
+    info!("Starting Smelter with config:\n{:#?}", config);
     let runtime = Arc::new(Runtime::new().unwrap());
     let (state, event_loop) = ApiState::new(config, runtime.clone()).unwrap_or_else(|err| {
         panic!(

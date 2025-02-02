@@ -9,16 +9,16 @@ license = "BUSL-1.1"
 [features]
 default = ["web_renderer"]
 update_snapshots = []
-decklink = ["live_compositor/decklink"]
+decklink = ["smelter/decklink"]
 web_renderer = [
     "dep:compositor_chromium",
     "compositor_render/web_renderer",
-    "live_compositor/web_renderer",
+    "smelter/web_renderer",
 ]
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }
-live_compositor = { workspace = true }
+smelter = { workspace = true }
 compositor_api = { workspace = true }
 compositor_pipeline = { workspace = true }
 compositor_chromium = { workspace = true, optional = true }

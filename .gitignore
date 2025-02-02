@@ -37,11 +37,12 @@ target/
 /failed_snapshot_tests
 /docs/pages/api/generated
 
-/live_compositor.app
-/live_compositor
-/live_compositor_linux_x86_64.tar.gz
-/live_compositor_darwin_aarch64.tar.gz
-/live_compositor_darwin_x86_64.tar.gz
+/smelter.app
+/smelter
+/smelter_linux_x86_64.tar.gz
+/smelter_linux_aarch64.tar.gz
+/smelter_darwin_x86_64.tar.gz
+/smelter_darwin_aarch64.tar.gz
 
 .direnv
 /result

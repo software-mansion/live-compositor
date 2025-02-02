@@ -30,7 +30,7 @@ use compositor_render::{
 use crossbeam_channel::bounded;
 use image::{codecs::png::PngEncoder, ColorType, ImageEncoder};
 use integration_tests::{examples::download_file, read_rgba_texture};
-use live_compositor::{
+use smelter::{
     config::read_config,
     logger::{self},
 };

@@ -4,7 +4,7 @@ use chromium_sys::_cef_string_utf16_t;
 
 use crate::cef_string::CefString;
 
-pub const PROCESS_HELPER_PATH_ENV: &str = "LIVE_COMPOSITOR_PROCESS_HELPER_PATH";
+pub const PROCESS_HELPER_PATH_ENV: &str = "SMELTER_PROCESS_HELPER_PATH";
 
 /// Main process settings
 #[derive(Default)]
@@ -97,15 +97,15 @@ fn executables_paths() -> (_cef_string_utf16_t, _cef_string_utf16_t) {
     let current_exe = env::current_exe().unwrap();
     let current_dir = current_exe.parent().unwrap();
 
-    let main_bundle_path = PathBuf::from(current_dir).join("live_compositor.app");
+    let main_bundle_path = PathBuf::from(current_dir).join("smelter.app");
 
     let browser_subprocess_path = main_bundle_path
         .join("Contents")
         .join("Frameworks")
-        .join("live_compositor Helper.app")
+        .join("smelter Helper.app")
         .join("Contents")
         .join("MacOS")
-        .join("live_compositor Helper");
+        .join("smelter Helper");
 
     (
         CefString::new_raw(main_bundle_path.display().to_string()),

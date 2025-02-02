@@ -36,8 +36,8 @@ ARG USERNAME=smelter
 ENV DEBIAN_FRONTEND=noninteractive
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,graphics,utility
 
-ENV LIVE_COMPOSITOR_MAIN_EXECUTABLE_PATH=/home/$USERNAME/smelter/main_process
-ENV LIVE_COMPOSITOR_PROCESS_HELPER_PATH=/home/$USERNAME/smelter/process_helper
+ENV SMELTER_MAIN_EXECUTABLE_PATH=/home/$USERNAME/smelter/main_process
+ENV SMELTER_PROCESS_HELPER_PATH=/home/$USERNAME/smelter/process_helper
 ENV LD_LIBRARY_PATH=/home/$USERNAME/smelter/lib
 ENV XDG_RUNTIME_DIR=/home/$USERNAME/smelter/xdg_runtime
 

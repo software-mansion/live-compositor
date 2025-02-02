@@ -1,4 +1,4 @@
-# LiveCompositor TypeScript demos
+# Smelter TypeScript demos
 
 https://github.com/software-mansion/live-compositor/assets/104033489/e6f5ba7c-ab05-4935-a42a-bc28c42fc895
 
@@ -13,7 +13,7 @@ Before running demos, install JS dependencies with:
 ```console
 npm install
 ```
-LiveCompositor should run on any computer with modern GPU, but if you want to check detailed requirements, visit [requirements section in docs](https://compositor.live/docs/deployment/requirements).
+Smelter should run on any computer with modern GPU, but if you want to check detailed requirements, visit [requirements section in docs](https://compositor.live/docs/deployment/requirements).
 
 ### MacOS installation guide
 
@@ -57,7 +57,7 @@ It demonstrates how you can change output dynamically with smooth transitions.
 This example will use your webcam. If you have problems with webcam footage, you can substitute it with prerecorded mp4 file:
 
 ```console
-export LIVE_COMPOSITOR_WEBCAM=false
+export SMELTER_WEBCAM=false
 ```
 
 ### 2. TV Broadcast
@@ -69,7 +69,7 @@ npm run 2-tv_broadcast
 ```
 
 This example simulates TV broadcasting scenario.
-It demonstrates how you can combine built-in components with own shaders, customizing LiveCompositor for specific use-case, while utilizing GPU rendering acceleration.
+It demonstrates how you can combine built-in components with own shaders, customizing Smelter for specific use-case, while utilizing GPU rendering acceleration.
 In this example, green-screen is removed from input stream with use of custom shader. Transformed input stream, background image, logo, and text are combined in output stream.
 
 ### 3. Live stream
@@ -86,7 +86,7 @@ It demonstrates how to set up simple output and add elements like donate notific
 This example will use your webcam. If you have problems with webcam footage, you can substitute it with prerecorded mp4 file:
 
 ```console
-export LIVE_COMPOSITOR_WEBCAM=false
+export SMELTER_WEBCAM=false
 ```
 
 ## Learn more

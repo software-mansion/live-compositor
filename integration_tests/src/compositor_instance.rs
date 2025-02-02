@@ -1,12 +1,12 @@
 use anyhow::{anyhow, Result};
 use crossbeam_channel::Sender;
-use live_compositor::{
+use reqwest::StatusCode;
+use smelter::{
     config::{read_config, Config},
     logger::{self},
     server::run_api,
     state::ApiState,
 };
-use reqwest::StatusCode;
 use std::{
     env,
     sync::{
@@ -40,7 +40,7 @@ impl CompositorInstance {
         config.api_port = api_port;
         config.start_whip_whep = false;
 
-        info!("Starting LiveCompositor Integration Test with config:\n{config:#?}",);
+        info!("Starting Smelter Integration Test with config:\n{config:#?}",);
 
         let (should_close_sender, should_close_receiver) = crossbeam_channel::bounded(1);
         let runtime = Arc::new(Runtime::new().unwrap());
@@ -113,7 +113,7 @@ fn get_free_port() -> u16 {
 fn init_compositor_prerequisites() {
     static GLOBAL_PREREQUISITES_INITIALIZED: OnceLock<()> = OnceLock::new();
     GLOBAL_PREREQUISITES_INITIALIZED.get_or_init(|| {
-        env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "0");
+        env::set_var("SMELTER_WEB_RENDERER_ENABLE", "0");
         ffmpeg_next::format::network::init();
         let config = read_config();
         logger::init_logger(config.logger);

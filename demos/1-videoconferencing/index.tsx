@@ -85,7 +85,7 @@ function VideoCallTile({ id }: { id: number }) {
 }
 
 async function exampleAsync() {
-  const useWebCam = process.env.LIVE_COMPOSITOR_WEBCAM !== 'false';
+  const useWebCam = process.env.SMELTER_WEBCAM !== 'false';
   const compositor = new LiveCompositor();
   await compositor.init();
 

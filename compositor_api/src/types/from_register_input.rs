@@ -316,7 +316,7 @@ impl TryFrom<DeckLink> for pipeline::RegisterInputOptions {
     #[cfg(not(feature = "decklink"))]
     fn try_from(_value: DeckLink) -> Result<Self, Self::Error> {
         Err(TypeError::new(
-            "This Live Compositor binary was build without DeckLink support. Rebuilt it with \"decklink\" feature enabled.",
+            "This Smelter binary was build without DeckLink support. Rebuilt it with \"decklink\" feature enabled.",
         ))
     }
 }

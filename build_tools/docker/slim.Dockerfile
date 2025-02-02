@@ -48,7 +48,7 @@ WORKDIR /home/$USERNAME/smelter
 
 COPY --from=builder --chown=$USERNAME:$USERNAME /root/project/target/release/main_process /home/$USERNAME/smelter/main_process
 
-ENV LIVE_COMPOSITOR_WEB_RENDERER_ENABLE=0
-ENV LIVE_COMPOSITOR_WEB_RENDERER_GPU_ENABLE=0
+ENV SMELTER_WEB_RENDERER_ENABLE=0
+ENV SMELTER_WEB_RENDERER_GPU_ENABLE=0
 
 ENTRYPOINT ["/home/smelter/smelter/main_process"]

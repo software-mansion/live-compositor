@@ -197,7 +197,7 @@ async function exampleAsync() {
 
   const compositor = new LiveCompositor();
   await compositor.init();
-  process.env.LIVE_COMPOSITOR_LOGGER_LEVEL = 'debug';
+  process.env.SMELTER_LOGGER_LEVEL = 'debug';
 
   await compositor.registerInput('tv_input', {
     type: 'rtp_stream',

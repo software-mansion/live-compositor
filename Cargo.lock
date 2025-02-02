@@ -1865,7 +1865,6 @@ dependencies = [
  "compositor_render",
  "crossbeam-channel",
  "ffmpeg-next",
- "live_compositor",
  "opus",
  "pitch-detection",
  "rand",
@@ -1875,6 +1874,7 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
+ "smelter",
  "socket2",
  "tokio",
  "tracing",
@@ -2423,7 +2423,6 @@ dependencies = [
  "ffmpeg-next",
  "futures-util",
  "image",
- "live_compositor",
  "log",
  "opus",
  "pitch-detection",
@@ -2435,6 +2434,7 @@ dependencies = [
  "serde",
  "serde_json",
  "signal-hook",
+ "smelter",
  "socket2",
  "tokio",
  "tokio-tungstenite 0.21.0",
@@ -2646,44 +2646,6 @@ name = "litrs"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b4ce301924b7887e9d637144fdade93f9dfff9b60981d4ac161db09720d39aa5"
-
-[[package]]
-name = "live_compositor"
-version = "0.3.0"
-dependencies = [
- "anyhow",
- "axum",
- "bytes",
- "compositor_api",
- "compositor_chromium",
- "compositor_pipeline",
- "compositor_render",
- "crossbeam-channel",
- "ffmpeg-next",
- "fs_extra",
- "futures-util",
- "glyphon",
- "http-body-util",
- "image",
- "libc",
- "log",
- "rand",
- "reqwest",
- "rtp",
- "rubato",
- "schemars",
- "serde",
- "serde_json",
- "shared_memory",
- "signal-hook",
- "thiserror",
- "tiny_http",
- "tokio",
- "tracing",
- "tracing-subscriber 0.3.18",
- "webrtc-util",
- "wgpu",
-]
 
 [[package]]
 name = "lock_api"
@@ -4445,6 +4407,44 @@ name = "smallvec"
 version = "1.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3c5e1a9a646d36c3599cd173a41282daf47c44583ad367b8e6837255952e5c67"
+
+[[package]]
+name = "smelter"
+version = "0.3.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "bytes",
+ "compositor_api",
+ "compositor_chromium",
+ "compositor_pipeline",
+ "compositor_render",
+ "crossbeam-channel",
+ "ffmpeg-next",
+ "fs_extra",
+ "futures-util",
+ "glyphon",
+ "http-body-util",
+ "image",
+ "libc",
+ "log",
+ "rand",
+ "reqwest",
+ "rtp",
+ "rubato",
+ "schemars",
+ "serde",
+ "serde_json",
+ "shared_memory",
+ "signal-hook",
+ "thiserror",
+ "tiny_http",
+ "tokio",
+ "tracing",
+ "tracing-subscriber 0.3.18",
+ "webrtc-util",
+ "wgpu",
+]
 
 [[package]]
 name = "smithay-client-toolkit"

@@ -1,6 +1,6 @@
 # Assets
 
-This section contains mentions of external assets used by LiveCompositor.
+This section contains mentions of external assets used by Smelter.
 
 ## Demos assets
 

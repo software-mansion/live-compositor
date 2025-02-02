@@ -43,7 +43,7 @@ function Instructions() {
         - ./src/routes.ts controls HTTP API that can be used to interact with this example.
       </Text>
       <Text style={{ width: 960, fontSize: 30, wrap: 'word' }}>
-        - ./compositor.tsx exposes Smelter instance that can be used to add/remove new
+        - ./smelter.tsx exposes Smelter instance that can be used to add/remove new
         streams/images/shader.
       </Text>
       <Text style={{ width: 960, fontSize: 30, wrap: 'word' }}>

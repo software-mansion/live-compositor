@@ -7,7 +7,7 @@ fn main() {
         pipeline::{GraphicsContext, Options},
         Pipeline,
     };
-    use live_compositor::config::read_config;
+    use smelter::config::read_config;
     use std::sync::Arc;
     use tokio::runtime::Runtime;
 

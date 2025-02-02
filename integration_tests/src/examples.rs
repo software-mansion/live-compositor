@@ -1,8 +1,8 @@
 use anyhow::{anyhow, Result};
 
 use futures_util::{SinkExt, StreamExt};
-use live_compositor::{config::read_config, server};
 use reqwest::{blocking::Response, StatusCode};
+use smelter::{config::read_config, server};
 use std::{
     env,
     fs::{self, File},

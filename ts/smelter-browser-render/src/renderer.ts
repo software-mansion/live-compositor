@@ -27,9 +27,9 @@ export enum FrameFormat {
 }
 
 export class Renderer {
-  private renderer: wasm.LiveCompositorRenderer;
+  private renderer: wasm.SmelterRenderer;
 
-  private constructor(renderer: wasm.LiveCompositorRenderer) {
+  private constructor(renderer: wasm.SmelterRenderer) {
     this.renderer = renderer;
   }
 

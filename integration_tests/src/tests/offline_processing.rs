@@ -5,10 +5,10 @@ use std::{
 };
 
 use anyhow::{anyhow, Result};
-use live_compositor::config::read_config;
 use log::info;
 use regex::Regex;
 use serde_json::json;
+use smelter::config::read_config;
 use tokio_tungstenite::tungstenite;
 
 use crate::{tests::start_server_msg_listener, CompositorInstance};

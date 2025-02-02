@@ -27,7 +27,7 @@ use compositor_render::{
     web_renderer::WebRendererInitOptions,
     Framerate, InputId, OutputId, Resolution,
 };
-use live_compositor::{
+use smelter::{
     config::{read_config, LoggerConfig},
     logger,
 };

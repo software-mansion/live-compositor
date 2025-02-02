@@ -31,7 +31,7 @@ export type RegisterInput =
       audio?: InputRtpAudioOptions | null;
       /**
        * (**default=`false`**) If input is required and the stream is not delivered
-       * on time, then LiveCompositor will delay producing output frames.
+       * on time, then Smelter will delay producing output frames.
        */
       required?: boolean | null;
       /**
@@ -57,7 +57,7 @@ export type RegisterInput =
       loop?: boolean | null;
       /**
        * (**default=`false`**) If input is required and frames are not processed
-       * on time, then LiveCompositor will delay producing output frames.
+       * on time, then Smelter will delay producing output frames.
        */
       required?: boolean | null;
       /**
@@ -82,7 +82,7 @@ export type RegisterInput =
       audio?: InputWhipAudioOptions | null;
       /**
        * (**default=`false`**) If input is required and the stream is not delivered
-       * on time, then LiveCompositor will delay producing output frames.
+       * on time, then Smelter will delay producing output frames.
        */
       required?: boolean | null;
       /**
@@ -126,7 +126,7 @@ export type RegisterInput =
       enable_audio?: boolean | null;
       /**
        * (**default=`false`**) If input is required and frames are not processed
-       * on time, then LiveCompositor will delay producing output frames.
+       * on time, then Smelter will delay producing output frames.
        */
       required?: boolean | null;
     };
@@ -184,7 +184,7 @@ export type RegisterOutput =
       /**
        * Depends on the value of the `transport_protocol` field:
        * - `udp` - An UDP port number that RTP packets will be sent to.
-       * - `tcp_server` - A local TCP port number or a port range that LiveCompositor will listen for incoming connections.
+       * - `tcp_server` - A local TCP port number or a port range that Smelter will listen for incoming connections.
        */
       port: PortOrPortRange;
       /**

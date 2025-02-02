@@ -15,7 +15,7 @@ use super::*;
 pub struct RtpOutput {
     /// Depends on the value of the `transport_protocol` field:
     ///   - `udp` - An UDP port number that RTP packets will be sent to.
-    ///   - `tcp_server` - A local TCP port number or a port range that LiveCompositor will listen for incoming connections.
+    ///   - `tcp_server` - A local TCP port number or a port range that Smelter will listen for incoming connections.
     pub port: PortOrPortRange,
     /// Only valid if `transport_protocol="udp"`. IP address where RTP packets should be sent to.
     pub ip: Option<Arc<str>>,

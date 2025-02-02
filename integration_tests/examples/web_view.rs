@@ -20,7 +20,7 @@ const INPUT_PORT: u16 = 8002;
 const OUTPUT_PORT: u16 = 8004;
 
 fn main() {
-    env::set_var("LIVE_COMPOSITOR_WEB_RENDERER_ENABLE", "1");
+    env::set_var("SMELTER_WEB_RENDERER_ENABLE", "1");
 
     use compositor_chromium::cef::bundle_for_development;
 

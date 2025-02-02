@@ -9,6 +9,6 @@ set -eo pipefail
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 export LD_LIBRARY_PATH="$SCRIPT_DIR/lib:$LD_LIBRARY_PATH"
-export LIVE_COMPOSITOR_PROCESS_HELPER_PATH="$SCRIPT_DIR/live_compositor_process_helper"
+export SMELTER_PROCESS_HELPER_PATH="$SCRIPT_DIR/smelter_process_helper"
 
-exec "$SCRIPT_DIR/live_compositor_main" "$@"
+exec "$SCRIPT_DIR/smelter_main" "$@"

@@ -99,7 +99,7 @@ impl RenderProcessHandler {
         };
 
         global.call_method(
-            "live_compositor_renderFrame",
+            "smelter_renderFrame",
             &[
                 &source.id_attribute_value,
                 &source.array_buffer,

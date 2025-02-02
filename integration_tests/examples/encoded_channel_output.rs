@@ -23,7 +23,7 @@ use compositor_render::{
     InputId, OutputId, Resolution,
 };
 use integration_tests::examples::download_file;
-use live_compositor::{config::read_config, logger, state::ApiState};
+use smelter::{config::read_config, logger, state::ApiState};
 use tokio::runtime::Runtime;
 
 const BUNNY_FILE_URL: &str =

@@ -19,7 +19,7 @@ pub struct RtpInput {
     /// Parameters of an audio source included in the RTP stream.
     pub audio: Option<InputRtpAudioOptions>,
     /// (**default=`false`**) If input is required and the stream is not delivered
-    /// on time, then LiveCompositor will delay producing output frames.
+    /// on time, then Smelter will delay producing output frames.
     pub required: Option<bool>,
     /// Offset in milliseconds relative to the pipeline start (start request). If the offset is
     /// not defined then the stream will be synchronized based on the delivery time of the initial
@@ -37,7 +37,7 @@ pub struct WhipInput {
     /// Parameters of an audio source included in the RTP stream.
     pub audio: Option<InputWhipAudioOptions>,
     /// (**default=`false`**) If input is required and the stream is not delivered
-    /// on time, then LiveCompositor will delay producing output frames.
+    /// on time, then Smelter will delay producing output frames.
     pub required: Option<bool>,
     /// Offset in milliseconds relative to the pipeline start (start request). If the offset is
     /// not defined then the stream will be synchronized based on the delivery time of the initial
@@ -58,7 +58,7 @@ pub struct Mp4Input {
     #[serde(rename = "loop")]
     pub should_loop: Option<bool>,
     /// (**default=`false`**) If input is required and frames are not processed
-    /// on time, then LiveCompositor will delay producing output frames.
+    /// on time, then Smelter will delay producing output frames.
     pub required: Option<bool>,
     /// Offset in milliseconds relative to the pipeline start (start request). If offset is
     /// not defined then stream is synchronized based on the first frames delivery time.
@@ -98,7 +98,7 @@ pub struct DeckLink {
     pub enable_audio: Option<bool>,
 
     /// (**default=`false`**) If input is required and frames are not processed
-    /// on time, then LiveCompositor will delay producing output frames.
+    /// on time, then Smelter will delay producing output frames.
     pub required: Option<bool>,
 }
 

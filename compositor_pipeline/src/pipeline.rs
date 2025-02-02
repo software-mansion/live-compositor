@@ -193,7 +193,7 @@ impl Pipeline {
 
         let download_dir = opts
             .download_root
-            .join(format!("live-compositor-{}", rand::random::<u64>()));
+            .join(format!("smelter-{}", rand::random::<u64>()));
         std::fs::create_dir_all(&download_dir).map_err(InitPipelineError::CreateDownloadDir)?;
 
         let tokio_rt = match opts.tokio_rt {

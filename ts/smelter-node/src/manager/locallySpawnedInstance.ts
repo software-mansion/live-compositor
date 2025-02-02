@@ -47,12 +47,10 @@ class LocallySpawnedInstance implements SmelterManager {
   }
 
   public static defaultManager(): LocallySpawnedInstance {
-    const port = process.env.LIVE_COMPOSITOR_API_PORT
-      ? Number(process.env.LIVE_COMPOSITOR_API_PORT)
-      : 8000;
+    const port = process.env.SMELTER_API_PORT ? Number(process.env.SMELTER_API_PORT) : 8000;
     return new LocallySpawnedInstance({
       port,
-      executablePath: process.env.LIVE_COMPOSITOR_PATH,
+      executablePath: process.env.SMELTER_PATH,
     });
   }
 
@@ -62,15 +60,13 @@ class LocallySpawnedInstance implements SmelterManager {
     const { level, format } = smelterInstanceLoggerOptions();
 
     const env = {
-      LIVE_COMPOSITOR_DOWNLOAD_DIR: path.join(this.workingdir, 'download'),
-      LIVE_COMPOSITOR_API_PORT: this.port.toString(),
-      LIVE_COMPOSITOR_WEB_RENDERER_ENABLE: this.enableWebRenderer ? 'true' : 'false',
-      LIVE_COMPOSITOR_AHEAD_OF_TIME_PROCESSING_ENABLE: opts.aheadOfTimeProcessing
-        ? 'true'
-        : 'false',
+      SMELTER_DOWNLOAD_DIR: path.join(this.workingdir, 'download'),
+      SMELTER_API_PORT: this.port.toString(),
+      SMELTER_WEB_RENDERER_ENABLE: this.enableWebRenderer ? 'true' : 'false',
+      SMELTER_AHEAD_OF_TIME_PROCESSING_ENABLE: opts.aheadOfTimeProcessing ? 'true' : 'false',
       ...process.env,
-      LIVE_COMPOSITOR_LOGGER_FORMAT: format,
-      LIVE_COMPOSITOR_LOGGER_LEVEL: level,
+      SMELTER_LOGGER_FORMAT: format,
+      SMELTER_LOGGER_LEVEL: level,
     };
     this.childSpawnPromise = spawn(executablePath, [], { env, stdio: 'inherit' });
     this.childSpawnPromise.catch(err => {
