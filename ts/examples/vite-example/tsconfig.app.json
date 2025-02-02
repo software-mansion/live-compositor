@@ -20,5 +20,5 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["../vite-example/src", "../vite-example/ts-declarations"]
+  "include": ["src", "ts-declarations"]
 }
