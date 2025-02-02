@@ -1,7 +1,17 @@
 {
   "name": "@swmansion/smelter-web-wasm",
-  "version": "0.1.0-rc.0",
-  "description": "",
+  "version": "0.2.0-rc.0",
+  "author": "Software Mansion <contact@swmansion.com>",
+  "license": "SEE LICENSE IN ./LICENSE",
+  "description": "Smelter server running directlly in browser",
+  "bugs": {
+    "url": "https://github.com/software-mansion/smelter/issues"
+  },
+  "homepage": "https://github.com/software-mansion/smelter",
+  "files": [
+    "/dist",
+    "/LICENSE"
+  ],
   "main": "dist/index.js",
   "scripts": {
     "lint": "eslint .",
@@ -11,21 +21,18 @@
     "clean": "rimraf dist",
     "prepublishOnly": "pnpm run clean && pnpm run build"
   },
-  "author": "",
-  "license": "MIT",
-  "files": [
-    "/dist"
-  ],
   "dependencies": {
     "@datastructures-js/queue": "^4.2.3",
-    "@swmansion/smelter": "workspace:^0.1.0",
-    "@swmansion/smelter-browser-render": "workspace:0.1.0-rc.4",
-    "@swmansion/smelter-core": "workspace:0.1.0",
+    "@swmansion/smelter-browser-render": "workspace:0.2.0-rc.0",
+    "@swmansion/smelter-core": "workspace:0.2.0-rc.0",
     "mp4box": "^0.5.2",
     "path-parser": "^6.1.0",
     "pino": "^9.5.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.3"
+  },
+  "peerDependencies": {
+    "@swmansion/smelter": "workspace:^0.2.0-rc.0"
   }
 }

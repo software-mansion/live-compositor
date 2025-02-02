@@ -1,7 +1,17 @@
 {
   "name": "@swmansion/smelter",
-  "version": "0.1.0",
-  "description": "",
+  "version": "0.2.0-rc.0",
+  "author": "Software Mansion <contact@swmansion.com>",
+  "license": "MIT",
+  "description": "Compose your videos and live streams with React",
+  "bugs": {
+    "url": "https://github.com/software-mansion/smelter/issues"
+  },
+  "homepage": "https://github.com/software-mansion/smelter",
+  "files": [
+    "/esm",
+    "/cjs"
+  ],
   "type": "module",
   "main": "cjs/index.js",
   "exports": {
@@ -21,16 +31,6 @@
     "clean": "rimraf esm cjs",
     "prepublishOnly": "pnpm run clean && pnpm run build"
   },
-  "author": "",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/software-mansion/smelter/issues"
-  },
-  "homepage": "https://github.com/software-mansion/smelter",
-  "files": [
-    "/esm",
-    "/cjs"
-  ],
   "devDependencies": {
     "@types/react": "^18.3.3"
   },
