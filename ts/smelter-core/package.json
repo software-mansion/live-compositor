@@ -1,7 +1,17 @@
 {
   "name": "@swmansion/smelter-core",
-  "version": "0.1.0",
-  "description": "",
+  "version": "0.2.0-rc.0",
+  "author": "Software Mansion <contact@swmansion.com>",
+  "license": "MIT",
+  "description": "Smelter core implementation - used by runtime specific packages",
+  "bugs": {
+    "url": "https://github.com/software-mansion/smelter/issues"
+  },
+  "homepage": "https://github.com/software-mansion/smelter",
+  "files": [
+    "/esm",
+    "/cjs"
+  ],
   "type": "module",
   "main": "cjs/index.js",
   "exports": {
@@ -21,12 +31,6 @@
     "clean": "rimraf esm cjs",
     "prepublishOnly": "pnpm run clean && pnpm run build"
   },
-  "author": "",
-  "license": "MIT",
-  "files": [
-    "/esm",
-    "/cjs"
-  ],
   "devDependencies": {
     "@types/react": "^18.3.3",
     "@types/react-reconciler": "0.28.8"
@@ -36,7 +40,7 @@
     "react-reconciler": "0.29.2"
   },
   "peerDependencies": {
-    "@swmansion/smelter": "workspace:^0.1.0",
+    "@swmansion/smelter": "workspace:^0.2.0-rc.0",
     "react": "*"
   }
 }

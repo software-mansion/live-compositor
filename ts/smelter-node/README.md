@@ -51,7 +51,7 @@ See our [docs](https://compositor.live/docs) to learn more.
 ## License
 
 `@swmansion/smelter-node` is MIT licensed, but internally it is downloading and using Smelter server that is licensed
-under [Business Source License 1.1](https://github.com/software-mansion/smelter/blob/master/LICENSE).
+under a [custom license](https://github.com/software-mansion/smelter/blob/master/LICENSE).
 
 ## Smelter is created by Software Mansion
 

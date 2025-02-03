@@ -36,7 +36,7 @@ See our [docs](https://compositor.live/docs) to learn more.
 ## License
 
 `@swmansion/smelter` package is MIT licensed, but it is only useful when used with Smelter server that is licensed
-under [Business Source License 1.1](https://github.com/software-mansion/smelter/blob/master/LICENSE).
+under a [custom license](https://github.com/software-mansion/smelter/blob/master/LICENSE).
 
 ## Smelter is created by Software Mansion
 

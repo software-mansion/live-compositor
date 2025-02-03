@@ -2,7 +2,7 @@
 name = "compositor_api"
 version = "0.1.0"
 edition = "2021"
-license = "BUSL-1.1"
+license-file = "../LICENSE"
 
 [features]
 decklink = ["compositor_pipeline/decklink"]

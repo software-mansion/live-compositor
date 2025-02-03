@@ -1,6 +1,17 @@
 {
   "name": "@swmansion/smelter-browser-render",
-  "version": "0.1.0-rc.4",
+  "version": "0.2.0-rc.0",
+  "author": "Software Mansion <contact@swmansion.com>",
+  "license": "SEE LICENSE IN ./LICENSE",
+  "description": "Smelter rendering engine compiled to WASM",
+  "bugs": {
+    "url": "https://github.com/software-mansion/smelter/issues"
+  },
+  "homepage": "https://github.com/software-mansion/smelter",
+  "files": [
+    "/dist",
+    "/LICENSE"
+  ],
   "main": "dist/index.js",
   "scripts": {
     "lint": "eslint .",
@@ -11,9 +22,6 @@
     "clean": "rimraf dist src/generated",
     "prepublishOnly": "pnpm run clean && pnpm run build-wasm && pnpm run build"
   },
-  "author": "",
-  "license": "BUSL-1.1",
-  "description": "",
   "devDependencies": {
     "@rollup/plugin-typescript": "^11.1.6",
     "rollup": "^4.21.2",
@@ -22,6 +30,6 @@
     "wasm-pack": "^0.13.0"
   },
   "peerDependencies": {
-    "@swmansion/smelter": "workspace:0.1.0"
+    "@swmansion/smelter": "workspace:0.2.0-rc.0"
   }
 }

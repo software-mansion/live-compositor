@@ -18,7 +18,7 @@
     "url": "git+https://github.com/software-mansion/live-compositor.git"
   },
   "author": "",
-  "license": "BUSL-1.1",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/software-mansion/live-compositor/issues"
   },
