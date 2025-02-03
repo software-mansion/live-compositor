@@ -33,12 +33,12 @@ export default class OfflineSmelter {
     await this.coreSmelter.registerInput(inputId, request);
   }
 
-  public async registerShader(shaderId: string, request: Renderers.RegisterShader) {
-    await this.coreSmelter.registerShader(shaderId, request);
+  public async registerImage(imageId: string, request: Renderers.RegisterImage): Promise<void> {
+    await this.coreSmelter.registerImage(imageId, request);
   }
 
-  public async registerImage(imageId: string, request: Renderers.RegisterImage) {
-    await this.registerImage(imageId, request);
+  public async registerShader(shaderId: string, request: Renderers.RegisterShader): Promise<void> {
+    await this.coreSmelter.registerShader(shaderId, request);
   }
 
   public async registerFont(fontSource: string | ArrayBuffer): Promise<object> {
