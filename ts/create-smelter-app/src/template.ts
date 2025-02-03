@@ -16,8 +16,39 @@ export async function applyTemplate(
 
   const packageJsonPath = path.join(destination, 'package.json');
   const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
+  const transformedPackageJson = transformPackageJson(packageJson, projectName);
+  await fs.writeFile(
+    packageJsonPath,
+    JSON.stringify(transformedPackageJson, null, 2) + '\n',
+    'utf8'
+  );
+}
+
+export function transformPackageJson(packageJson: any, projectName: string): any {
   delete packageJson?.scripts?.['start'];
   delete packageJson['private'];
   packageJson.name = projectName;
-  await fs.writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n', 'utf8');
+  const LABEL = 'workspace:';
+
+  for (const dep of Object.keys((packageJson['dependencies'] as any) ?? {})) {
+    const depValue: string = packageJson?.['dependencies']?.[dep];
+    if (depValue && depValue.startsWith(LABEL)) {
+      packageJson['dependencies'][dep] = depValue.substring(LABEL.length);
+    }
+  }
+
+  for (const dep of Object.keys((packageJson['devDependencies'] as any) ?? {})) {
+    const depValue: string = packageJson?.['devDependencies']?.[dep];
+    if (depValue && depValue.startsWith(LABEL)) {
+      packageJson['devDependencies'][dep] = depValue.substring(LABEL.length);
+    }
+  }
+
+  for (const dep of Object.keys((packageJson['peerDependencies'] as any) ?? {})) {
+    const depValue: string = packageJson?.['peerDependencies']?.[dep];
+    if (depValue && depValue.startsWith(LABEL)) {
+      packageJson['peerDependencies'][dep] = depValue.substring(LABEL.length);
+    }
+  }
+  return packageJson;
 }
