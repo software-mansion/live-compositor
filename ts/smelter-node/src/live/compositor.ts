@@ -53,6 +53,25 @@ export default class Smelter {
     await this.coreSmelter.unregisterImage(imageId);
   }
 
+  public async registerShader(shaderId: string, request: Renderers.RegisterShader): Promise<void> {
+    await this.coreSmelter.registerShader(shaderId, request);
+  }
+
+  public async unregisterShader(shaderId: string): Promise<void> {
+    await this.coreSmelter.unregisterShader(shaderId);
+  }
+
+  public async registerWebRenderer(
+    instanceId: string,
+    request: Renderers.RegisterWebRenderer
+  ): Promise<void> {
+    await this.coreSmelter.registerWebRenderer(instanceId, request);
+  }
+
+  public async unregisterWebRenderer(instanceId: string): Promise<void> {
+    await this.coreSmelter.unregisterWebRenderer(instanceId);
+  }
+
   public async registerFont(fontSource: string | ArrayBuffer): Promise<object> {
     let fontBuffer: Buffer;
 
