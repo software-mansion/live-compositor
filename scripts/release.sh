@@ -23,12 +23,12 @@ if [[ -z "$COMMIT_HASH"  ]]; then
   exit 1
 fi
 
-if ! docker buildx imagetools 2>&1 >/dev/null; then
+if ! docker buildx imagetools >/dev/null 2>&1; then
   echo "Command \"docker buildx imagetools\" failed. Make sure buildx is enabled/installed on your platform."
   exit 1
 fi
 
-if ! gh auth status 2>&1 >/dev/null; then
+if ! gh auth status >/dev/null 2>&1; then
   echo "Command \"gh auth status\" failed. Make sure to login authenticate gh CLI."
   exit 1
 fi
